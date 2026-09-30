@@ -1,0 +1,1777 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PS DOWNLOAD - Short Drama & Video Pro</title>
+    <link rel="icon" href="/ps_logo.jpg">
+    <!-- Google Fonts: Kantumruy Pro (Khmer), Plus Jakarta Sans & Outfit (English/UI) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:ital,wght@0,300..700;1,300..700&family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Modular CSS Stylesheets -->
+    <link rel="stylesheet" href="/css/main.css">
+    <link rel="stylesheet" href="/css/hongguo.css">
+    <link rel="stylesheet" href="/css/haosou.css">
+    <link rel="stylesheet" href="/css/mvffm.css">
+    <link rel="stylesheet" href="/css/youtube.css">
+    <link rel="stylesheet" href="/css/starred.css">
+</head>
+<body>
+
+    <!-- Modern Left Sidebar Navigation (Desktop Edition) -->
+    <header class="app-sidebar" id="appSidebar">
+        <!-- Sidebar Brand / Logo -->
+        <div class="sidebar-header">
+            <div class="sidebar-brand" onclick="switchPlatform('hongguo')" title="PS DOWNLOAD Pro Edition">
+                <div class="sidebar-logo-icon">
+                    <img src="/ps_logo.jpg" alt="PS DOWNLOAD" style="width: 32px; height: 32px; border-radius: 8px; object-fit: cover; box-shadow: 0 0 10px rgba(56, 189, 248, 0.4);">
+                </div>
+                <div class="sidebar-brand-text">
+                    <span class="sidebar-brand-title">PS DOWNLOAD</span>
+                    <span class="sidebar-brand-sub">SHORT DRAMA PRO</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar Scrollable Body -->
+        <div class="sidebar-body">
+            <!-- Section 1: Platforms (ប្រភពរឿង) -->
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">ប្រភពរឿង (PLATFORMS)</div>
+                <div class="platform-hub" id="platformHub" role="tablist" aria-label="Platforms">
+                    <!-- Tab 1: Hongguo -->
+                    <button type="button" class="platform-tab-btn active" id="tabPlatformHongguo" onclick="switchPlatform('hongguo')" role="tab" aria-selected="true" title="Hongguo Short Dramas (ហុងគ័រ - រឿងភាគខ្លី)">
+                        <div class="hg-badge-icon" onclick="onHongguoLogoClick(event)" title="ចុច Logo ដើម្បីបើកវេបសាយផ្ទាល់ (hongguoduanju.com) ↗">
+                            <img src="/hongguo_icon.svg" alt="Hongguo" style="width: 20px; height: 20px; object-fit: contain; vertical-align: middle;">
+                        </div>
+                        <span class="platform-title hg-title">HONGGUO</span>
+                        <span class="platform-sparkle hg-sparkle">DRAMA</span>
+                    </button>
+
+                    <!-- Tab 2: HaoSou (1DFX.com) Short Dramas -->
+                    <button type="button" class="platform-tab-btn" id="tabPlatformHaosou" onclick="switchPlatform('haosou')" role="tab" aria-selected="false" title="HAOSOU (1DFX.com) - ចុច Logo ដើម្បីបើកវេបសាយផ្ទាល់">
+                        <div class="hs-badge-icon" onclick="onHaoSouLogoClick(event)" title="ចុច Logo ដើម្បីបើកវេបសាយផ្ទាល់ (dj.1dfx.com) ↗">
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none">
+                                <rect width="24" height="24" rx="7" fill="url(#hsTabGrad)"/>
+                                <path d="M9.5 8L16.5 12L9.5 16V8Z" fill="#FFFFFF"/>
+                                <defs>
+                                    <linearGradient id="hsTabGrad" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse">
+                                        <stop stop-color="#4F46E5"/>
+                                        <stop offset="1" stop-color="#7C3AED"/>
+                                    </linearGradient>
+                                </defs>
+                            </svg>
+                        </div>
+                        <span class="platform-title hs-title" id="hsTabLabel">HAOSOU</span>
+                        <span class="platform-sparkle hs-sparkle">1DFX</span>
+                    </button>
+
+                    <!-- Tab 3: MVFFM (mvffm.net) Short Dramas -->
+                    <button type="button" class="platform-tab-btn" id="tabPlatformMvffm" onclick="switchPlatform('mvffm')" role="tab" aria-selected="false" title="MVFFM (mvffm.net) - ចុច Logo ដើម្បីបើកវេបសាយផ្ទាល់">
+                        <div class="mv-badge-icon" onclick="onMvffmLogoClick(event)" title="ចុច Logo ដើម្បីបើកវេបសាយផ្ទាល់ (mvffm.net/drama/) ↗" style="width:22px; height:22px; border-radius:6px; background:linear-gradient(135deg, #e11d48, #be123c); display:flex; align-items:center; justify-content:center; cursor:pointer;">
+                            <span style="font-size:12px;">🎬</span>
+                        </div>
+                        <span class="platform-title mv-title" id="mvTabLabel">MVFFM</span>
+                        <span class="platform-sparkle mv-sparkle" style="background:rgba(225,29,72,0.2); color:#fda4af; border:1px solid rgba(225,29,72,0.4); border-radius:6px; font-size:0.62rem; padding:1px 4px; font-weight:800;">21K+</span>
+                    </button>
+
+                    <!-- Tab 4: YouTube -->
+                    <button type="button" class="platform-tab-btn" id="tabPlatformYoutube" onclick="switchPlatform('youtube')" role="tab" aria-selected="false" title="YouTube Downloader">
+                        <div class="yt-badge-icon">
+                            <svg viewBox="0 0 24 24" width="18" height="18">
+                                <path fill="#FF0000" d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814z"/>
+                                <polygon fill="#FFFFFF" points="9.545,15.568 15.818,12 9.545,8.432"/>
+                            </svg>
+                        </div>
+                        <span class="platform-title yt-title">YOUTUBE</span>
+                        <span class="platform-sparkle">4K</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Section 2: Navigation (មឺនុយមេ) -->
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">មឺនុយមេ (MENU)</div>
+                <div class="nav-actions">
+                    <button class="btn btn-sidebar-nav" id="btnHeaderStarred" onclick="openGlobalStarredView()" title="PIN / ចំណាំទុកមើល">
+                        <span>⭐</span>
+                        <span id="headerStarredText" style="flex:1;">PIN ចំណាំ</span>
+                        <span class="badge" id="globalStarredBadge" style="display:none;">0</span>
+                    </button>
+                    <button class="btn btn-sidebar-nav" id="btnHeaderLibrary" onclick="openOfflineLibraryDrawer()" title="បណ្ណាល័យរឿងដែលបានទាញយក (Offline Library)">
+                        <span>📚</span>
+                        <span id="headerLibraryText" style="flex:1;">បណ្ណាល័យ</span>
+                        <span class="badge" id="libraryCountBadge" style="display:none;">0</span>
+                        <span class="badge" id="activeDlCount" style="display:none; background:#0ea5e9;">0</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar Footer (Pinned to bottom) -->
+        <div class="sidebar-footer">
+            <!-- License Status Pill with Live Days/Hours/Minutes Countdown -->
+            <button type="button" class="btn btn-license-badge unactivated" id="btnHeaderLicenseStatus" onclick="openLicenseActivationModal(true)" title="ស្ថានភាព License (ចុចដើម្បី Activate)">
+                <span id="headerLicenseIcon">🔐</span>
+                <span id="headerLicenseText">គ្មាន License</span>
+            </button>
+
+            <div class="sidebar-bottom-actions">
+                <button type="button" class="btn btn-sidebar-setting" id="btnHeaderSettings" onclick="openSettingsModal()" title="Settings">
+                    <span>⚙️</span>
+                    <span>ការកំណត់</span>
+                    <span id="settingsUpdateDot" style="display:none;" class="header-update-dot"></span>
+                </button>
+                <span class="sidebar-version-tag">v3.1.0</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Native Window Draggable Topbar Strip -->
+    <div class="app-topbar" id="appTopbar">
+        <div class="app-topbar-breadcrumb" id="topbarBreadcrumb">
+            <span id="topbarPlatformIcon" style="font-size:1.15rem;">🎬</span>
+            <span id="topbarPlatformName" style="font-weight:700; font-size:0.86rem; color:#f8fafc; letter-spacing:0.5px;">HONGGUO SHORT DRAMA</span>
+        </div>
+        <div class="app-topbar-spacer" style="-webkit-app-region: drag; flex: 1; height: 100%;"></div>
+        <!-- 1-Click Quick Language Switcher Strip (Outside Settings) -->
+        <div class="topbar-lang-switcher" id="topbarLangSwitcher" style="-webkit-app-region: no-drag;">
+            <button type="button" class="topbar-lang-btn active" id="btnLangKm" data-lang="km" onclick="changeLanguage('km')" title="ភាសាខ្មែរ (Khmer)">
+                <span class="lang-flag">🇰🇭</span> <span class="lang-name">ខ្មែរ</span>
+            </button>
+            <button type="button" class="topbar-lang-btn" id="btnLangZh" data-lang="zh" onclick="changeLanguage('zh')" title="中文 (Chinese)">
+                <span class="lang-flag">🇨🇳</span> <span class="lang-name">中文</span>
+            </button>
+            <button type="button" class="topbar-lang-btn" id="btnLangEn" data-lang="en" onclick="changeLanguage('en')" title="English">
+                <span class="lang-flag">🇬🇧</span> <span class="lang-name">EN</span>
+            </button>
+            <button type="button" class="topbar-lang-btn" id="btnLangOriginal" data-lang="original" onclick="changeLanguage('original')" title="ចំណងជើងដើម (Original Title)">
+                <span class="lang-flag">🌐</span> <span class="lang-name">Original</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Right-Click Context Menu for Search & Link Input -->
+    <div id="searchContextMenu" class="search-ctx-menu" style="display:none;">
+        <div class="ctx-item" onclick="ctxPasteLink()">
+            <span>📋</span> <span id="ctxPasteLabel">粘贴链接</span>
+        </div>
+        <div class="ctx-item" onclick="ctxCutInput()">
+            <span>✂️</span> <span id="ctxCutLabel">剪切</span>
+        </div>
+        <div class="ctx-item" onclick="ctxCopyInput()">
+            <span>📄</span> <span id="ctxCopyLabel">复制</span>
+        </div>
+        <div class="ctx-divider"></div>
+        <div class="ctx-item" onclick="ctxClearInput()">
+            <span>🧹</span> <span id="ctxClearLabel">清空</span>
+        </div>
+    </div>
+
+    <!-- Hongguo Drama View Container -->
+    <div id="hongguoView" class="hongguo-view-container">
+        <!-- Dedicated Spacious Search & Fetch Toolbar -->
+        <div class="hg-hero-banner">
+            <div class="hg-hero-glow"></div>
+            <div class="hg-hero-content">
+                <div class="hg-hero-header-row">
+                    <div class="hg-hero-left">
+                        <div class="hg-logo-clickable" onclick="openHongguoWebsite()" title="ចុច Logo នេះដើម្បីចូលទៅដល់វេបសាយផ្ទាល់ (hongguoduanju.com)">
+                            <img src="/hongguo_icon.svg" alt="Hongguo" style="width: 32px; height: 32px; object-fit: contain;">
+                        </div>
+                        <div>
+                            <h1 class="hg-hero-title">
+                                <span class="hg-title-grad">HONGGUO</span> <span style="font-weight:400; color:#cbd5e1; font-size:1.15rem; margin-left:6px;">DRAMA</span>
+                            </h1>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- URL / Search Input Box (Matching HaoSou style) -->
+                <div class="hg-search-box-card">
+                    <div class="hg-search-input-wrapper">
+                        <input type="text" id="searchInput" class="hg-main-input" placeholder="ស្វែងរករឿងភាគខ្លី ឬបិទភ្ជាប់លីង (Search drama or paste link)..." oninput="onSearchInputChanged(this.value)" onkeydown="onSearchKeyDown(event)" onpaste="handleSearchInputPaste(event)" autocomplete="off" spellcheck="false">
+                        <button type="button" class="search-clear-btn" id="btnClearSearch" onclick="clearSearchInput()" title="清空" style="display:none;">✕</button>
+                    </div>
+                    <div class="hg-search-divider"></div>
+                    <div class="hg-search-buttons">
+                        <button type="button" class="btn hg-btn-paste" onclick="pasteHgFromClipboard()" title="Paste URL">
+                            <span>📋</span> <span id="hgPasteBtnLabel">Paste URL</span>
+                        </button>
+                        <button type="button" class="btn hg-btn-search" id="btnSearchTitle" onclick="executeSearchTitle()" title="按短剧片名搜索 (Search by Drama Title)">
+                            <span id="hgSearchBtnText">🔍 ស្វែងរក</span>
+                        </button>
+                        <button type="button" class="btn hg-btn-fetch" id="btnFetchLink" onclick="executeFetchLink()" title="提取短剧链接或Series ID (Fetch via Link / Series ID)">
+                            <span id="hgFetchBtnText">⚡ Fetch</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Nav Tabs (Pure Genres) -->
+        <div class="nav-tabs" id="hongguoNavTabs">
+            <button class="tab-btn active" data-cat="all" onclick="selectCategory(this, 'all')">🔥 ពេញនិយម (Hot)</button>
+            <button class="tab-btn" data-cat="real-drama" onclick="selectCategory(this, 'real-drama')">🎭 រឿងសម្ដែងពិត (Real Drama)</button>
+            <button class="tab-btn" data-cat="comic-drama" onclick="selectCategory(this, 'comic-drama')">🎨 គំនូរជីវចល (Comic)</button>
+            <button class="tab-btn" data-cat="ai-drama" onclick="selectCategory(this, 'ai-drama')">🤖 រឿង AI (AI Drama)</button>
+        </div>
+
+        <!-- Main Container -->
+        <main class="container">
+            <!-- Drama Grid Header -->
+            <div class="section-header">
+                <h3 id="sectionTitle">🔥 កំពុងពេញនិយម (Trending Dramas)</h3>
+            </div>
+
+            <!-- Drama Grid -->
+            <div class="drama-grid" id="dramaGrid">
+                <!-- Cards injected via JS -->
+            </div>
+
+            <!-- Load More Dramas Button -->
+            <div class="load-more-container" id="loadMoreContainer" style="display:flex; justify-content:center; margin: 32px 0 20px 0;">
+                <button type="button" class="btn-load-more" id="btnLoadMore" onclick="loadMoreDramas()">
+                    <span>📥</span> <span>ផ្ទុកបន្ថែម ៤៨ រឿងទៀត (Load More Dramas)</span>
+                </button>
+            </div>
+
+            <!-- Modern Home Pagination Bar -->
+            <div class="pagination" id="pagination" style="display:none;">
+                <div class="pagination-info" id="paginationInfo">
+                    <span class="page-info-label">ទំព័រទី</span>
+                    <span class="page-info-badge" id="currentPageBadge">1</span>
+                    <span class="page-info-divider">/</span>
+                    <span class="page-info-total" id="totalPagesBadge">10</span>
+                </div>
+                
+                <div class="pagination-nav" id="paginationNav">
+                    <button class="page-nav-btn" id="firstPageBtn" onclick="goToPage(1)" title="ទំព័រដំបូង (First Page)">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="11 17 6 12 11 7"></polyline>
+                            <polyline points="18 17 13 12 18 7"></polyline>
+                        </svg>
+                    </button>
+                    <button class="page-nav-btn page-nav-prev" id="prevPageBtn" onclick="changePage(-1)" title="ទំព័រមុន (Previous Page)">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="15 18 9 12 15 6"></polyline>
+                        </svg>
+                        <span>មុន</span>
+                    </button>
+
+                    <div class="pagination-numbers" id="paginationNumbers">
+                        <!-- Page numbers injected via JS -->
+                    </div>
+
+                    <button class="page-nav-btn page-nav-next" id="nextPageBtn" onclick="changePage(1)" title="ទំព័របន្ទាប់ (Next Page)">
+                        <span>បន្ទាប់</span>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="9 18 15 12 9 6"></polyline>
+                        </svg>
+                    </button>
+                    <button class="page-nav-btn" id="lastPageBtn" onclick="goToLastPage()" title="ទំព័រចុងក្រោយ (Last Page)">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="13 17 18 12 13 7"></polyline>
+                            <polyline points="6 17 11 12 6 7"></polyline>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- HaoSou (1DFX) Short Drama View -->
+    <div id="haosouView" class="haosou-view-container" style="display:none;">
+        <div class="hs-content-wrapper">
+            <!-- Hero Banner -->
+            <div class="hs-hero-banner">
+                <div class="hs-hero-glow"></div>
+                <div class="hs-hero-content">
+                    <div class="hs-hero-header-row">
+                        <div class="hs-hero-left">
+                            <div class="hs-logo-clickable" onclick="openHaoSouWebsite()" title="ចុច Logo នេះដើម្បីចូលទៅដល់វេបសាយផ្ទាល់ (dj.1dfx.com)">
+                                <svg viewBox="0 0 24 24" width="30" height="30" fill="none">
+                                    <circle cx="12" cy="12" r="10" stroke="#FFFFFF" stroke-width="2"/>
+                                    <path d="M9.5 8L16.5 12L9.5 16V8Z" fill="#FFFFFF"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <h1 class="hs-hero-title">
+                                    <span class="hs-title-grad">HAOSOU</span> <span style="font-weight:400; color:#cbd5e1; font-size:1.15rem; margin-left:6px;">1DFX DRAMA</span>
+                                </h1>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- URL / Search Input Box -->
+                    <div class="hs-search-box-card">
+                        <div class="hs-search-input-wrapper">
+                            <span class="hs-input-icon">🎬</span>
+                            <input type="text" id="hsDramaInput" class="hs-main-input" placeholder="ស្វែងរករឿងភាគខ្លី ឬបិទភ្ជាប់លីង (Search drama or paste link)..." onkeydown="onHsInputKeyDown(event)" autocomplete="off" spellcheck="false">
+                        </div>
+                        <div class="hs-search-divider"></div>
+                        <div class="hs-search-buttons">
+                            <button type="button" class="btn hs-btn-paste" onclick="pasteHsFromClipboard()" title="Paste URL">
+                                <span>📋</span> <span id="hsPasteBtnLabel">Paste URL</span>
+                            </button>
+                            <button type="button" class="btn hs-btn-search" id="btnHsSearch" onclick="submitHsSearch()">
+                                <span class="hs-btn-spinner" id="hsSearchSpinner" style="display:none;">⏳</span>
+                                <span id="hsSearchBtnText">🔍 ស្វែងរក / វិភាគ</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Drama Detail & Player Card (Appears when a drama is selected) -->
+            <div id="hsDramaCard" class="hs-detail-card" style="display:none;">
+                <div class="hs-player-wrapper">
+                    <video id="hsVideoPlayer" class="hs-video-player" controls preload="metadata"></video>
+                </div>
+
+                <div class="hs-card-info-col">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px;">
+                        <div>
+                            <h3 class="hs-detail-title" id="hsCardTitle" style="font-size:1.35rem; font-weight:700; color:#fff; margin-bottom:8px;">Drama Title</h3>
+                            <div id="hsCardTags" style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px;">
+                                <span class="tag-pill" style="background:rgba(99,102,241,0.2); color:#a5b4fc; border:1px solid rgba(99,102,241,0.4); padding:2px 8px; border-radius:6px; font-size:0.75rem;">1080p FHD</span>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-secondary" onclick="closeHsDramaCard()" title="Close" style="padding:6px 12px; border-radius:8px; font-size:0.82rem;">✕</button>
+                    </div>
+
+                    <p id="hsCardDesc" style="color:#94a3b8; font-size:0.88rem; line-height:1.5; margin-bottom:12px; max-height:60px; overflow-y:auto;"></p>
+
+                    <!-- Episode Grid -->
+                    <div style="margin-top:8px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; flex-wrap:wrap; gap:6px;">
+                            <span style="font-weight:600; color:#e2e8f0; font-size:0.9rem;">
+                                <span>📑 បញ្ជីភាគ (Episodes): </span>
+                                <span id="hsEpisodeCount" style="color:#818cf8; font-weight:700;">0</span>
+                            </span>
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <span id="hsMemoryStatusBadge" style="display:none;"></span>
+                                <span id="hsCurrentPlayingEp" style="font-size:0.8rem; color:#38bdf8;"></span>
+                            </div>
+                        </div>
+                        <div class="hs-ep-grid nice-scroll" id="hsEpisodeGrid">
+                            <!-- Episodes injected dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- Download Options -->
+                    <div style="margin-top:16px; padding-top:14px; border-top:1px solid rgba(255,255,255,0.08); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <span style="font-size:0.84rem; color:#94a3b8;">📂 រក្សាទុកនៅ:</span>
+                            <span id="hsOutputDirDisplay" style="font-size:0.82rem; color:#38bdf8; font-family:monospace; background:rgba(0,0,0,0.3); padding:4px 8px; border-radius:6px; max-width:260px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">...</span>
+                            <button type="button" class="btn btn-secondary" onclick="pickHsFolder()" style="padding:4px 10px; font-size:0.8rem; border-radius:6px;">ប្តូរ</button>
+                        </div>
+                        <div id="hsDownloadModeBar" style="display:flex; align-items:center; gap:6px;">
+                            <span style="font-size:0.78rem; color:#94a3b8; font-weight:600;">ទម្រង់:</span>
+                            <button type="button" class="btn-dl-mode-chip active" id="hsChipModeMerged" onclick="setQuickDownloadMode('merged')" title="បញ្ចូលភាគទាំងអស់ជាវីដេអូពេញមួយខ្សែ (Merged)">🎞️ បញ្ចូលរឿង</button>
+                            <button type="button" class="btn-dl-mode-chip" id="hsChipModeSeparate" onclick="setQuickDownloadMode('separate')" title="រក្សាទុកជាភាគរាយៗដាច់ដោយឡែក (Separate)">📁 រាយភាគ</button>
+                            <button type="button" class="btn-dl-mode-chip" id="hsChipModeBoth" onclick="setQuickDownloadMode('both')" title="យកទាំងពីរ (Both: Merged + Separate)">🎬 ទាំងពីរ</button>
+                        </div>
+                        <button type="button" class="hs-dl-btn" id="btnHsDownload" onclick="startHsBatchDownload()">
+                            <span>⬇️</span>
+                            <span id="hsDownloadBtnText">ទាញយកភាគទាំងអស់ (Download All)</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recommendations / Search Results Section -->
+            <div class="hs-section-header">
+                <h2 class="hs-section-title">
+                    <span id="hsSectionIcon">🔥</span>
+                    <span id="hsSectionTitle">រឿងភាគពេញនិយម (Hot Recommendations)</span>
+                </h2>
+                <div style="display:flex; gap:8px;">
+                    <button type="button" class="btn btn-secondary" id="btnHsBackToRecs" onclick="loadHaoSouRecommendations('all')" style="display:none; font-size:0.84rem; padding:6px 14px; border-radius:8px;">
+                        <span id="btnHsBackToRecsText">← ត្រឡប់ទៅរឿងពេញនិយម</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Genre / Category Selector Bar -->
+            <div class="hs-cat-bar" id="hsCatBar">
+                <button type="button" class="hs-cat-chip active" data-cat="all" onclick="selectHaoSouCategory('all')">
+                    <span>🔥</span> <span id="hsCatAll">ទាំងអស់ (All)</span>
+                </button>
+                <button type="button" class="hs-cat-chip" data-cat="modern" onclick="selectHaoSouCategory('modern')">
+                    <span>🏙️</span> <span id="hsCatModern">ទីក្រុង (Modern)</span>
+                </button>
+                <button type="button" class="hs-cat-chip" data-cat="ceo" onclick="selectHaoSouCategory('ceo')">
+                    <span>👑</span> <span id="hsCatCeo">អភិជន (CEO)</span>
+                </button>
+                <button type="button" class="hs-cat-chip" data-cat="action" onclick="selectHaoSouCategory('action')">
+                    <span>⚔️</span> <span id="hsCatAction">វាយបក (Action)</span>
+                </button>
+                <button type="button" class="hs-cat-chip" data-cat="rebirth" onclick="selectHaoSouCategory('rebirth')">
+                    <span>⏳</span> <span id="hsCatRebirth">កើតជាថ្មី (Rebirth)</span>
+                </button>
+                <button type="button" class="hs-cat-chip" data-cat="romance" onclick="selectHaoSouCategory('romance')">
+                    <span>💖</span> <span id="hsCatRomance">ស្នេហា (Romance)</span>
+                </button>
+                <button type="button" class="hs-cat-chip" data-cat="historical" onclick="selectHaoSouCategory('historical')">
+                    <span>🏮</span> <span id="hsCatHist">បុរាណ (Historical)</span>
+                </button>
+            </div>
+
+            <!-- Drama Cards Grid -->
+            <div class="hs-recs-grid" id="hsRecsGrid">
+                <!-- Cards injected via JS -->
+            </div>
+
+            <!-- Load More HaoSou Dramas -->
+            <div class="load-more-container" id="hsLoadMoreContainer" style="display:flex; justify-content:center; margin: 32px 0 20px 0;">
+                <button type="button" class="btn-load-more" id="btnHsLoadMore" onclick="loadMoreHaoSouDramas()">
+                    <span>📥</span> <span id="hsLoadMoreText">ផ្ទុកបន្ថែមរឿងភាគច្រើនទៀត (Load More Dramas)</span>
+                </button>
+            </div>
+
+            <!-- Active Download Tasks Section -->
+            <div id="hsTasksSection" style="margin-top:40px; display:none;">
+                <div class="hs-section-header">
+                    <h2 class="hs-section-title">
+                        <span>⬇️</span>
+                        <span id="hsTasksHeaderTitle">បញ្ជីទាញយក HaoSou (Downloads)</span>
+                    </h2>
+                    <div style="display:flex; gap:8px;">
+                        <button type="button" class="btn btn-secondary" onclick="openHaoSouFolder()" style="font-size:0.84rem; padding:6px 14px; border-radius:8px;">
+                            <span>📁</span> <span id="hsOpenFolderBtnText">បើក Folder</span>
+                        </button>
+                        <button type="button" class="btn btn-secondary" onclick="clearHaoSouFinishedTasks()" style="font-size:0.84rem; padding:6px 14px; border-radius:8px;">
+                            <span>🧹</span> <span id="hsClearFinishedBtnText">សម្អាតដែលចប់</span>
+                        </button>
+                    </div>
+                </div>
+                <div id="hsTasksList" style="display:flex; flex-direction:column; gap:12px;">
+                    <!-- Tasks injected via JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MVFFM (mvffm.net) Short Drama View -->
+    <div id="mvffmView" class="mvffm-view-container" style="display:none;">
+        <div class="mv-content-wrapper">
+            <!-- Hero Banner -->
+            <div class="mv-hero-banner">
+                <div class="mv-hero-glow"></div>
+                <div class="mv-hero-content">
+                    <div class="mv-hero-header-row">
+                        <div class="mv-hero-left">
+                            <div class="mv-logo-clickable" onclick="openMvffmWebsite()" title="ចុច Logo នេះដើម្បីចូលទៅដល់វេបសាយផ្ទាល់ (mvffm.net)">
+                                <span style="font-size:22px;">🎬</span>
+                            </div>
+                            <div>
+                                <h1 class="mv-hero-title">
+                                    <span class="mv-title-grad">MVFFM</span> <span style="font-weight:400; color:#cbd5e1; font-size:1.15rem; margin-left:6px;">SHORT DRAMA</span>
+                                </h1>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- URL / Search Input Box -->
+                    <div class="mv-search-box-card">
+                        <div class="mv-search-input-wrapper">
+                            <span class="mv-input-icon">🎬</span>
+                            <input type="text" id="mvDramaInput" class="mv-main-input" placeholder="ស្វែងរករឿងភាគខ្លី ឬបិទភ្ជាប់លីង MVFFM (Search drama or paste link: https://www.mvffm.net/drama/...)..." onkeydown="onMvInputKeyDown(event)" autocomplete="off" spellcheck="false">
+                        </div>
+                        <div class="mv-search-divider"></div>
+                        <div class="mv-search-buttons">
+                            <button type="button" class="btn mv-btn-paste" onclick="pasteMvFromClipboard()" title="Paste URL">
+                                <span>📋</span> <span>Paste URL</span>
+                            </button>
+                            <button type="button" class="btn mv-btn-search" id="btnMvSearch" onclick="analyzeMvffmDrama()">
+                                <span>🔍</span> <span>ស្វែងរក / វិភាគ</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Drama Detail & Player View -->
+            <div id="mvDramaCard" class="mv-drama-card">
+                <div class="mv-detail-grid">
+                    <div class="mv-player-box">
+                        <video id="mvVideoPlayer" controls playsinline></video>
+                    </div>
+                    <div class="mv-info-box">
+                        <h2 class="mv-drama-title" id="mvCardTitle">Drama Title</h2>
+                        <div class="mv-tags-row" id="mvCardTags"></div>
+                        <p class="mv-drama-desc" id="mvCardDesc">Synopsis</p>
+                        
+                        <!-- Sources / Lines (FLV 1, FLV 2, etc.) -->
+                        <div style="font-size:0.8rem; font-weight:700; color:#fda4af; margin-bottom:6px;">ជ្រើសរើសខ្សែ / ប្រភព (Server Source):</div>
+                        <div class="mv-sources-bar" id="mvSourcesBar"></div>
+
+                        <!-- Episodes Header -->
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; margin-top:8px; flex-wrap:wrap; gap:6px;">
+                            <span style="font-size:0.82rem; font-weight:700; color:#e2e8f0;">បញ្ជីភាគ (Episodes):</span>
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <span id="mvMemoryStatusBadge" style="display:none;"></span>
+                                <span id="mvEpisodeCount" style="font-size:0.78rem; font-weight:700; color:#38bdf8;">0 ភាគ</span>
+                            </div>
+                        </div>
+                        <div class="mv-episodes-container">
+                            <div class="mv-episodes-grid" id="mvEpisodeGrid"></div>
+                        </div>
+
+                        <!-- Download Controls -->
+                        <div class="mv-dl-box">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:6px;">
+                                <div style="font-size:0.8rem; font-weight:700; color:#cbd5e1;">ទាញយកវីដេអូ MP4 (Batch Download):</div>
+                                <div id="mvDownloadModeBar" style="display:flex; align-items:center; gap:6px;">
+                                    <span style="font-size:0.75rem; color:#94a3b8; font-weight:600;">ទម្រង់:</span>
+                                    <button type="button" class="btn-dl-mode-chip active" id="mvChipModeMerged" onclick="setQuickDownloadMode('merged')" title="បញ្ចូលភាគទាំងអស់ជាវីដេអូពេញមួយខ្សែ (Merged)">🎞️ បញ្ចូលរឿង</button>
+                                    <button type="button" class="btn-dl-mode-chip" id="mvChipModeSeparate" onclick="setQuickDownloadMode('separate')" title="រក្សាទុកជាភាគរាយៗដាច់ដោយឡែក (Separate)">📁 រាយភាគ</button>
+                                    <button type="button" class="btn-dl-mode-chip" id="mvChipModeBoth" onclick="setQuickDownloadMode('both')" title="យកទាំងពីរ (Both: Merged + Separate)">🎬 ទាំងពីរ</button>
+                                </div>
+                            </div>
+                            <div class="mv-dl-options">
+                                <span style="font-size:0.78rem; color:#94a3b8;">ភាគពី:</span>
+                                <input type="number" id="mvRangeFrom" class="mv-dl-input" value="1" min="1">
+                                <span style="font-size:0.78rem; color:#94a3b8;">ដល់:</span>
+                                <input type="number" id="mvRangeTo" class="mv-dl-input" value="1" min="1">
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="downloadMvffmEpisodes('range')" style="padding:6px 12px; font-size:0.8rem;">📥 ទាញតាមចន្លោះ</button>
+                            </div>
+                            <button type="button" class="mv-btn-download-all" onclick="downloadMvffmEpisodes('all')">
+                                <span>📥</span> <span>ទាញយកភាគទាំងអស់ (Download All)</span>
+                            </button>
+                            <div style="margin-top:8px; display:flex; justify-content:space-between; align-items:center; font-size:0.75rem; color:#94a3b8;">
+                                <span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:200px;" id="mvOutputDirDisplay">Folder: ...</span>
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="openMvffmFolder()" style="padding:2px 8px; font-size:0.72rem;">📁 បើកថត</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Category Filter Bar -->
+            <div class="mv-cat-bar" id="mvCatBar">
+                <button type="button" class="mv-cat-chip active" data-cat="hot" onclick="selectMvffmCategory('hot')">
+                    <span>🔥</span> <span>ពេញនិយមបំផុត (Top Views)</span>
+                </button>
+                <button type="button" class="mv-cat-chip" data-cat="latest" onclick="selectMvffmCategory('latest')">
+                    <span>⚡</span> <span>ទើបចេញថ្មី (Latest Releases)</span>
+                </button>
+                <button type="button" class="mv-cat-chip" data-cat="monthly" onclick="selectMvffmCategory('monthly')">
+                    <span>📅</span> <span>ពេញនិយមប្រចាំខែ (Monthly Hot)</span>
+                </button>
+            </div>
+
+            <!-- Recommendations Grid -->
+            <div class="mv-section-header">
+                <div class="mv-section-title-wrapper">
+                    <h2 class="mv-section-title" id="mvSectionTitle">🔥 រឿងពេញនិយមបំផុត (Top Views)</h2>
+                </div>
+            </div>
+            <div class="mv-recs-grid" id="mvRecsGrid"></div>
+
+            <!-- Load More Button -->
+            <div class="load-more-container" id="mvLoadMoreContainer" style="display:flex; justify-content:center; margin: 32px 0 20px 0;">
+                <button type="button" class="btn-load-more" onclick="loadMoreMvffmDramas()">
+                    <span>📥</span> <span>ផ្ទុកបន្ថែមរឿងភាគច្រើនទៀត (Load More Dramas)</span>
+                </button>
+            </div>
+
+            <!-- Active Download Tasks Section -->
+            <div id="mvTasksContainer" class="mv-tasks-card" style="display:none;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                    <div style="font-weight:700; color:#ffffff; font-size:1rem; display:flex; align-items:center; gap:8px;">
+                        <span>⬇️</span> <span>បញ្ជីទាញយក MVFFM (Downloads)</span>
+                    </div>
+                    <div style="display:flex; gap:8px;">
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="openMvffmFolder()">📁 បើក Folder</button>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="clearFinishedMvffmTasks()">🧹 សម្អាតដែលចប់</button>
+                    </div>
+                </div>
+                <div id="mvTasksList"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Unified Starred Favorites View -->
+    <div id="starredView" class="starred-view-container" style="display:none;">
+        <div class="starred-content-wrapper">
+            <div class="starred-header-banner">
+                <div class="starred-header-glow"></div>
+                <div class="starred-header-content">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:16px; margin-bottom:18px;">
+                        <div style="display:flex; align-items:center; gap:14px;">
+                            <span style="font-size:2.2rem; filter:drop-shadow(0 0 10px rgba(251,191,36,0.6));">⭐</span>
+                            <div>
+                                <h1 style="font-size:1.6rem; font-weight:800; margin:0; display:flex; align-items:center; gap:10px;">
+                                    <span class="starred-title-grad" id="starredViewTitle">⭐ PIN / រឿងចំណាំទុកមើល</span>
+                                    <span class="badge" id="starredTotalBadge" style="background:#f59e0b; color:#ffffff; font-size:0.8rem; padding:3px 9px; border-radius:12px;">0</span>
+                                </h1>
+                                <p style="font-size:0.84rem; color:#cbd5e1; margin:4px 0 0 0;" id="starredViewSubtitle">
+                                    បញ្ជីរឿងដែលបាន PIN ទុកមើលពីគ្រប់វេបសាយ (Hongguo, HaoSou, MVFFM) - អាចគ្រីសទាញយកម្ដងទាំងអស់ ឬចុចមើលភ្លាមៗ
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Platform filter chips -->
+                    <div class="starred-platform-chips">
+                        <button type="button" class="starred-chip active" data-platform="all" onclick="filterStarredPlatform('all')">
+                            <span>🌟</span> <span id="starredFilterAllText">ទាំងអស់ (All Platforms)</span>
+                        </button>
+                        <button type="button" class="starred-chip" data-platform="hongguo" onclick="filterStarredPlatform('hongguo')">
+                            <span>🍎</span> <span>HONGGUO</span>
+                        </button>
+                        <button type="button" class="starred-chip" data-platform="haosou" onclick="filterStarredPlatform('haosou')">
+                            <span>🎬</span> <span>HAOSOU (1DFX)</span>
+                        </button>
+                        <button type="button" class="starred-chip" data-platform="mvffm" onclick="filterStarredPlatform('mvffm')">
+                            <span>🎥</span> <span>MVFFM</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Batch Download & Multi-Select Toolbar -->
+            <div class="starred-batch-toolbar" id="starredBatchToolbar">
+                <div class="starred-batch-left">
+                    <label class="starred-select-all-label">
+                        <input type="checkbox" id="starredSelectAllCb" onchange="toggleSelectAllStarred(this.checked)">
+                        <span id="starredSelectAllText">គ្រីសទាំងអស់ (Select All)</span>
+                        <span class="starred-selected-badge" id="starredSelectedBadge">(0/0)</span>
+                    </label>
+                </div>
+                <div class="starred-batch-right">
+                    <button type="button" class="btn btn-starred-download" id="btnStarredBatchDl" onclick="downloadSelectedStarredDramas()">
+                        <span>📥</span> <span id="starredDlBtnLabel">ទាញយកដែលបានរើស</span> <span id="starredDlBtnCount">(0)</span>
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="clearAllStarredDramas()" style="border-color:rgba(239,68,68,0.4); color:#fca5a5;">
+                        <span>🧹</span> <span id="btnClearAllStarredText">សម្អាតផ្កាយទាំងអស់</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Starred Grid -->
+            <div class="starred-grid" id="starredGrid"></div>
+        </div>
+    </div>
+
+    <!-- YouTube Downloader View -->
+    <div id="youtubeView" class="youtube-view-container" style="display:none;">
+        <div class="yt-content-wrapper">
+            <!-- Hero Card -->
+            <div class="yt-hero-banner">
+                <div class="yt-hero-glow"></div>
+                <div class="yt-hero-content">
+                    <h1 class="yt-hero-title">
+                        <span class="yt-title-red">YouTube</span> Downloader
+                    </h1>
+                    <p class="yt-hero-subtitle" id="ytHeroSubtitle">
+                        ទាញយកវីដេអូ YouTube គុណភាពខ្ពស់បំផុត (4K, 1440p, 1080p60 & MP3 320kbps) ដោយមិនបាត់បង់គុណភាព
+                    </p>
+
+                    <!-- URL Input Box -->
+                    <div class="yt-search-box-card">
+                        <div class="yt-search-input-wrapper">
+                            <span class="yt-input-icon">
+                                <svg viewBox="0 0 24 24" width="22" height="22">
+                                    <path fill="#FF0000" d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814z"/>
+                                    <polygon fill="#FFFFFF" points="9.545,15.568 15.818,12 9.545,8.432"/>
+                                </svg>
+                            </span>
+                            <input type="text" id="ytUrlInput" class="yt-main-input" placeholder="បិទភ្ជាប់លីង YouTube (Paste link: https://www.youtube.com/watch?v=... ឬ Shorts)" onkeydown="onYtInputKeyDown(event)" onpaste="handleYtUrlPaste(event)" oninput="handleYtUrlInput(this.value)" autocomplete="off" spellcheck="false">
+                        </div>
+                        <div class="yt-search-buttons">
+                            <button type="button" class="btn yt-btn-paste" onclick="pasteYtFromClipboard()" title="Paste URL">
+                                <span>📋</span> <span id="ytPasteBtnLabel">Paste URL</span>
+                            </button>
+                            <button type="button" class="btn yt-btn-analyze" id="btnYtAnalyze" onclick="analyzeCurrentYtUrl()">
+                                <span class="yt-btn-spinner" id="ytAnalyzeSpinner" style="display:none;">⏳</span>
+                                <span id="ytAnalyzeBtnText">⚡ វិភាគវីដេអូ (Fetch)</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Quick hints / Tags -->
+                    <div class="yt-hints-row">
+                        <span class="yt-hint-label" id="ytHintLabel">គាំទ្រ:</span>
+                        <span class="yt-hint-chip" id="ytHintWatch">🎬 វីដេអូទូទៅ (Watch)</span>
+                        <span class="yt-hint-chip" id="ytHintShorts">⚡ YouTube Shorts</span>
+                        <span class="yt-hint-chip" id="ytHintLink">🔗 youtu.be Link</span>
+                        <span class="yt-hint-chip" id="ytHintMusic">🎵 YouTube Music</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Video Details Card (Appears after analysis) -->
+            <div id="ytVideoCard" class="yt-video-card" style="display:none;">
+                <div class="yt-card-preview-col">
+                    <div class="yt-thumb-wrapper">
+                        <img id="ytCardThumb" src="" alt="Thumbnail" class="yt-card-thumb">
+                        <span class="yt-duration-badge" id="ytCardDuration">00:00</span>
+                        <span class="yt-maxres-badge" id="ytCardMaxRes">🌟 4K UHD</span>
+                    </div>
+                </div>
+
+                <div class="yt-card-info-col">
+                    <h3 class="yt-card-title" id="ytCardTitle">Video Title</h3>
+                    
+                    <div class="yt-meta-row">
+                        <span class="yt-channel-badge">
+                            <span class="yt-channel-icon">👤</span>
+                            <span id="ytCardChannel">Channel Name</span>
+                        </span>
+                        <span class="yt-meta-pill" id="ytCardViews">👁️ 0 views</span>
+                        <span class="yt-meta-pill" id="ytCardDate">📅 Recent</span>
+                    </div>
+
+                    <!-- Quality Selector -->
+                    <div class="yt-quality-section">
+                        <div class="yt-quality-label-row">
+                            <span class="yt-section-title" id="ytQualitySelectTitle">🎯 ជ្រើសរើសកម្រិតច្បាស់ (Resolution & Quality):</span>
+                            <span class="yt-quality-badge-tip" id="ytQualityTip">ច្បាស់បំផុត / Highest Bitrate</span>
+                        </div>
+                        <div class="yt-quality-chips-grid" id="ytQualityGrid">
+                            <!-- Quality options injected via JS -->
+                        </div>
+                    </div>
+
+                    <!-- Output location info -->
+                    <div class="yt-output-location-row">
+                        <div class="yt-location-text">
+                            <span id="ytOutputDirLabel">📁 រក្សាទុកនៅ:</span>
+                            <code id="ytOutputDirDisplay">...\Videos\Hongguo Downloads\YouTube</code>
+                        </div>
+                        <button type="button" class="btn btn-secondary yt-btn-sm" onclick="browseYouTubeFolder()" title="ផ្លាស់ប្ដូរ Folder">
+                            <span id="ytChangeFolderBtnText">📁 ប្ដូរ Folder</span>
+                        </button>
+                    </div>
+
+                    <!-- Action Row -->
+                    <div class="yt-action-row">
+                        <button type="button" class="btn yt-btn-download-primary" id="btnStartYtDownload" onclick="startCurrentYtDownload()">
+                            <span>📥</span> <span id="ytDownloadBtnText">ចាប់ផ្ដើមទាញយកឥឡូវនេះ (Download Now)</span>
+                        </button>
+                        <button type="button" class="btn btn-secondary" onclick="openYouTubeFolder()" title="បើក Folder">
+                            <span id="ytOpenFolderBtnText">📂 បើក Folder</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- YouTube Download Tasks / History Section -->
+            <div class="yt-tasks-section">
+                <div class="yt-tasks-header">
+                    <div class="yt-tasks-title-wrap">
+                        <h3 id="ytTasksHeaderTitle">📋 បញ្ជីទាញយក YouTube (YouTube Downloads)</h3>
+                        <span class="badge" id="ytTasksBadge" style="display:none;">0</span>
+                    </div>
+                    <div class="yt-tasks-actions">
+                        <button type="button" class="btn btn-secondary yt-btn-sm" onclick="clearFinishedYtTasks()" title="សម្អាតទាញយករួចរាល់">
+                            <span id="ytClearFinishedBtnText">🗑️ សម្អាតដែលចប់</span>
+                        </button>
+                        <button type="button" class="btn btn-secondary yt-btn-sm" onclick="openYouTubeFolder()" title="បើក Folder YouTube ក្នុង Explorer">
+                            <span id="ytOpenTasksFolderBtnText">📂 បើក Folder YouTube</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Empty State -->
+                <div id="ytEmptyTasks" class="yt-empty-tasks">
+                    <div class="yt-empty-icon">▶️</div>
+                    <h4 id="ytEmptyTasksTitle">មិនទាន់មានវីដេអូកំពុងទាញយកនៅឡើយទេ</h4>
+                    <p id="ytEmptyTasksSub">បិទភ្ជាប់លីង YouTube ខាងលើ រួចចុច "វិភាគវីដេអូ" ដើម្បីចាប់ផ្ដើមទាញយកកម្រិត 4K ឬ MP3</p>
+                </div>
+
+                <!-- Tasks List Container -->
+                <div id="ytTasksContainer" class="yt-tasks-grid" style="display:none;">
+                    <!-- Task cards injected via JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Drama Detail Modal -->
+    <div class="modal-overlay" id="detailModal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 id="modalDramaTitle">ព័ត៌មានលម្អិតរឿង</h3>
+                <button class="close-btn" onclick="closeDetailModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="detail-layout">
+                    <div class="detail-poster-area">
+                        <div class="detail-poster">
+                            <img id="modalCoverImg" src="" alt="Poster">
+                        </div>
+                        <a id="modalCoverDownloadLink" class="btn btn-secondary" style="text-align:center; justify-content:center;" target="_blank">
+                            📥 ទាញយក Poster
+                        </a>
+                    </div>
+                    <div class="detail-info">
+                        <h2 id="modalTitleText">-</h2>
+                        <div class="detail-meta-row" id="modalTagsRow"></div>
+                        <p class="detail-desc" id="modalIntroText">-</p>
+
+                        <!-- Range Selection -->
+                        <div class="range-selector-box">
+                            <div style="font-size:0.8rem; font-weight:700; color:var(--text-muted); margin-bottom:8px;">
+                                ជ្រើសរើសភាគដើម្បីទាញយក (Episode Range):
+                            </div>
+                            <div class="range-quick-btns">
+                                <button class="range-quick-btn active" onclick="setRangeQuick('all', this)">ភាគទាំងអស់ (All)</button>
+                                <button class="range-quick-btn" onclick="setRangeQuick('free', this)">ភាគ Free (1-10)</button>
+                                <button class="range-quick-btn" onclick="setRangeQuick('1-20', this)">ភាគ 1 - 20</button>
+                                <button class="range-quick-btn" onclick="setRangeQuick('1-50', this)">ភាគ 1 - 50</button>
+                            </div>
+                            <div class="range-input-row">
+                                <input type="text" class="range-input" id="customRangeInput" placeholder="ឧទាហរណ៍: 1-15, 20-35 ឬ all" value="all" oninput="updateRangeSelection()">
+                                <button class="btn btn-secondary" style="padding:7px 12px; font-size:0.8rem;" onclick="selectAllEpisodes()">Select All</button>
+                                <button class="btn btn-secondary" style="padding:7px 12px; font-size:0.8rem;" onclick="deselectAllEpisodes()">Clear</button>
+                            </div>
+                        </div>
+
+                        <!-- Episode Grid -->
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                            <span style="font-size:0.82rem; font-weight:700; color:var(--text-muted);">បញ្ជីភាគ (<span id="selectedCountText">0</span> បានជ្រើសរើស):</span>
+                            <span style="font-size:0.75rem; color:var(--text-dim);">ចុចលើភាគដើម្បីចាក់មើល</span>
+                        </div>
+                        <div class="modal-ep-grid" id="modalEpGrid"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeDetailModal()">បិទ (Close)</button>
+                <div style="display:flex; gap:10px;">
+                    <button class="btn btn-secondary" onclick="playFirstEpisode()">
+                        <span>▶</span> មើលភាគទី ១
+                    </button>
+                    <button class="btn btn-primary" onclick="submitModalDownload()">
+                        <span>📥</span> ចាប់ផ្ដើមទាញយក (<span id="submitBtnEpCount">All</span> ភាគ)
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reference Ultimate Stream View Modal -->
+<section class="view-stream" id="streamView" hidden onclick="handleStreamBackdropClick(event)">
+      <div class="stream-modal-dialog" onclick="event.stopPropagation()">
+        <!-- Stream Topbar -->
+        <div class="stream-topbar">
+          <div class="stream-topbar-left">
+            <button class="btn-back" onclick="showHomeView()">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M19 12H5M12 19l-7-7 7-7" />
+              </svg>
+              <span id="btnStreamBackText">Back to Browse</span>
+            </button>
+            <span class="stream-modal-title" id="modalTopTitle"></span>
+          </div>
+          <div class="stream-topbar-right">
+            <div class="resume-pill" id="resumeBadge">
+              🕒 Resumed at Episode 1 of 100
+            </div>
+            <!-- Change Download Folder Button -->
+            <button class="btn-modal-pip btn-stream-folder" id="btnStreamChangeFolder" onclick="changeDownloadFolderPrompt()"
+              title="ជ្រើសរើស / ផ្លាស់ប្តូរ Folder រក្សាទុក (Change Download Folder: Drive C, D, etc.)">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+              </svg>
+              <span id="streamFolderBtnText">📁 ផ្លាស់ប្តូរ Folder</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Mini-Player Header Bar (Visible only in Mini-Player mode) -->
+        <div class="mini-player-bar" id="miniPlayerBar">
+          <div class="mini-title-wrap">
+            <span class="mini-live-dot"></span>
+            <span class="mini-title-text" id="miniTitleText">Drama</span>
+            <span class="mini-ep-text" id="miniEpText">EP 1</span>
+          </div>
+          <div class="mini-actions">
+            <button class="btn-mini-action" onclick="toggleNativePip(event)" title="Native OS Picture-in-Picture">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="3" width="20" height="14" rx="2"></rect>
+                <rect x="12" y="8" width="8" height="6" rx="1" fill="currentColor"></rect>
+              </svg>
+            </button>
+            <button class="btn-mini-action" onclick="expandFromMiniPlayer(event)" title="Expand to Full Player">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="15 3 21 3 21 9"></polyline>
+                <polyline points="9 21 3 21 3 15"></polyline>
+                <line x1="21" y1="3" x2="14" y2="10"></line>
+                <line x1="3" y1="21" x2="10" y2="14"></line>
+              </svg>
+            </button>
+            <button class="btn-mini-action btn-mini-close" onclick="showHomeView()" title="Close Player">✕</button>
+          </div>
+        </div>
+
+        <div class="stream-layout">
+          <!-- Left Column: Video Player & Metadata -->
+          <div class="stream-left">
+            <!-- Modern Drama Showcase Card (Clean poster + title + synopsis only) -->
+            <div class="drama-showcase-card" id="dramaShowcaseCard">
+              <!-- Left: Moderately-sized Poster -->
+              <div class="showcase-poster-wrap">
+                <img id="detailThumbImg" class="showcase-poster-img" src="" alt="Drama Poster" onerror="this.src='/ps_logo.jpg'">
+                <div class="showcase-poster-badge" id="showcaseDownloadedIndicator" style="display:none;">✓ បានដោនឡូត</div>
+              </div>
+
+              <!-- Right: Complete Drama Info (Clean layout: Title + Tags + Synopsis) -->
+              <div class="showcase-info-wrap">
+                <h2 class="showcase-drama-title" id="stageDramaTitle">Drama Title</h2>
+                <h3 id="detailTitle" style="display:none;">Drama Title</h3>
+
+                <div class="detail-hashtags" id="detailHashtags"></div>
+
+                <div class="showcase-synopsis-box">
+                  <p class="showcase-synopsis-text" id="detailIntro">កំពុងផ្ទុកសាច់រឿងសង្ខេប...</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Hidden container retaining legacy elements & actions for script compatibility -->
+            <div id="legacyPlayerElements" style="display:none !important;" aria-hidden="true">
+              <div class="showcase-badge-row" id="legacyShowcaseBadgeRow" style="display:none !important;">
+                <span class="chip-status" id="detailStatusChip">កំពុងចាក់ផ្សាយ</span>
+                <span class="stage-status-badge" id="stageDownloadBadge">⚠️ មិនទាន់បានដោនឡូត</span>
+                <span class="stage-eps-badge" id="stageEpsBadge">🎬 0 ភាគ</span>
+                <span class="stage-views-badge" id="detailViewCount">👁 0 Views</span>
+              </div>
+              <div class="showcase-actions-row" id="legacyShowcaseActionsRow" style="display:none !important;">
+                <button type="button" class="stage-btn-vlc" id="stageBtnVlc" onclick="onCenterPlayClicked(event)">
+                  <span id="stageBtnVlcText">បើកមើលក្នុងកុំព្យូទ័រ (VLC)</span>
+                </button>
+                <button type="button" class="stage-btn-folder" id="stageBtnFolder" onclick="openCurrentDramaFolder(event)">
+                  <span>Folder វីដេអូ</span>
+                </button>
+                <button type="button" class="btn btn-secondary yt-btn-sm" id="btnWatchlistAct" onclick="toggleCurrentWatchlist()">
+                  <span id="watchlistIcon">🔖</span> <span id="watchlistBtnText">PIN ចំណាំ</span>
+                </button>
+                <button type="button" class="btn btn-secondary yt-btn-sm" id="btnStreamShare" onclick="copyShareLink()">
+                  <span>🔗</span> <span id="btnStreamShareText">ចែករំលែក</span>
+                </button>
+              </div>
+              <div id="playerContainer">
+                <img id="stagePosterImg" src="" alt="">
+                <div id="stagePosterWrapper"></div>
+                <video id="videoPlayer" preload="none"></video>
+                <div id="centerPlayOverlay"><button id="centerPlayBtn"></button></div>
+                <div id="playerControlsBar">
+                  <div id="playerTimelineContainer">
+                    <input type="range" id="timelineRange" min="0" max="100" value="0">
+                  </div>
+                  <button id="btnPrevEp"></button>
+                  <button id="ctrlPlayBtn"></button>
+                  <button id="btnNextEp"></button>
+                  <span id="timeDisplay">0:00 / 0:00</span>
+                  <span id="playerEpBadgeText">EP 1</span>
+                  <select id="playerQualitySelect"><option value="720p">720p</option></select>
+                  <button id="speedBtn">1x</button>
+                </div>
+                <div id="playerEpDrawer" class="hidden">
+                  <h4 id="drawerSeriesTitle"></h4>
+                  <div id="drawerSubtitle"></div>
+                  <div id="playerDrawerGrid"></div>
+                </div>
+              </div>
+              <div id="nowPlayingEpTag">NOW PLAYING</div>
+              <h2 id="nowEpTitle">Episode 1</h2>
+              <button id="btnStreamQueue" onclick="queueCurrentSeries()"><span id="btnStreamQueueText">Queue</span></button>
+              <button id="btnStreamDownloadEp" onclick="downloadCurrentEpisode()"><span id="btnStreamDownloadEpText">Download</span></button>
+              <button id="btnStreamPrevEp" onclick="prevEpisode()"><span id="btnStreamPrevEpText">Prev</span></button>
+              <button id="btnStreamNextEp" onclick="nextEpisode()"><span id="btnStreamNextEpText">Next</span></button>
+              <span id="detailTotalEps"></span>
+            </div>
+
+            <!-- Live Download Status & Progress Log Box in Player -->
+            <div class="player-dl-log-panel" id="playerDownloadLogPanel">
+              <div class="pdl-header">
+                <div class="pdl-header-left">
+                  <span class="pdl-badge-pulse" id="pdlLiveBadge" style="display:none;">● LIVE</span>
+                  <span class="pdl-title" id="pdlTitleText">ដំណើរការទាញយក (Download Progress & Log)</span>
+                  <span class="pdl-speed" id="pdlSpeedBadge">⚡ 0.0 MB/s</span>
+                </div>
+                <div class="pdl-header-right">
+                  <span class="pdl-folder-chip" id="pdlFolderChip" onclick="openSystemDownloadFolder()" title="ចុចដើម្បីបើក Folder ក្នុង Windows (Click to Open Folder in Explorer)">
+                    <span id="pdlFolderText">📁 Folder: D:\Hongguo</span>
+                  </span>
+                  <button type="button" class="pdl-min-btn" onclick="togglePlayerDownloadLog()" title="បិទ/បង្រួម / Minimize">✕</button>
+                </div>
+              </div>
+              <div class="pdl-body">
+                <div class="pdl-meta-row">
+                  <div class="pdl-meta-item">
+                    <span class="pdl-label" id="pdlSeriesLabel">រឿង / Series:</span>
+                    <span class="pdl-val" id="pdlCurrentSeriesTitle">គ្មាន (Idle)</span>
+                  </div>
+                  <div class="pdl-meta-item">
+                    <span class="pdl-label" id="pdlEpsLabel">ភាគ / Episodes:</span>
+                    <span class="pdl-val" id="pdlEpisodeProgress">0 / 0</span>
+                  </div>
+                  <div class="pdl-meta-item">
+                    <span class="pdl-label" id="pdlStatusLabel">ស្ថានភាព / Status:</span>
+                    <span class="pdl-val pdl-val-status" id="pdlStatusText">Idle</span>
+                  </div>
+                </div>
+                <div class="pdl-prog-bar-wrap">
+                  <div class="pdl-prog-bar-fill" id="pdlProgressBar" style="width: 0%;"></div>
+                </div>
+                <div class="pdl-console-log" id="pdlConsoleLog">
+                  <div class="pdl-log-line pdl-log-dim">[System] Download logger initialized. Ready.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Column: Episode Grid Drawer -->
+          <div class="stream-right">
+            <div class="episodes-drawer">
+              <div class="drawer-head">
+                <div class="drawer-head-left">
+                  <h3 id="drawerTotalTitle">Episodes (100 total)</h3>
+                  <p id="drawerSubTitle">Complete Episode List</p>
+                </div>
+                <div class="auto-next-toggle">
+                  <span id="drawerAutoNextLabel">Auto-Next</span>
+                  <label class="switch">
+                    <input type="checkbox" id="autoNextSwitch" checked>
+                    <span class="slider"></span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- Episode Filter Tabs -->
+              <div class="drawer-tabs">
+                <button class="ep-tab active" data-range="all" id="tabEpAll" onclick="filterDrawerEps('all')">All
+                  (100)</button>
+              </div>
+
+              <!-- Batch Action Bar: Check All, Range Selector, Download Selected -->
+              <div class="batch-controls-card">
+                <!-- 1-Click Download Mode Selector (Only shown for multi-episode series) -->
+                <div class="batch-row-mode" id="hgDownloadModeBar" style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; padding:6px 10px; background:rgba(0,0,0,0.35); border-radius:8px; border:1px solid rgba(255,255,255,0.06); flex-wrap:wrap; gap:6px;">
+                  <span style="font-size:0.78rem; color:#94a3b8; display:flex; align-items:center; gap:5px; font-weight:600;">
+                    <span>⚙️ ទម្រង់ទាញយក:</span>
+                  </span>
+                  <div style="display:flex; gap:6px;">
+                    <button type="button" class="btn-dl-mode-chip active" id="chipModeMerged" onclick="setQuickDownloadMode('merged')" title="បញ្ចូលភាគទាំងអស់ជាវីដេអូពេញមួយខ្សែ (Merged Full Video)">
+                      <span>🎞️ បញ្ចូលរឿង</span>
+                    </button>
+                    <button type="button" class="btn-dl-mode-chip" id="chipModeSeparate" onclick="setQuickDownloadMode('separate')" title="រក្សាទុកជាភាគរាយៗដាច់ដោយឡែក (Separate Episodes)">
+                      <span>📁 រាយភាគ</span>
+                    </button>
+                    <button type="button" class="btn-dl-mode-chip" id="chipModeBoth" onclick="setQuickDownloadMode('both')" title="យកទាំងពីរ៖ បញ្ចូលគ្នាផង និងរាយភាគផង (Both)">
+                      <span>🎬 ទាំងពីរ</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div class="batch-row-top">
+                  <button type="button" class="btn-batch-action" id="btnToggleCheckAll" onclick="toggleSelectAllEpisodes()">
+                    <span id="checkAllIcon">☑️</span> <span id="checkAllText">គ្រីសទាំងអស់ (Select All)</span>
+                  </button>
+                  <button type="button" class="btn-batch-download" id="btnDownloadSelectedEps" onclick="downloadSelectedEpisodesBatch()">
+                    <span>📥 <span id="btnBatchDlText">ទាញយកភាគដែលបានគ្រីស</span> (<b id="selectedEpisodesBadge">0</b>)</span>
+                  </button>
+                </div>
+                <div class="batch-row-range">
+                  <span class="range-text-label" id="rangeTextLabel">រើសភាគ:</span>
+                  <input type="number" id="epRangeFrom" min="1" value="1" class="ep-range-input" placeholder="1" title="ចាប់ពីភាគ">
+                  <span class="range-dash" id="rangeDashText">ដល់</span>
+                  <input type="number" id="epRangeTo" min="1" value="20" class="ep-range-input" placeholder="20" title="ដល់ភាគ">
+                  <button type="button" class="btn-range-apply" onclick="applyEpisodeRangeSelection()">
+                    <span id="btnRangeApplyText">🎯 ចាប់ផ្ដើមគ្រីស</span>
+                  </button>
+                </div>
+                <div id="dramaHistoryMemoryBadge" class="drama-memory-tag" style="display:none;"></div>
+              </div>
+
+              <!-- 4-Column Episode Tiles Grid -->
+              <div class="ep-grid" id="epGrid"></div>
+
+              <!-- VIP Top-up Banner Card -->
+            </div>
+          </div>
+        </div>
+    </section>
+
+    <!-- Downloads Drawer & Unified Library Hub -->
+    <div class="drawer-overlay" id="downloadsDrawer" onclick="if(event.target===this) toggleDownloadsDrawer()">
+        <div class="drawer-content">
+            <div class="drawer-header">
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <span id="dlDrawerIcon" style="font-size:1.3rem;">📚</span>
+                    <h3 id="dlDrawerTitle" style="font-family:'Outfit', sans-serif; font-size:1.15rem;">បណ្ណាល័យរឿងដែលបានទាញយក</h3>
+                </div>
+                <button class="close-btn" onclick="toggleDownloadsDrawer()">&times;</button>
+            </div>
+
+            <!-- Drawer View Tabs: Library vs Download Memory vs Live Queue -->
+            <div class="drawer-tabs-nav">
+                <button type="button" class="drawer-tab-btn active" id="drawerTabLibrary" onclick="switchDrawerTab('library')">
+                    <span>📚</span> <span id="drawerTabLibText">បណ្ណាល័យ</span>
+                    <span class="badge" id="drawerLibBadge" style="display:none; font-size:0.7rem; padding:1px 6px; background:#10b981;">0</span>
+                </button>
+                <button type="button" class="drawer-tab-btn" id="drawerTabMemory" onclick="switchDrawerTab('memory')">
+                    <span>🕒</span> <span id="drawerTabMemText">ទាញយក (អង្គចងចាំ)</span>
+                    <span class="badge" id="drawerMemBadge" style="display:none; font-size:0.7rem; padding:1px 6px; background:#38bdf8;">0</span>
+                </button>
+                <button type="button" class="drawer-tab-btn" id="drawerTabActive" onclick="switchDrawerTab('active')">
+                    <span>⚡</span> <span id="drawerTabActiveText">កំពុងដំណើរការ & Log</span>
+                    <span class="badge" id="drawerActiveBadge" style="display:none; font-size:0.7rem; padding:1px 6px;">0</span>
+                </button>
+            </div>
+
+            <div class="drawer-body">
+                <!-- 1. OFFLINE LIBRARY VIEW (បណ្ណាល័យឯកសារក្នុងម៉ាស៊ីន) -->
+                <div id="drawerLibraryView" style="display:flex; flex-direction:column; gap:12px;">
+                    <!-- Clean Library Toolbar (សម្អាតរឿងដែលដោនរួច ឬរឿងចាស់ៗ រក្សាទុករឿងដែលកំពុងដោនឡូត) -->
+                    <div style="display:flex; justify-content:flex-start; align-items:center; gap:8px;">
+                        <button type="button" class="btn-clean-lib" id="btnCleanLibrary" onclick="cleanLibraryAction()" title="សម្អាតរឿងដែលបានដោនរួច ឬរឿងចាស់ៗចេញពីបញ្ជី (រក្សាទុករឿងដែលកំពុងដោនឡូត)">
+                            <span>🧹</span> <span id="btnCleanLibText">សម្អាត</span>
+                        </button>
+                    </div>
+
+                    <!-- Search Input in Library -->
+                    <div class="drawer-search-wrap">
+                        <input type="text" id="drawerMemorySearchInput" oninput="onDrawerMemorySearch(this.value)" placeholder="🔍 ស្វែងរកតាមឈ្មោះរឿង ឬ ID..." class="drawer-search-input">
+                    </div>
+
+                    <!-- Memory Summary Stats Card -->
+                    <div class="speed-panel" style="background:linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(15, 23, 42, 0.85)); border-color:rgba(16, 185, 129, 0.3); padding:10px 12px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                            <div style="display:flex; align-items:center; gap:6px;">
+                                <span style="font-size:1.15rem;">📁</span>
+                                <span style="font-weight:700; font-size:0.86rem; color:#fff;" id="drawerLibSummaryTitle">ស្ថិតិបណ្ណាល័យរឿងដែលបានទាញយក</span>
+                            </div>
+                        </div>
+                        <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:6px; text-align:center;">
+                            <div style="background:rgba(0,0,0,0.25); padding:6px; border-radius:6px; border:1px solid rgba(255,255,255,0.05);">
+                                <div style="font-size:0.66rem; color:var(--text-dim);">សរុបរឿង</div>
+                                <div style="font-size:1.05rem; font-weight:800; color:#38bdf8;" id="drawerStatTotalCount">0</div>
+                            </div>
+                            <div style="background:rgba(0,0,0,0.25); padding:6px; border-radius:6px; border:1px solid rgba(255,255,255,0.05);">
+                                <div style="font-size:0.66rem; color:var(--text-dim);">បានចប់</div>
+                                <div style="font-size:1.05rem; font-weight:800; color:#34d399;" id="drawerStatDoneCount">0</div>
+                            </div>
+                            <div style="background:rgba(0,0,0,0.25); padding:6px; border-radius:6px; border:1px solid rgba(255,255,255,0.05);">
+                                <div style="font-size:0.66rem; color:var(--text-dim);">ខ្វះភាគ</div>
+                                <div style="font-size:1.05rem; font-weight:800; color:#fbbf24;" id="drawerStatMissingCount">0</div>
+                            </div>
+                            <div style="background:rgba(0,0,0,0.25); padding:6px; border-radius:6px; border:1px solid rgba(255,255,255,0.05);">
+                                <div style="font-size:0.66rem; color:var(--text-dim);">ទំហំផ្ទុក</div>
+                                <div style="font-size:0.95rem; font-weight:800; color:#a78bfa;" id="drawerStatTotalSize">0 MB</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Direct Open Folder Shortcuts -->
+                    <div style="display:flex; gap:6px;">
+                        <button class="btn btn-secondary yt-btn-sm" style="flex:1; justify-content:center; padding:6px 10px; font-size:0.75rem;" onclick="openDownloadFolder()">
+                            <span>🎬</span> <span id="drawerBtnOpenHgFolder">Folder រឿងភាគ</span>
+                        </button>
+                        <button class="btn btn-secondary yt-btn-sm" style="flex:1; justify-content:center; padding:6px 10px; font-size:0.75rem;" onclick="openYouTubeFolder()">
+                            <span>▶️</span> <span id="drawerBtnOpenYtFolder">Folder YouTube</span>
+                        </button>
+                    </div>
+
+                    <!-- Unified Download Memory Cards List -->
+                    <div id="drawerUnifiedMemoryList" style="display:flex; flex-direction:column; gap:8px;">
+                        <div style="text-align:center; padding:24px; color:var(--text-dim); font-size:0.82rem;">កំពុងផ្ទុកបណ្ណាល័យ...</div>
+                    </div>
+                </div>
+
+                <!-- 2. DOWNLOAD MEMORY POSTER VIEW (អង្គចងចាំការទាញយក - ប្រភេទនាឡិកា 🕒 Poster & YouTube) -->
+                <div id="drawerMemoryView" style="display:none; flex-direction:column; gap:12px;">
+                    <!-- Action Bar: Title, Count, Clear Button -->
+                    <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.06); border-radius:10px; padding:10px 12px;">
+                        <div style="display:flex; align-items:center; gap:6px;">
+                            <span style="font-size:1.2rem;">🕒</span>
+                            <span style="font-weight:700; font-size:0.88rem; color:#fff;" id="drawerMemTitleText">អង្គចងចាំការទាញយក</span>
+                            <span class="badge" id="memGridCountBadge" style="background:#38bdf8; font-size:0.72rem; padding:1px 7px;">0</span>
+                        </div>
+                        <button type="button" class="btn-clear-mem" id="btnClearDownloadMemory" onclick="clearDownloadMemoryAction()" title="ឃ្លាសម្អាតប្រវត្តិអង្គចងចាំការទាញយកទាំងអស់">
+                            <span>🧹</span> <span id="btnClearMemText">ឃ្លាសម្អាតប្រវត្តិ</span>
+                        </button>
+                    </div>
+
+                    <!-- Search Input in Memory -->
+                    <div class="drawer-search-wrap" style="margin-bottom:0;">
+                        <input type="text" id="drawerDownloadMemorySearchInput" oninput="onDrawerDownloadMemorySearch(this.value)" placeholder="🔍 ស្វែងរកក្នុងអង្គចងចាំ..." class="drawer-search-input">
+                    </div>
+
+                    <!-- Poster Grid -->
+                    <div class="drawer-poster-grid" id="drawerPosterMemoryGrid">
+                        <div style="grid-column:1/-1; text-align:center; padding:30px; color:var(--text-dim); font-size:0.82rem;">⚡ កំពុងផ្ទុកអង្គចងចាំការទាញយក...</div>
+                    </div>
+                </div>
+
+                <!-- 2. ACTIVE DOWNLOADS & LIVE PROGRESS VIEW -->
+                <div id="drawerActiveView" style="display:none; flex-direction:column; gap:14px;">
+                    <!-- Speed & Progress Meter -->
+                    <div class="speed-panel">
+                        <div class="speed-row">
+                            <span id="dlLiveSpeedLabel" style="font-size:0.85rem; color:var(--text-muted); font-weight:600;">ល្បឿនបច្ចុប្បន្ន:</span>
+                            <span class="speed-val" id="dlLiveSpeed">0.0 MB/s</span>
+                        </div>
+                        <div class="speed-row" style="font-size:0.8rem; color:var(--text-dim); margin-bottom:8px;">
+                            <span id="dlCurrentItem">Idle</span>
+                            <span id="dlPercentText">0%</span>
+                        </div>
+                        <div class="progress-bar-bg">
+                            <div class="progress-bar-fill" id="dlProgressFill"></div>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; margin-top:8px; font-size:0.75rem; color:var(--text-dim);">
+                            <span id="dlDoneLabel">បានបញ្ចប់: <b id="dlTotalDone" style="color:#fff;">0</b> / <span id="dlTotalEps">0</span> <span id="dlDoneUnit">ភាគ</span></span>
+                            <span id="dlRunningStatus" style="color:#fb7185;">Ready</span>
+                        </div>
+                    </div>
+
+                    <!-- Empty State for Active Downloads -->
+                    <div id="drawerActiveEmpty" style="display:none; text-align:center; padding:30px 14px; background:rgba(255,255,255,0.02); border-radius:10px; border:1px dashed var(--border-glass); color:var(--text-dim);">
+                        <div style="font-size:2rem; margin-bottom:6px;">☕</div>
+                        <div id="drawerActiveEmptyText" style="font-size:0.88rem; font-weight:600; color:#cbd5e1;">មិនមានវីដេអូកំពុងដំណើរការទាញយកទេ</div>
+                        <div style="font-size:0.75rem; color:#64748b; margin-top:4px;">រឿងភាគ ឬ វីដេអូ YouTube ដែលកំពុងដោន នឹងបង្ហាញទីនេះដោយស្វ័យប្រវត្តិ</div>
+                    </div>
+
+                    <!-- Section A: Hongguo Website Downloads -->
+                    <div id="drawerHgSectionWrap">
+                        <div class="drawer-section-header">
+                            <span class="drawer-section-title" id="drawerHgTitle">🎬 រឿងភាគពី Website (Hongguo)</span>
+                            <span class="drawer-section-pill" id="drawerHgCount">0</span>
+                        </div>
+                        <!-- Active Series Queue Cards -->
+                        <div id="activeSeriesContainer" style="display:flex; flex-direction:column; gap:8px;"></div>
+                    </div>
+
+                    <!-- Section B: YouTube Downloads -->
+                    <div id="drawerYtSectionWrap">
+                        <div class="drawer-section-header">
+                            <span class="drawer-section-title" id="drawerYtTitle">▶️ វីដេអូ YouTube</span>
+                            <span class="drawer-section-pill" id="drawerYtCount">0</span>
+                        </div>
+                        <!-- YouTube Task Cards Container in Drawer -->
+                        <div id="drawerYtTasksContainer" style="display:flex; flex-direction:column; gap:8px;"></div>
+                    </div>
+
+                    <!-- Failed Episodes Box -->
+                    <div id="failedEpsBox" style="display:none; background:rgba(239, 68, 68, 0.08); border:1px solid rgba(239, 68, 68, 0.28); border-radius:8px; padding:10px; margin-top:4px;">
+                        <div style="font-size:0.78rem; font-weight:700; color:#fca5a5; display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                            <span id="dlFailedTitle">⚠️ ភាគដែលបរាជ័យ (Failed Episodes):</span>
+                            <button class="btn-queue-retry" onclick="retryAllFailedDownloads()">🔄 Retry All</button>
+                        </div>
+                        <div id="failedEpsList" style="display:flex; flex-direction:column; gap:5px; max-height:130px; overflow-y:auto;"></div>
+                    </div>
+
+                    <!-- Live Activity Log -->
+                    <div id="dlLogsTitle" style="font-size:0.78rem; font-weight:700; color:var(--text-muted); margin-top:4px;">
+                        កំណត់ហេតុសកម្មភាព (Activity Logs):
+                    </div>
+                    <div class="log-box" id="dlLogBox" style="height:100px;">
+                        <div>[System] Ready.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Drawer Footer Action Bar -->
+            <div style="padding-top:14px; border-top:1px solid var(--border-glass); display:flex; gap:8px;" id="drawerFooterActions">
+                <button class="btn btn-secondary" style="flex:1; justify-content:center;" onclick="openUnifiedFolder()">
+                    <span id="dlOpenFolderBtnText">📁 បើក Folder</span>
+                </button>
+                <button class="btn btn-secondary" id="btnRetryAllFailed" style="background:rgba(245, 158, 11, 0.15); border-color:rgba(245, 158, 11, 0.35); color:#fbbf24; font-weight:700;" onclick="retryAllFailedDownloads()" title="Retry any failed or partial episode downloads">
+                    <span id="dlRetryBtnText">🔄 Retry</span>
+                </button>
+                <button class="btn btn-secondary" style="background:rgba(239, 68, 68, 0.15); border-color:rgba(239, 68, 68, 0.3); color:#fca5a5;" onclick="cancelAllUnifiedDownloads()">
+                    <span id="dlCancelBtnText">បោះបង់ (Cancel)</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Smart Download Confirmation & Duplicate Prevention Modal (កុំឲ្យដោនជាន់រឿងគ្នា) -->
+    <div class="modal-overlay" id="smartDownloadConfirmModal" style="display:none; z-index:9999;" onclick="if(event.target===this) closeSmartDownloadModal()">
+        <div class="modal-content" style="max-width:520px; background:linear-gradient(145deg, #0e1626, #070a12); border:1px solid rgba(255,255,255,0.12); border-radius:16px; padding:22px; box-shadow:0 25px 60px rgba(0,0,0,0.85);">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:14px;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <div id="smartDlIconBox" style="width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:1.35rem; background:rgba(245, 158, 11, 0.15); border:1px solid rgba(245, 158, 11, 0.3);">⚠️</div>
+                    <div>
+                        <h3 id="smartDlModalTitle" style="font-size:1.02rem; font-weight:800; color:#fff; margin:0;">ពិនិត្យអង្គចងចាំការទាញយក</h3>
+                        <div id="smartDlModalSub" style="font-size:0.75rem; color:#94a3b8; margin-top:2px;">ការពារការទាញយកជាន់រឿងគ្នា (Duplicate Prevention)</div>
+                    </div>
+                </div>
+                <button class="close-btn" onclick="closeSmartDownloadModal()">&times;</button>
+            </div>
+
+            <!-- Drama Info Banner -->
+            <div style="display:flex; gap:12px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:12px; margin-bottom:16px;">
+                <div id="smartDlCoverWrap" style="width:52px; height:72px; border-radius:6px; overflow:hidden; background:#090d16; flex-shrink:0;">
+                    <img id="smartDlCoverImg" src="" style="width:100%; height:100%; object-fit:cover;" onerror="this.src='';">
+                </div>
+                <div style="flex:1; min-width:0;">
+                    <div id="smartDlDramaTitle" style="font-weight:700; font-size:0.92rem; color:#fff; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"></div>
+                    <div id="smartDlDramaMeta" style="font-size:0.75rem; color:#38bdf8; margin-top:3px; font-weight:600;"></div>
+                    <div id="smartDlStatusAlert" style="margin-top:6px; font-size:0.78rem; line-height:1.45;"></div>
+                </div>
+            </div>
+
+            <!-- Action Buttons Container -->
+            <div id="smartDlActionButtons" style="display:flex; flex-direction:column; gap:8px;"></div>
+        </div>
+    </div>
+
+    <!-- Library Modal -->
+    <div class="modal-overlay" id="libraryModal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <span>📚</span>
+                    <h3 id="libraryModalTitle">បណ្ណាល័យរឿងដែលបានទាញយក (Offline Library)</h3>
+                </div>
+                <button class="close-btn" onclick="closeLibraryModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="libraryBody">
+                <div style="text-align:center; padding:40px; color:var(--text-dim);">កំពុងពិនិត្យ Folder...</div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="openDownloadFolder()"><span id="libOpenFolderBtnText">📁 បើក Folder ក្នុង Windows</span></button>
+                <button class="btn btn-secondary" onclick="closeLibraryModal()"><span id="libCloseBtnText">បិទ</span></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal-overlay" id="settingsModal">
+        <div class="modal-card" style="max-width:540px;">
+            <div class="modal-header">
+                <h3 id="settingsModalTitle">⚙️ ការកំណត់ប្រព័ន្ធ (Settings)</h3>
+                <button class="close-btn" onclick="closeSettingsModal()">&times;</button>
+            </div>
+            <div class="modal-body" style="display:flex; flex-direction:column; gap:18px;">
+                <div>
+                    <label id="settingsOutDirLabel" style="display:block; font-size:0.85rem; font-weight:700; margin-bottom:6px;">ទីតាំងរក្សាទុកវីដេអូ (Download Output Directory):</label>
+                    <div style="display:flex; gap:8px;">
+                        <input type="text" class="range-input" id="settingsOutDir" style="font-size:0.82rem;" readonly>
+                        <button class="btn btn-secondary" onclick="browseDownloadFolder()"><span id="settingsBrowseBtnText">ផ្លាស់ប្ដូរ...</span></button>
+                    </div>
+                </div>
+                <div>
+                    <label id="settingsThreadsLabel" style="display:block; font-size:0.85rem; font-weight:700; margin-bottom:6px;">ចំនួន Threads ទាញយកស្របគ្នា (Threads):</label>
+                    <input type="number" class="range-input" id="settingsThreads" min="1" max="16" value="4">
+                </div>
+
+
+                <!-- License Status Card -->
+                <div style="background:rgba(15,23,42,0.65); border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:12px 14px; display:flex; justify-content:space-between; align-items:center; gap:12px;">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <span style="font-size:1.25rem;">🛡️</span>
+                        <div>
+                            <div style="font-size:0.86rem; font-weight:700; color:#fff;">
+                                ស្ថានភាពអាជ្ញាប័ណ្ណ (License Status)
+                            </div>
+                            <div id="settingsLicenseTypeText" style="font-size:0.75rem; color:#34d399; font-weight:600; margin-top:2px;">
+                                កំពុងពិនិត្យមើល...
+                            </div>
+                        </div>
+                    </div>
+                    <div style="display:flex; gap:6px;">
+                        <a href="/admin" target="_blank" class="btn btn-secondary btn-sm" style="height:32px; font-size:0.78rem; padding:0 10px; white-space:nowrap; text-decoration:none; display:inline-flex; align-items:center; gap:4px; color:#38bdf8; border-color:rgba(56,189,248,0.3);">
+                            <span>🔑</span> <span>Admin Gen</span>
+                        </a>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="showChangeLicensePrompt()" style="height:32px; font-size:0.78rem; padding:0 10px; white-space:nowrap; flex-shrink:0;">
+                            <span>🔄</span> <span id="btnChangeLicenseText">ប្តូរ Key</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Software Update (1-Click Seamless Auto-Updater) -->
+                <div class="settings-update-section">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <span style="font-size:1.15rem;">🔄</span>
+                            <div>
+                                <div id="settingsUpdateTitle" style="font-size:0.92rem; font-weight:700; color:#fff;">
+                                    ធ្វើបច្ចុប្បន្នភាពកម្មវិធី (Software Update)
+                                </div>
+                                <div id="settingsUpdateSubtitle" style="font-size:0.75rem; color:var(--text-dim);">
+                                    ពិនិត្យមើល និង Update មុខងារថ្មីៗដោយស្វ័យប្រវត្តិ
+                                </div>
+                            </div>
+                        </div>
+                        <span class="badge" id="settingsCurrentVersionBadge" style="background:rgba(59,130,246,0.16); border:1px solid rgba(59,130,246,0.4); color:#93c5fd; padding:3px 10px; font-size:0.78rem; font-weight:700;">
+                            v3.1.0
+                        </span>
+                    </div>
+
+                    <!-- Single Clean Update Card -->
+                    <div id="updateCardBox" style="background:rgba(15,23,42,0.65); border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:12px 14px; transition:all 0.35s ease;">
+                        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+                            <div style="display:flex; align-items:center; gap:10px; font-size:0.83rem;">
+                                <span id="updateStatusIcon" style="font-size:1.15rem;">✅</span>
+                                <div>
+                                    <div id="updateStatusText" style="color:#cbd5e1; font-weight:600;">
+                                        កម្មវិធីរបស់អ្នកជាកំណែចុងក្រោយបំផុតហើយ (v3.1.0)
+                                    </div>
+                                    <div id="updateStatusSubtext" style="font-size:0.73rem; color:var(--text-dim); display:none; margin-top:2px;"></div>
+                                </div>
+                            </div>
+
+                            <!-- Single Update Button: Disabled when up to date, Lights up & Clickable when update available! -->
+                            <button type="button" id="btnAppUpdateAction" disabled onclick="handleAppUpdateActionClick()" class="btn-update-action btn-update-disabled">
+                                <span id="btnUpdateActionIcon">🔄</span>
+                                <span id="btnUpdateActionText">Update</span>
+                            </button>
+                        </div>
+
+                        <!-- Changelog preview (Shown only when update available) -->
+                        <div id="updateChangelogBox" style="display:none; margin-top:10px; background:rgba(0,0,0,0.35); border-radius:6px; padding:8px 10px; font-size:0.76rem; color:#e2e8f0; line-height:1.45; max-height:75px; overflow-y:auto; white-space:pre-wrap; border-left:3px solid #10b981;"></div>
+                    </div>
+                </div>
+
+                <div style="background:rgba(255, 255, 255, 0.03); border:1px solid var(--border-glass); border-radius:8px; padding:12px; font-size:0.8rem; color:var(--text-dim);">
+                    <div>• <b>Application:</b> Hongguo Downloader V3</div>
+                    <div>• <b>Data Source:</b> https://hongguoduanju.com/ (SSR Scraper)</div>
+                    <div>• <b>Video Stream:</b> Direct unencrypted MP4 CDN (HTTP 206 Partial Content)</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeSettingsModal()"><span id="settingsCancelBtnText">បោះបង់</span></button>
+                <button class="btn btn-primary" onclick="saveSystemSettings()"><span id="settingsSaveBtnText">រក្សាទុក (Save)</span></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- License Activation Modal (Full-Screen Shield Overlay) -->
+    <div id="licenseActivationModal" class="license-modal-overlay" style="display:none;">
+        <div class="license-card" style="max-width:820px; position:relative;">
+            <!-- Close Button to allow freely browsing posters -->
+            <button type="button" class="license-modal-close-btn" onclick="closeLicenseModalForBrowsing()" title="បិទផ្ទាំងនេះដើម្បីមើលផ្ទាំងរូបភាពរឿង (Browse Posters)">✕</button>
+
+            <!-- Dynamic Alert Banner when user clicks a poster without a license -->
+            <div id="licenseActionNoticeBanner" style="display:none; background:rgba(239,68,68,0.22); border:1.5px solid #ef4444; border-radius:10px; padding:10px 14px; margin-bottom:12px; color:#fca5a5; font-size:0.82rem; text-align:left; line-height:1.5; box-shadow:0 0 15px rgba(239,68,68,0.2);"></div>
+
+            <!-- Header Glow Icon & Title (Horizontal Layout) -->
+            <div style="display:flex; align-items:center; justify-content:center; gap:12px; margin-bottom:14px; text-align:left;">
+                <div class="license-icon-ring" style="width:44px; height:44px; font-size:1.3rem; margin:0; flex-shrink:0;">
+                    <span class="license-icon">🔐</span>
+                </div>
+                <div>
+                    <h2 class="license-title" style="margin:0; font-size:1.22rem;">ផ្ទៀងផ្ទាត់អាជ្ញាប័ណ្ណ (License Activation)</h2>
+                    <p class="license-subtitle" style="margin:2px 0 0; font-size:0.76rem; color:#94a3b8;">
+                        សូមផ្ញើលេខកូដម៉ាស៊ីនខាងក្រោម ឬស្កេនបង់ប្រាក់ដើម្បីបើកសិទ្ធិដំណើរការកម្មវិធី
+                    </p>
+                </div>
+            </div>
+
+            <!-- Telegram Username Embedded Hidden Field (Kept in code for tracking) -->
+            <input type="hidden" id="clientTelegramInput" value="">
+
+            <!-- 2-Column Horizontal Grid -->
+            <div class="license-body-grid">
+                <!-- COLUMN 1: Device ID & Auto Activation -->
+                <div style="display:flex; flex-direction:column; gap:10px;">
+                    <!-- Device ID Box -->
+                    <div class="license-device-card" style="margin:0; padding:12px 14px;">
+                        <div class="license-device-label" style="font-size:0.75rem; margin-bottom:6px;">
+                            <span>💻 លេខសម្គាល់ម៉ាស៊ីនរបស់អ្នក (Device ID):</span>
+                        </div>
+                        <div class="license-device-row">
+                            <span id="licenseDeviceIdText" class="license-device-id" style="font-size:0.92rem; font-weight:800; padding:4px 10px;">HG-0000-0000-0000</span>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="copyDeviceId()" title="ចម្លង Device ID" style="height:30px; font-size:0.74rem; padding:0 8px;">
+                                <span>📋</span> <span id="copyDeviceIdBtnText">ចម្លង</span>
+                            </button>
+                        </div>
+                        <div style="margin-top:8px;">
+                            <button type="button" class="btn btn-secondary" onclick="copyClientTelegramInfo()" style="width:100%; height:32px; font-size:0.74rem; display:flex; align-items:center; justify-content:center; gap:6px; color:#38bdf8; border-color:rgba(56,189,248,0.35);">
+                                <span>💬</span> <span id="btnCopyAllInfoText">ចម្លងព័ត៌មានផ្ញើទៅ Admin (Telegram)</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Error / Success Alert Box -->
+                    <div id="licenseAlertBox" class="license-alert" style="display:none; margin:0;"></div>
+
+                    <!-- Option 1: Auto-Activation Refresh Button -->
+                    <div style="background:rgba(0,0,0,0.25); border:1px solid rgba(255,255,255,0.06); border-radius:12px; padding:10px 12px;">
+                        <button type="button" id="btnRefreshAutoLicense" class="btn btn-primary btn-license-activate" onclick="refreshAndCheckAutoActivation()" style="width:100%; height:40px; font-size:0.86rem; background:linear-gradient(135deg, #10b981 0%, #059669 100%);">
+                            <span id="btnRefreshAutoIcon">🔄</span>
+                            <span id="btnRefreshAutoText">ផ្ទុកឡើងវិញ (Refresh / Check License)</span>
+                        </button>
+                        <div style="font-size:0.7rem; color:#94a3b8; margin-top:5px; line-height:1.4;">
+                            ✨ <b>អូតូ៖</b> ពេល Admin បើកសិទ្ធិរួច ចុច <b>ផ្ទុកឡើងវិញ</b> នោះកម្មវិធីដើរភ្លាម!
+                        </div>
+                    </div>
+
+                    <!-- Option 2: Manual Key Entry Toggle -->
+                    <div style="border-top:1px dashed rgba(255,255,255,0.1); padding-top:8px;">
+                        <a href="javascript:void(0)" onclick="toggleManualKeyMode()" id="linkToggleManualKey" style="font-size:0.74rem; color:#38bdf8; text-decoration:none; opacity:0.9;">
+                            🔑 ឬបញ្ចូល License Key ដោយខ្លួនឯង ▾
+                        </a>
+
+                        <div id="manualKeyWrapper" style="display:none; margin-top:8px; text-align:left;">
+                            <div style="display:flex; gap:6px;">
+                                <input type="text" id="licenseKeyInput" class="license-input" placeholder="XXXX-XXXX-XXXX-XXXX" maxlength="19" onkeydown="if(event.key==='Enter') submitLicenseActivation()" autocomplete="off" spellcheck="false" style="height:34px; font-size:0.85rem;">
+                                <button type="button" class="btn btn-secondary" onclick="pasteLicenseKey()" style="white-space:nowrap; padding:0 10px; height:34px; font-size:0.75rem; flex-shrink:0;">
+                                    <span>📋</span> <span>Paste</span>
+                                </button>
+                            </div>
+                            <button type="button" id="btnActivateLicense" class="btn btn-secondary" onclick="submitLicenseActivation()" style="width:100%; height:32px; margin-top:6px; font-size:0.78rem; font-weight:700; background:rgba(16,185,129,0.2); border-color:#10b981; color:#34d399;">
+                                <span id="btnActivateIcon">⚡</span> <span id="btnActivateText">Activate Key</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- COLUMN 2: Subscription Pricing & KHQR Payment Box -->
+                <div class="pricing-container" style="background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.08); border-radius:14px; padding:12px; text-align:left;">
+                    <div style="font-size:0.78rem; font-weight:700; color:#cbd5e1; margin-bottom:8px;">
+                        🏷️ ជ្រើសរើសកញ្ចប់ទិញ License:
+                    </div>
+
+                    <!-- Price Plan Cards -->
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                        <!-- Plan 1: 1 Week -->
+                        <div class="plan-card" id="planCardWeek" onclick="selectPricingPlan('1_week', '1.50', '១ សប្តាហ៍ (1 Week)')" style="background:rgba(255,255,255,0.04); border:1.5px solid rgba(255,255,255,0.12); border-radius:10px; padding:7px 8px; cursor:pointer; text-align:center; transition:all 0.2s ease;">
+                            <div style="font-size:0.74rem; font-weight:700; color:#e2e8f0;">⏱️ ១ សប្តាហ៍</div>
+                            <div style="font-size:1.15rem; font-weight:800; color:#38bdf8; margin:2px 0;">$1.50</div>
+                            <div style="font-size:0.65rem; color:#94a3b8;">សុពលភាព ៧ ថ្ងៃ</div>
+                        </div>
+
+                        <!-- Plan 2: 1 Month -->
+                        <div class="plan-card" id="planCardMonth" onclick="selectPricingPlan('1_month', '5.99', '១ ខែ (1 Month)')" style="background:rgba(255,255,255,0.04); border:1.5px solid rgba(255,255,255,0.12); border-radius:10px; padding:7px 8px; cursor:pointer; text-align:center; transition:all 0.2s ease; position:relative;">
+                            <span style="position:absolute; top:-7px; right:6px; background:linear-gradient(135deg, #f59e0b, #d97706); color:#fff; font-size:0.56rem; font-weight:800; padding:1px 5px; border-radius:6px;">ពេញនិយម</span>
+                            <div style="font-size:0.74rem; font-weight:700; color:#e2e8f0;">🌟 ១ ខែ</div>
+                            <div style="font-size:1.15rem; font-weight:800; color:#34d399; margin:2px 0;">$5.99</div>
+                            <div style="font-size:0.65rem; color:#94a3b8;">សុពលភាព ៣០ ថ្ងៃ</div>
+                        </div>
+                    </div>
+
+                    <!-- Placeholder Notice (Shown before any plan is clicked) -->
+                    <div id="qrPlaceholderNotice" style="margin-top:10px; background:rgba(255,255,255,0.02); border:1px dashed rgba(255,255,255,0.12); border-radius:10px; padding:32px 14px; text-align:center; color:#94a3b8; font-size:0.76rem; line-height:1.5;">
+                        <div style="font-size:1.8rem; margin-bottom:6px;">💳</div>
+                        ចុចលើកញ្ចប់ <b>១ សប្តាហ៍</b> ឬ <b>១ ខែ</b> ខាងលើ<br>ដើម្បីបង្ហាញ QR Code ស្កេនបង់ប្រាក់
+                    </div>
+
+                    <!-- Collapsible KHQR Payment Display (Appears when plan is clicked) -->
+                    <div id="qrPaymentSection" style="display:none; margin-top:10px; background:rgba(0,0,0,0.45); border:1px dashed rgba(255,255,255,0.18); border-radius:12px; padding:10px; text-align:center;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px; padding:0 2px;">
+                            <div style="font-size:0.76rem; color:#e2e8f0; font-weight:700;">
+                                ស្កេនបាញ់ប្រាក់: <b id="qrPriceAmountText" style="color:#34d399; font-size:0.96rem;">$1.50</b>
+                            </div>
+                            <button type="button" onclick="closeQRPaymentCard()" style="background:rgba(255,255,255,0.08); border:none; color:#cbd5e1; font-size:0.72rem; border-radius:6px; cursor:pointer; padding:1px 6px;" title="បិទ QR">✕ បិទ</button>
+                        </div>
+                        
+                        <div style="display:flex; justify-content:center; margin:6px 0;">
+                            <img id="qrPaymentImage" src="/qr_1_50.png?v=cnb" alt="KHQR Payment" style="width:155px; height:155px; border-radius:10px; object-fit:contain; box-shadow:0 4px 16px rgba(0,0,0,0.5); background:#fff; padding:5px;" onerror="this.src='/qr_1_50.png'">
+                        </div>
+
+                        <div style="font-size:0.68rem; color:#94a3b8; margin:2px 0 8px;">
+                            ស្កេនជាមួយ Bakong, ABA, Wing ឬគ្រប់ធនាគារ
+                        </div>
+
+                        <!-- Notify Paid Button -->
+                        <button type="button" id="btnNotifyPaid" class="btn btn-primary" onclick="notifyPaymentSent()" style="width:100%; height:36px; font-size:0.8rem; font-weight:700; background:linear-gradient(135deg, #10b981, #059669); border:none; display:flex; align-items:center; justify-content:center; gap:6px;">
+                            <span>📲</span> <span id="btnNotifyPaidText">ខ្ញុំបានបាញ់លុយរួចរាល់ (Notify Admin)</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Support / Contact Note -->
+            <div class="license-footer-note" style="margin-top:12px; font-size:0.7rem; color:#64748b; line-height:1.4;">
+                • អាជ្ញាប័ណ្ណដំណើរការជាប់លើកុំព្យូទ័រនេះជារៀងរហូត (Hardware Locked & Protected)<br>
+                • សម្រាប់ជំនួយ ឬទិញ License សូមទាក់ទង Admin តាម Telegram: <a href="https://t.me/Thpisal33" target="_blank" onclick="openAdminTelegramChat()" style="color:#38bdf8; font-weight:700; text-decoration:underline;">@Thpisal33</a>
+            </div>
+
+            <!-- Browse Posters Button -->
+            <div style="margin-top:10px; display:flex; justify-content:center;">
+                <button type="button" class="btn btn-secondary btn-sm" onclick="closeLicenseModalForBrowsing()" style="font-size:0.75rem; color:#94a3b8; padding:5px 16px; border-radius:8px; display:flex; align-items:center; gap:6px; background:rgba(255,255,255,0.05); border-color:rgba(255,255,255,0.12); cursor:pointer;">
+                    <span>👁️</span> <span>មើលផ្ទាំងរូបភាពរឿងសិន (Browse Posters Only)</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- System Issue / Notice Popup Modal -->
+    <div id="systemNoticeModal" class="license-modal-overlay" style="display:none; z-index:100000; background:rgba(0,0,0,0.85); backdrop-filter:blur(10px);">
+        <div class="license-card" style="max-width:440px; border-color:rgba(239,68,68,0.45); box-shadow:0 20px 60px rgba(239,68,68,0.25);">
+            <div class="license-icon-ring" style="background:rgba(239,68,68,0.15); border-color:rgba(239,68,68,0.4);">
+                <span class="license-icon">⚠️</span>
+            </div>
+            <h3 style="font-size:1.18rem; font-weight:800; color:#fca5a5; margin-bottom:8px;">ប្រព័ន្ធកំពុងមានបញ្ហា</h3>
+            <p style="font-size:0.95rem; color:#e2e8f0; line-height:1.6; margin-bottom:16px;">
+                សូមផ្ញើវិក័យប័ត្រឱ្យទៅអែតមីន <b><a href="https://t.me/Thpisal33" target="_blank" onclick="openAdminTelegramChat()" style="color:#38bdf8; text-decoration:none; font-weight:800;">@Thpisal33</a></b>
+            </p>
+
+            <div style="background:rgba(0,0,0,0.45); border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:12px 14px; text-align:left; font-size:0.78rem; color:#cbd5e1; margin-bottom:16px; line-height:1.8;">
+                <div>💻 <b>Device ID:</b> <code id="systemNoticeDeviceId" style="color:#38bdf8; font-weight:700;">HG-0000-0000-0000</code></div>
+                <div>🏷️ <b>កញ្ចប់ទូទាត់:</b> <span id="systemNoticePlan" style="color:#fbbf24; font-weight:700;">១ សប្តាហ៍ ($1.50)</span></div>
+            </div>
+
+            <div style="display:flex; flex-direction:column; gap:10px;">
+                <button type="button" class="btn btn-primary" onclick="openAdminTelegramChat()" style="height:44px; font-size:0.88rem; font-weight:700; background:linear-gradient(135deg, #0284c7, #0369a1); border:none; display:flex; align-items:center; justify-content:center; gap:8px; box-shadow:0 4px 15px rgba(2,132,199,0.4);">
+                    <span>✈️</span> <span>ផ្ញើវិក្កយបត្រទៅកាន់ Telegram @Thpisal33</span>
+                </button>
+                <div style="display:flex; gap:8px;">
+                    <button type="button" class="btn btn-secondary" onclick="copyAdminTelegramUsername()" style="flex:1; height:36px; font-size:0.78rem; display:flex; align-items:center; justify-content:center; gap:5px;">
+                        <span>📋</span> <span>ចម្លង @Thpisal33</span>
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="closeSystemNoticeModal()" style="flex:1; height:36px; font-size:0.78rem; color:#94a3b8; display:flex; align-items:center; justify-content:center; gap:5px;">
+                        <span>✖️</span> <span>បិទ (Close)</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contact Admin Direct Popup Modal -->
+    <div id="contactAdminDirectModal" class="license-modal-overlay" style="display:none; z-index:100001; background:rgba(0,0,0,0.85); backdrop-filter:blur(10px);">
+        <div class="license-card" style="max-width:440px; border-color:rgba(56,189,248,0.45); box-shadow:0 20px 60px rgba(56,189,248,0.25);">
+            <div class="license-icon-ring" style="background:rgba(56,189,248,0.15); border-color:rgba(56,189,248,0.4);">
+                <span class="license-icon">📩</span>
+            </div>
+            <h3 id="contactAdminTitle" style="font-size:1.22rem; font-weight:800; color:#38bdf8; margin-bottom:8px;">សូមទាក់ទងទៅ admin ផ្ទាល់ ដើម្បីផ្ញើវិក្កយបត្រ</h3>
+            <p id="contactAdminDesc" style="font-size:0.92rem; color:#e2e8f0; line-height:1.6; margin-bottom:16px;">
+                សូមទាក់ទងទៅ Admin ផ្ទាល់តាម Telegram <b><a href="https://t.me/Thpisal33" target="_blank" onclick="openAdminTelegramChat()" style="color:#38bdf8; text-decoration:none; font-weight:800;">@Thpisal33</a></b> ដើម្បីផ្ញើវិក្កយបត្រទូទាត់ និងឱ្យគាត់បើកសិទ្ធិជូន។
+            </p>
+
+            <div style="background:rgba(0,0,0,0.45); border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:12px 14px; text-align:left; font-size:0.78rem; color:#cbd5e1; margin-bottom:16px; line-height:1.8;">
+                <div>💻 <b>Device ID:</b> <code id="contactAdminDeviceId" style="color:#38bdf8; font-weight:700;">HG-0000-0000-0000</code></div>
+                <div>🏷️ <b>កញ្ចប់ទូទាត់:</b> <span id="contactAdminPlan" style="color:#fbbf24; font-weight:700;">១ សប្តាហ៍ ($1.50)</span></div>
+                <div id="contactAdminLockNotice" style="display:none; color:#f87171; font-weight:700; margin-top:6px; font-size:0.78rem; background:rgba(239,68,68,0.15); padding:4px 8px; border-radius:6px;">
+                    ⏱️ អ្នកបានចុចច្រើនដងពេកហើយ! ប្រព័ន្ធត្រូវបានចាក់សោរយៈពេល ១ នាទី។
+                </div>
+            </div>
+
+            <div style="display:flex; flex-direction:column; gap:10px;">
+                <button type="button" class="btn btn-primary" onclick="openAdminTelegramChat()" style="height:44px; font-size:0.88rem; font-weight:700; background:linear-gradient(135deg, #0284c7, #0369a1); border:none; display:flex; align-items:center; justify-content:center; gap:8px; box-shadow:0 4px 15px rgba(2,132,199,0.4);">
+                    <span>✈️</span> <span>ផ្ញើវិក្កយបត្រទៅកាន់ Telegram (@Thpisal33)</span>
+                </button>
+                <div style="display:flex; gap:8px;">
+                    <button type="button" class="btn btn-secondary" onclick="copyAdminTelegramUsername()" style="flex:1; height:36px; font-size:0.78rem; display:flex; align-items:center; justify-content:center; gap:5px;">
+                        <span>📋</span> <span>ចម្លង @Thpisal33</span>
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="closeContactAdminModal()" style="flex:1; height:36px; font-size:0.78rem; color:#94a3b8; display:flex; align-items:center; justify-content:center; gap:5px;">
+                        <span>✖️</span> <span>បិទ (Close)</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Smart Multi-Episode Drama Download Mode Modal -->
+    <div class="modal-overlay" id="downloadModeModal" style="display:none; z-index:10000;">
+        <div class="modal-card" style="max-width:540px; box-shadow:0 25px 70px rgba(0,0,0,0.85), 0 0 35px rgba(225,29,72,0.25);">
+            <div class="modal-header" style="border-bottom:1px solid rgba(255,255,255,0.08); padding:16px 20px;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <div style="width:36px; height:36px; border-radius:8px; background:linear-gradient(135deg, #e11d48, #f59e0b); display:flex; align-items:center; justify-content:center; font-size:1.2rem;">
+                        🎬
+                    </div>
+                    <div>
+                        <h3 style="font-size:1.1rem; font-weight:800; color:#fff; margin:0;" id="dlModeModalTitle">ជម្រើសទាញយករឿងភាគ</h3>
+                        <div id="dlModeModalSub" style="font-size:0.75rem; color:#94a3b8; margin-top:2px;">Multi-Episode Download Mode</div>
+                    </div>
+                </div>
+                <button type="button" class="close-btn" onclick="closeDownloadModeModal()">&times;</button>
+            </div>
+
+            <div class="modal-body" style="padding:18px 20px;">
+                <p style="font-size:0.83rem; color:#cbd5e1; margin-bottom:14px; line-height:1.5;">
+                    រឿងនេះមានច្រើនភាគ។ សូមជ្រើសរើសរបៀបដែលអ្នកចង់ឱ្យប្រព័ន្ធទាញយក និងរៀបចំឯកសារ៖
+                </p>
+
+                <!-- 3 Options -->
+                <div class="dl-mode-options">
+                    <!-- Option 1: Merged (Full Video) -->
+                    <div class="dl-mode-card active" id="dlModeCardMerged" onclick="selectDownloadModeCard('merged')">
+                        <div class="dl-mode-icon-box">🎞️</div>
+                        <div class="dl-mode-info">
+                            <div class="dl-mode-title-row">
+                                <span class="dl-mode-title">បញ្ចូលគ្នាជាវីដេអូពេញ (Merged Full Video)</span>
+                                <span class="dl-mode-tag merged">ពេញនិយម</span>
+                            </div>
+                            <div class="dl-mode-desc">
+                                ទាញយកគ្រប់ភាគរួចបញ្ចូលគ្នា (Merge) ទៅជាវីដេអូតែមួយខ្នատវែង (Full Movie) ដោយស្វ័យប្រវត្តិ។ FFmpeg ភ្ជាប់លឿនត្រឹម 2-5 វិនាទី និងលុបភាគរាយៗចោលរក្សាទុកតែវីដេអូពេញ។
+                            </div>
+                        </div>
+                        <div class="dl-radio-dot"></div>
+                    </div>
+
+                    <!-- Option 2: Separate Episodes -->
+                    <div class="dl-mode-card" id="dlModeCardSeparate" onclick="selectDownloadModeCard('separate')">
+                        <div class="dl-mode-icon-box">📁</div>
+                        <div class="dl-mode-info">
+                            <div class="dl-mode-title-row">
+                                <span class="dl-mode-title">ទាញយកជាភាគដាច់ដោយឡែក (Separate Episodes)</span>
+                                <span class="dl-mode-tag separate">ធម្មតា</span>
+                            </div>
+                            <div class="dl-mode-desc">
+                                រក្សាទុកវីដេអូតាមភាគនីមួយៗ (Ep01, Ep02, ...) ក្នុងថតរឿងធម្មតា មិនធ្វើការបញ្ចូលគ្នានោះទេ។
+                            </div>
+                        </div>
+                        <div class="dl-radio-dot"></div>
+                    </div>
+
+                    <!-- Option 3: Both (Merged + Separate) -->
+                    <div class="dl-mode-card" id="dlModeCardBoth" onclick="selectDownloadModeCard('both')">
+                        <div class="dl-mode-icon-box">🎬</div>
+                        <div class="dl-mode-info">
+                            <div class="dl-mode-title-row">
+                                <span class="dl-mode-title">យកទាំងពីរ (Both: Merged + Separate)</span>
+                                <span class="dl-mode-tag both">All-in-One</span>
+                            </div>
+                            <div class="dl-mode-desc">
+                                រក្សាទុកទាំងភាគរាយៗដាច់ដោយឡែកផង និងភ្ជាប់បង្កើតជាវីដេអូពេញមួយខ្សែវែងផង (ទទួលបានទាំងពីរ)។
+                            </div>
+                        </div>
+                        <div class="dl-radio-dot"></div>
+                    </div>
+                </div>
+
+                <!-- Remember Choice Checkbox -->
+                <div style="margin-top:14px; padding-top:12px; border-top:1px solid rgba(255,255,255,0.06); display:flex; align-items:center; justify-content:space-between;">
+                    <label style="display:inline-flex; align-items:center; gap:8px; cursor:pointer; font-size:0.8rem; color:#94a3b8; user-select:none;">
+                        <input type="checkbox" id="chkRememberDlMode" style="width:16px; height:16px; accent-color:#e11d48; cursor:pointer;">
+                        <span>ចងចាំជម្រើសនេះសម្រាប់លើកក្រោយ (Remember choice)</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Footer Action Buttons -->
+            <div class="modal-footer" style="padding:14px 20px; border-top:1px solid rgba(255,255,255,0.08); display:flex; justify-content:flex-end; gap:10px;">
+                <button type="button" class="btn btn-secondary" onclick="closeDownloadModeModal()" style="height:38px; font-size:0.82rem; padding:0 18px;">
+                    <span>បោះបង់ (Cancel)</span>
+                </button>
+                <button type="button" class="btn btn-primary" onclick="confirmDownloadModeSelection()" style="height:38px; font-size:0.85rem; font-weight:700; padding:0 22px; background:linear-gradient(135deg, #e11d48, #be123c); border:none; box-shadow:0 4px 15px rgba(225,29,72,0.4);">
+                    <span>⚡ ចាប់ផ្ដើមទាញយក</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notifications Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+
+    <!-- Modular JavaScript Files -->
+    <script src="/hls.min.js"></script>
+    <script src="/js/i18n.js"></script>
+    <script src="/js/license.js"></script>
+    <script src="/js/download_mode.js"></script>
+    <script src="/js/platform.js"></script>
+    <script src="/js/starred.js"></script>
+    <script src="/js/hongguo.js"></script>
+    <script src="/js/haosou.js"></script>
+    <script src="/js/mvffm.js"></script>
+    <script src="/js/youtube.js"></script>
+    <script src="/js/app.js"></script>
+</body>
+</html>
