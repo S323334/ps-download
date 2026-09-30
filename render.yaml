@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: ps-download-bot
+    env: node
+    plan: free
+    buildCommand: npm install --omit=dev
+    startCommand: node src/bot_service.js
+    envVars:
+      - key: PORT
+        value: 10000

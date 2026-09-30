@@ -1,0 +1,18 @@
+# Dependencies
+node_modules/
+
+# Build and Packaging Output
+dist/
+build/
+
+# Cache & Temp Files
+cache/
+scratch/
+test/
+*.log
+*.tmp
+
+# User data & custom settings (preserve defaults only)
+data/downloads/
+data/library_db.json
+data/settings.json
