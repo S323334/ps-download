@@ -1,11 +1,7 @@
-/**
- * Electron Main Process for Hongguo Downloader Desktop.
- * Manages native window lifecycle, internal HTTP server, and IPC bridge.
- */
+const fs = require('fs');
+const path = require('path');
 
 const { app, BrowserWindow, ipcMain, dialog, shell, clipboard, Tray, Menu } = require('electron');
-const path = require('path');
-const fs = require('fs');
 
 const { APP_TITLE, PORT, HOST, getOutputDir, saveSettings } = require('./src/config.js');
 const { startServer, setNativeFolderPicker } = require('./src/server.js');
@@ -29,9 +25,12 @@ if (!gotTheLock) {
   app.quit();
 } else {
   app.on('second-instance', () => {
-    if (mainWindow) {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      if (!mainWindow.isVisible()) mainWindow.show();
       if (mainWindow.isMinimized()) mainWindow.restore();
       mainWindow.focus();
+    } else {
+      createMainWindow();
     }
   });
 
@@ -113,6 +112,14 @@ function createMainWindow() {
     mainWindow.focus();
   });
 
+  // Safety fallback: ensure window is visible even on slower PCs
+  setTimeout(() => {
+    if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.isVisible()) {
+      mainWindow.show();
+      mainWindow.focus();
+    }
+  }, 1200);
+
   // Broadcast window state
   mainWindow.on('maximize', () => {
     mainWindow.webContents.send('window-state-changed', { maximized: true });
@@ -128,15 +135,6 @@ function createMainWindow() {
       shell.openExternal(url);
     }
     return { action: 'deny' };
-  });
-
-  // Handle close to hide to tray instead of quitting
-  mainWindow.on('close', (event) => {
-    if (!isQuitting) {
-      event.preventDefault();
-      mainWindow.hide();
-      return false;
-    }
   });
 
   mainWindow.on('closed', () => {
@@ -176,7 +174,28 @@ function createTray() {
         label: '❌ ចាកចេញទាំងស្រុង (Exit App)',
         click: () => {
           isQuitting = true;
+          try {
+            const { stopTelegramBot } = require('./src/telegram_bot.js');
+            stopTelegramBot();
+          } catch (_) {}
+          try { downloadManager.cancelAll(); } catch (_) {}
+          try { youtubeDownloader.cancelAll(); } catch (_) {}
+          if (tray) {
+            try { tray.destroy(); } catch (_) {}
+            tray = null;
+          }
+          if (serverInstance) {
+            try {
+              if (typeof serverInstance.closeAllConnections === 'function') {
+                serverInstance.closeAllConnections();
+              }
+              serverInstance.close();
+            } catch (_) {}
+          }
           app.quit();
+          setTimeout(() => {
+            app.exit(0);
+          }, 200);
         }
       }
     ]);
@@ -324,21 +343,36 @@ ipcMain.handle('open-admin-window', () => {
 
 app.on('before-quit', () => {
   isQuitting = true;
+  if (tray) {
+    try { tray.destroy(); } catch (_) {}
+    tray = null;
+  }
 });
 
 // Lifecycle cleanup
 app.on('window-all-closed', () => {
-  if (isQuitting) {
-    downloadManager.cancelAll();
-    youtubeDownloader.cancelAll();
-    if (serverInstance) {
-      serverInstance.close(() => {
-        app.quit();
-      });
-    } else {
-      app.quit();
-    }
+  try {
+    const { stopTelegramBot } = require('./src/telegram_bot.js');
+    stopTelegramBot();
+  } catch (_) {}
+  try { downloadManager.cancelAll(); } catch (_) {}
+  try { youtubeDownloader.cancelAll(); } catch (_) {}
+  if (tray) {
+    try { tray.destroy(); } catch (_) {}
+    tray = null;
   }
+  if (serverInstance) {
+    try {
+      if (typeof serverInstance.closeAllConnections === 'function') {
+        serverInstance.closeAllConnections();
+      }
+      serverInstance.close();
+    } catch (_) {}
+  }
+  app.quit();
+  setTimeout(() => {
+    app.exit(0);
+  }, 200);
 });
 
 app.on('activate', () => {

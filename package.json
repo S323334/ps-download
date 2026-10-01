@@ -15,6 +15,7 @@
   "build": {
     "appId": "com.psdownload.desktop",
     "productName": "PS DOWNLOAD",
+    "asar": false,
     "directories": {
       "output": "dist"
     },
