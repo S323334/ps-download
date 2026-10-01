@@ -1,29 +1,38 @@
 
         async function pasteHgFromClipboard() {
-            try {
-                let text = '';
-                if (window.electronAPI && typeof window.electronAPI.readClipboard === 'function') {
+            const input = document.getElementById('searchInput');
+            let text = '';
+            // 1. Electron Native Desktop Clipboard (bypasses browser focus and security limits)
+            if (window.electronAPI && typeof window.electronAPI.readClipboard === 'function') {
+                try {
                     text = await window.electronAPI.readClipboard();
-                } else if (navigator.clipboard && navigator.clipboard.readText) {
+                } catch (err) {
+                    console.warn('[Hongguo] Native clipboard read error:', err);
+                }
+            }
+            // 2. Web Clipboard API Fallback
+            if (!text && navigator.clipboard && navigator.clipboard.readText) {
+                try {
                     text = await navigator.clipboard.readText();
+                } catch (err) {
+                    console.warn('[Hongguo] Web clipboard read error:', err);
                 }
-                if (!text) {
-                    showToast('ក្តារតម្កល់ទទេ (Clipboard is empty)', '📋');
-                    return;
+            }
+            text = (text || '').trim();
+            if (!text) {
+                const emptyMsg = currentLang === 'zh' ? '剪贴板为空' : (currentLang === 'en' ? 'Clipboard is empty' : 'ក្តារតម្កល់ទទេ (Clipboard is empty)');
+                showToast(emptyMsg, '📋');
+                return;
+            }
+            if (input) {
+                input.value = text;
+                if (typeof onSearchInputChanged === 'function') {
+                    onSearchInputChanged(text);
                 }
-                const input = document.getElementById('searchInput');
-                if (input) {
-                    input.value = text.trim();
-                    onSearchInputChanged(input.value);
-                    showToast('បានបិទភ្ជាប់ Link (URL Pasted)', '📋');
-                    if (isDramaLinkOrId(input.value)) {
-                        executeFetchLink();
-                    } else {
-                        executeSearchTitle();
-                    }
-                }
-            } catch (e) {
-                showToast('សូមចុច Ctrl+V ដើម្បី Paste', 'ℹ️');
+                input.focus();
+                const pastedMsg = currentLang === 'zh' ? '已成功粘贴！' : (currentLang === 'en' ? 'Pasted successfully!' : 'បានបិទភ្ជាប់ (Paste) ដោយជោគជ័យ!');
+                showToast(pastedMsg, '📋');
+                // នៅស្ងៀមមិនដំណើរការ auto ឡើយ (ដូច Ctrl+V) ទុកឱ្យអ្នកប្រើចុច Fetch ឬ ស្វែងរកតាមឈ្មោះ
             }
         }
 
@@ -141,7 +150,10 @@
                 let url = `/api/rank?category=${cat}&page=${page}&page_size=48`;
                 const res = await fetch(url);
                 const data = await res.json();
-                const items = data.items || [];
+                let items = data.items || [];
+                if (typeof shuffleArray === 'function' && page === 1) {
+                    items = shuffleArray(items);
+                }
 
                 const countLabel = currentLang === 'zh' ? `显示 ${items.length} / 共 ${data.total || 360}+ 部短剧`
                     : (currentLang === 'en' ? `Showing ${items.length} of ${data.total || 360}+ dramas`
@@ -149,6 +161,7 @@
                 if (countText) countText.innerText = countLabel;
 
                 allDramas = items;
+                window.allDramas = items;
                 renderDramaGrid(items);
                 setupPagination(data);
             } catch (err) {
@@ -158,6 +171,21 @@
                 grid.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:40px; color:var(--danger);">${errMsg}</div>`;
             }
         }
+
+        function shuffleHongguoFeed() {
+            if (currentCategory === 'starred' || currentCategory === 'library') {
+                return; // NEVER touch Starred / PIN or downloaded library
+            }
+            if (allDramas && allDramas.length > 0) {
+                if (typeof shuffleArray === 'function') {
+                    allDramas = shuffleArray(allDramas);
+                }
+                renderDramaGrid(allDramas);
+            } else {
+                loadCategory(currentCategory || 'all', 1);
+            }
+        }
+        window.shuffleHongguoFeed = shuffleHongguoFeed;
 
 
         // ==========================================
@@ -412,23 +440,68 @@
         function extractClientSeriesId(text) {
             if (!text) return null;
             const cleaned = String(text).trim().replace(/^['"]+|['"]+$/g, '');
-            if (/^\d{15,22}$/.test(cleaned)) return cleaned;
-            const m1 = cleaned.match(/[?&](?:series_id|book_id|drama_id|id)=(\d{15,22})/);
-            if (m1) return m1[1];
-            const m2 = cleaned.match(/\b(7\d{17,19})\b/);
-            if (m2) return m2[1];
-            const m3 = cleaned.match(/\b(\d{18,20})\b/);
-            if (m3) return m3[1];
+            // 1. Direct series ID (pure numbers of 8 to 22 digits)
+            if (/^\d{8,22}$/.test(cleaned)) return cleaned;
+            // 2. URL path like /drama/7377540209210035251 or /detail/7377540209210035251
+            const mPath = cleaned.match(/(?:drama|series|detail|play|video|book)[\/=](\d{8,22})/i);
+            if (mPath) return mPath[1];
+            // 3. Query params like ?series_id=... or &id=...
+            const mParam = cleaned.match(/[?&](?:series_id|book_id|drama_id|id)=(\d{8,22})/i);
+            if (mParam) return mParam[1];
+            // 4. Typical 19-digit Hongguo ID starting with 7
+            const mHongguo = cleaned.match(/\b(7\d{17,19})\b/);
+            if (mHongguo) return mHongguo[1];
+            // 5. Any 15-22 digit sequence
+            const mLong = cleaned.match(/\b(\d{15,22})\b/);
+            if (mLong) return mLong[1];
             return null;
         }
 
         function isDramaLinkOrId(str) {
             if (!str) return false;
             const s = str.trim();
+            // 1. Direct series ID
+            if (/^\d{8,22}$/.test(s)) return true;
+            // 2. Extracted series ID
             if (extractClientSeriesId(s)) return true;
-            if (/https?:\/\//i.test(s)) return true;
-            if (/hongguo|detail|drama/i.test(s)) return true;
-            if (/^\d{8,}$/.test(s)) return true;
+            // 3. Web URLs (http:// or https:// or www.)
+            if (/^(?:https?:\/\/|www\.)/i.test(s)) return true;
+            // 4. Known drama website domains
+            if (/(?:hongguoduanju\.com|fanqienovel\.com|snssdk\.com|haosou\.cc|mvffm\.com|youtube\.com|youtu\.be)/i.test(s)) return true;
+            return false;
+        }
+
+        function checkAndRouteOtherPlatforms(rawVal) {
+            if (!rawVal) return false;
+            const val = rawVal.trim();
+            // 1. YouTube
+            if (/(?:youtube\.com|youtu\.be)/i.test(val)) {
+                switchPlatform('youtube');
+                const ytInp = document.getElementById('ytUrlInput');
+                if (ytInp) ytInp.value = val;
+                if (typeof analyzeCurrentYtUrl === 'function') analyzeCurrentYtUrl(val);
+                return true;
+            }
+            // 2. MVFFM
+            if (typeof isMvffmUrl === 'function' && isMvffmUrl(val)) {
+                const inputEl = document.getElementById('searchInput');
+                if (inputEl) inputEl.value = '';
+                switchPlatform('mvffm');
+                const mvInp = document.getElementById('mvDramaInput');
+                if (mvInp) mvInp.value = val;
+                if (typeof analyzeMvffmDrama === 'function') analyzeMvffmDrama(val);
+                return true;
+            }
+            // 3. HaoSou
+            if (/(?:haosou\.cc|haosou)/i.test(val)) {
+                const inputEl = document.getElementById('searchInput');
+                if (inputEl) inputEl.value = '';
+                switchPlatform('haosou');
+                const hsInp = document.getElementById('haosouInput');
+                if (hsInp) hsInp.value = val;
+                if (typeof analyzeHaoSouDrama === 'function') analyzeHaoSouDrama(val);
+                return true;
+            }
             return false;
         }
 
@@ -517,46 +590,28 @@
             const inputEl = document.getElementById('searchInput');
             const rawVal = (inputEl ? inputEl.value : '').trim();
             if (!rawVal) {
-                const msg = currentLang === 'zh' ? '⚠️ 请先输入或粘贴短剧链接 / Series ID！'
-                    : (currentLang === 'en' ? '⚠️ Please paste a drama link or Series ID first!'
-                    : '⚠️ សូមវាយបញ្ចូល ឬ Paste Link រឿង / Series ID ជាមុនសិន!');
+                const msg = currentLang === 'zh' ? '⚠️ 请输入短剧片名或粘贴链接！'
+                    : (currentLang === 'en' ? '⚠️ Please enter title or paste link!'
+                    : '⚠️ សូមវាយបញ្ចូលឈ្មោះរឿង ឬ Paste Link ជាមុនសិន!');
                 showToast(msg, '⚠️');
                 if (inputEl) inputEl.focus();
                 return;
             }
 
-            // Auto-detect YouTube URLs and seamlessly switch to YouTube module
-            if (/(?:youtube\.com|youtu\.be)/i.test(rawVal)) {
-                switchPlatform('youtube');
-                const ytInp = document.getElementById('ytUrlInput');
-                if (ytInp) ytInp.value = rawVal;
-                analyzeCurrentYtUrl(rawVal);
-                return;
-            }
+            // Auto-detect other platforms (YouTube, MVFFM, HaoSou)
+            if (checkAndRouteOtherPlatforms(rawVal)) return;
 
-            // Auto-detect MVFFM URLs and seamlessly switch to MVFFM module
-            if (typeof isMvffmUrl === 'function' && isMvffmUrl(rawVal)) {
-                if (inputEl) inputEl.value = '';
-                switchPlatform('mvffm');
-                const mvInp = document.getElementById('mvDramaInput');
-                if (mvInp) mvInp.value = rawVal;
-                if (typeof analyzeMvffmDrama === 'function') analyzeMvffmDrama(rawVal);
-                return;
-            }
-
-            const isLink = isDramaLinkOrId(rawVal);
-            // Strict check: if user entered drama title and clicked Fetch -> BLOCK & WARN TO CLICK SEARCH TITLE
-            if (!isLink) {
+            // If user entered drama title and clicked Fetch -> warn user to click Search Title!
+            if (!isDramaLinkOrId(rawVal)) {
+                const dict = (typeof I18N_DICT !== 'undefined' && I18N_DICT[currentLang]) ? I18N_DICT[currentLang] : {};
+                const warnMsg = dict.alertTitleInFetch || '⚠️ នេះជាឈ្មោះរឿង! សូមចុចប៊ូតុង【🔍 ស្វែងរកតាមឈ្មោះ】!';
+                showToast(warnMsg, '⚠️');
                 const btnSearch = document.getElementById('btnSearchTitle');
                 if (btnSearch) {
-                    btnSearch.classList.remove('pulse-crimson');
-                    void btnSearch.offsetWidth;
-                    btnSearch.classList.add('pulse-crimson');
-                    setTimeout(() => btnSearch.classList.remove('pulse-crimson'), 3000);
+                    btnSearch.classList.add('highlighted');
+                    btnSearch.focus();
                 }
-                const dict = I18N_DICT[currentLang] || I18N_DICT['zh'];
-                showToast(dict.alertTitleInFetch, '⚠️');
-                return; // STOP! DO NOT PROCEED OR AUTO-ROUTE
+                return;
             }
 
             const sid = extractClientSeriesId(rawVal) || (rawVal.match(/\d{8,}/) ? rawVal.match(/\d{8,}/)[0] : null);
@@ -592,9 +647,9 @@
                     }
                     const data = await res.json();
                     if (!data || !data.series_id) {
-                        showToast(currentLang === 'zh' ? '⚠️ 未能找到此短剧信息，请检查链接' : (currentLang === 'en' ? '⚠️ Drama not found, please check link' : '⚠️ រកមិនឃើញរឿងនេះទេ សូមពិនិត្យ Link ឡើងវិញ'), '⚠️');
-                        if (grid) grid.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:40px; color:var(--danger);">${currentLang === 'zh' ? '未能找到短剧' : (currentLang === 'en' ? 'Drama Not Found' : 'រកមិនឃើញរឿង')}</div>`;
-                        return;
+                        // If direct ID fetch failed, try title search fallback
+                        console.log('[Hongguo] 💡 Fetch by ID failed, falling back to title search for:', rawVal);
+                        return executeSearchTitle();
                     }
 
                     const dramaItem = {
@@ -638,7 +693,8 @@
                 }
             }
 
-            showToast(currentLang === 'zh' ? '⚠️ 无法识别此链接或ID，请检查格式' : (currentLang === 'en' ? '⚠️ Invalid Link or Series ID format' : '⚠️ មិនអាចស្គាល់ Link ឬ Series ID នេះទេ សូមពិនិត្យឡើងវិញ'), '⚠️');
+            // Fallback: If no series ID could be extracted from link, search the text
+            return executeSearchTitle();
         }
 
         // Feature 2: Search via Drama Title
@@ -646,27 +702,28 @@
             const inputEl = document.getElementById('searchInput');
             const kw = (inputEl ? inputEl.value : '').trim();
             if (!kw) {
-                const msg = currentLang === 'zh' ? '⚠️ 请输入短剧片名进行搜索！'
-                    : (currentLang === 'en' ? '⚠️ Please enter drama title to search!'
-                    : '⚠️ សូមវាយចំណងជើងរឿងដើម្បីស្វែងរក!');
+                const msg = currentLang === 'zh' ? '⚠️ 请输入短剧片名或粘贴链接！'
+                    : (currentLang === 'en' ? '⚠️ Please enter drama title or paste link!'
+                    : '⚠️ សូមវាយចំណងជើងរឿង ឬ Paste Link ដើម្បីស្វែងរក!');
                 showToast(msg, '⚠️');
                 if (inputEl) inputEl.focus();
                 return;
             }
 
-            const isLink = isDramaLinkOrId(kw);
-            // Strict check: if user entered Link/ID and clicked Search Title -> BLOCK & WARN TO CLICK FETCH
-            if (isLink) {
+            // Auto-detect other platforms (YouTube, MVFFM, HaoSou)
+            if (checkAndRouteOtherPlatforms(kw)) return;
+
+            // If user entered Link/ID and clicked Search Title -> warn user to click Fetch!
+            if (isDramaLinkOrId(kw)) {
+                const dict = (typeof I18N_DICT !== 'undefined' && I18N_DICT[currentLang]) ? I18N_DICT[currentLang] : {};
+                const warnMsg = dict.alertLinkInSearch || '⚠️ នេះជា Link/ID! មិនអាចស្វែងរកបានទេ។ សូមចុចប៊ូតុង【⚡ Fetch】!';
+                showToast(warnMsg, '⚠️');
                 const btnFetch = document.getElementById('btnFetchLink');
                 if (btnFetch) {
-                    btnFetch.classList.remove('pulse-gold');
-                    void btnFetch.offsetWidth;
-                    btnFetch.classList.add('pulse-gold');
-                    setTimeout(() => btnFetch.classList.remove('pulse-gold'), 3000);
+                    btnFetch.classList.add('highlighted');
+                    btnFetch.focus();
                 }
-                const dict = I18N_DICT[currentLang] || I18N_DICT['zh'];
-                showToast(dict.alertLinkInSearch, '⚠️');
-                return; // STOP! DO NOT PROCEED OR AUTO-ROUTE
+                return;
             }
 
             currentQuery = kw;

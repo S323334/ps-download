@@ -119,12 +119,16 @@
             </button>
 
             <div class="sidebar-bottom-actions">
+                <button type="button" class="btn btn-sidebar-setting" id="btnHeaderAdmin" onclick="openAdminDashboard()" title="Admin License Generator & Security (សម្រាប់ម្ចាស់កម្មវិធី)" style="color:#38bdf8; border-color:rgba(56,189,248,0.35);">
+                    <span>🔑</span>
+                    <span>Admin</span>
+                </button>
                 <button type="button" class="btn btn-sidebar-setting" id="btnHeaderSettings" onclick="openSettingsModal()" title="Settings">
                     <span>⚙️</span>
                     <span>ការកំណត់</span>
                     <span id="settingsUpdateDot" style="display:none;" class="header-update-dot"></span>
                 </button>
-                <span class="sidebar-version-tag">v3.1.0</span>
+                <span class="sidebar-version-tag">v3.2.0</span>
             </div>
         </div>
     </header>
@@ -136,20 +140,29 @@
             <span id="topbarPlatformName" style="font-weight:700; font-size:0.86rem; color:#f8fafc; letter-spacing:0.5px;">HONGGUO SHORT DRAMA</span>
         </div>
         <div class="app-topbar-spacer" style="-webkit-app-region: drag; flex: 1; height: 100%;"></div>
-        <!-- 1-Click Quick Language Switcher Strip (Outside Settings) -->
-        <div class="topbar-lang-switcher" id="topbarLangSwitcher" style="-webkit-app-region: no-drag;">
-            <button type="button" class="topbar-lang-btn active" id="btnLangKm" data-lang="km" onclick="changeLanguage('km')" title="ភាសាខ្មែរ (Khmer)">
-                <span class="lang-flag">🇰🇭</span> <span class="lang-name">ខ្មែរ</span>
+        <!-- Topbar Right Control Cluster: Refresh & Language Switcher -->
+        <div class="topbar-controls-cluster" style="-webkit-app-region: no-drag;">
+            <!-- 1-Click Refresh Feed Button in English -->
+            <button type="button" class="topbar-refresh-btn" id="btnTopbarRefresh" onclick="refreshCurrentPlatform()" title="Refresh Feed (ចុចដើម្បី Refresh រឿងឡើងវិញ)">
+                <span class="refresh-icon" id="topbarRefreshIcon">🔄</span>
+                <span class="refresh-label">Refresh</span>
             </button>
-            <button type="button" class="topbar-lang-btn" id="btnLangZh" data-lang="zh" onclick="changeLanguage('zh')" title="中文 (Chinese)">
-                <span class="lang-flag">🇨🇳</span> <span class="lang-name">中文</span>
-            </button>
-            <button type="button" class="topbar-lang-btn" id="btnLangEn" data-lang="en" onclick="changeLanguage('en')" title="English">
-                <span class="lang-flag">🇬🇧</span> <span class="lang-name">EN</span>
-            </button>
-            <button type="button" class="topbar-lang-btn" id="btnLangOriginal" data-lang="original" onclick="changeLanguage('original')" title="ចំណងជើងដើម (Original Title)">
-                <span class="lang-flag">🌐</span> <span class="lang-name">Original</span>
-            </button>
+
+            <!-- 1-Click Quick Language Switcher Strip -->
+            <div class="topbar-lang-switcher" id="topbarLangSwitcher">
+                <button type="button" class="topbar-lang-btn active" id="btnLangKm" data-lang="km" onclick="changeLanguage('km')" title="ភាសាខ្មែរ (Khmer)">
+                    <span class="lang-flag">🇰🇭</span> <span class="lang-name">ខ្មែរ</span>
+                </button>
+                <button type="button" class="topbar-lang-btn" id="btnLangZh" data-lang="zh" onclick="changeLanguage('zh')" title="中文 (Chinese)">
+                    <span class="lang-flag">🇨🇳</span> <span class="lang-name">中文</span>
+                </button>
+                <button type="button" class="topbar-lang-btn" id="btnLangEn" data-lang="en" onclick="changeLanguage('en')" title="English">
+                    <span class="lang-flag">🇬🇧</span> <span class="lang-name">EN</span>
+                </button>
+                <button type="button" class="topbar-lang-btn" id="btnLangOriginal" data-lang="original" onclick="changeLanguage('original')" title="ចំណងជើងដើម (Original Title)">
+                    <span class="lang-flag">🌐</span> <span class="lang-name">Original</span>
+                </button>
+            </div>
         </div>
     </div>
 
@@ -1437,7 +1450,7 @@
                 </div>
 
                 <div style="background:rgba(255, 255, 255, 0.03); border:1px solid var(--border-glass); border-radius:8px; padding:12px; font-size:0.8rem; color:var(--text-dim);">
-                    <div>• <b>Application:</b> Hongguo Downloader V3</div>
+                    <div>• <b>Application:</b> PS DOWNLOAD V3</div>
                     <div>• <b>Data Source:</b> https://hongguoduanju.com/ (SSR Scraper)</div>
                     <div>• <b>Video Stream:</b> Direct unencrypted MP4 CDN (HTTP 206 Partial Content)</div>
                 </div>
@@ -1499,34 +1512,20 @@
                     <!-- Error / Success Alert Box -->
                     <div id="licenseAlertBox" class="license-alert" style="display:none; margin:0;"></div>
 
-                    <!-- Option 1: Auto-Activation Refresh Button -->
-                    <div style="background:rgba(0,0,0,0.25); border:1px solid rgba(255,255,255,0.06); border-radius:12px; padding:10px 12px;">
-                        <button type="button" id="btnRefreshAutoLicense" class="btn btn-primary btn-license-activate" onclick="refreshAndCheckAutoActivation()" style="width:100%; height:40px; font-size:0.86rem; background:linear-gradient(135deg, #10b981 0%, #059669 100%);">
-                            <span id="btnRefreshAutoIcon">🔄</span>
-                            <span id="btnRefreshAutoText">ផ្ទុកឡើងវិញ (Refresh / Check License)</span>
-                        </button>
-                        <div style="font-size:0.7rem; color:#94a3b8; margin-top:5px; line-height:1.4;">
-                            ✨ <b>អូតូ៖</b> ពេល Admin បើកសិទ្ធិរួច ចុច <b>ផ្ទុកឡើងវិញ</b> នោះកម្មវិធីដើរភ្លាម!
+                    <!-- Manual Key Entry (Exposed Directly) -->
+                    <div style="background:rgba(0,0,0,0.32); border:1px solid rgba(56,189,248,0.22); border-radius:12px; padding:12px; text-align:left; box-shadow:0 4px 16px rgba(0,0,0,0.25);">
+                        <div style="font-size:0.78rem; font-weight:700; color:#cbd5e1; margin-bottom:8px; display:flex; align-items:center; gap:6px;">
+                            <span>🔑</span> <span>បញ្ចូល License Key:</span>
                         </div>
-                    </div>
-
-                    <!-- Option 2: Manual Key Entry Toggle -->
-                    <div style="border-top:1px dashed rgba(255,255,255,0.1); padding-top:8px;">
-                        <a href="javascript:void(0)" onclick="toggleManualKeyMode()" id="linkToggleManualKey" style="font-size:0.74rem; color:#38bdf8; text-decoration:none; opacity:0.9;">
-                            🔑 ឬបញ្ចូល License Key ដោយខ្លួនឯង ▾
-                        </a>
-
-                        <div id="manualKeyWrapper" style="display:none; margin-top:8px; text-align:left;">
-                            <div style="display:flex; gap:6px;">
-                                <input type="text" id="licenseKeyInput" class="license-input" placeholder="XXXX-XXXX-XXXX-XXXX" maxlength="19" onkeydown="if(event.key==='Enter') submitLicenseActivation()" autocomplete="off" spellcheck="false" style="height:34px; font-size:0.85rem;">
-                                <button type="button" class="btn btn-secondary" onclick="pasteLicenseKey()" style="white-space:nowrap; padding:0 10px; height:34px; font-size:0.75rem; flex-shrink:0;">
-                                    <span>📋</span> <span>Paste</span>
-                                </button>
-                            </div>
-                            <button type="button" id="btnActivateLicense" class="btn btn-secondary" onclick="submitLicenseActivation()" style="width:100%; height:32px; margin-top:6px; font-size:0.78rem; font-weight:700; background:rgba(16,185,129,0.2); border-color:#10b981; color:#34d399;">
-                                <span id="btnActivateIcon">⚡</span> <span id="btnActivateText">Activate Key</span>
+                        <div style="display:flex; gap:6px;">
+                            <input type="text" id="licenseKeyInput" class="license-input" placeholder="XXXX-XXXX-XXXX-XXXX" maxlength="19" onkeydown="if(event.key==='Enter') submitLicenseActivation()" autocomplete="off" spellcheck="false" style="height:38px; font-size:0.86rem; font-family:monospace; letter-spacing:1px; flex:1;">
+                            <button type="button" class="btn btn-secondary" onclick="pasteLicenseKey()" title="បិទភ្ជាប់ Key" style="white-space:nowrap; padding:0 12px; height:38px; font-size:0.76rem; flex-shrink:0;">
+                                <span>📋</span> <span>Paste</span>
                             </button>
                         </div>
+                        <button type="button" id="btnActivateLicense" class="btn btn-primary" onclick="submitLicenseActivation()" style="width:100%; height:38px; margin-top:8px; font-size:0.84rem; font-weight:700; background:linear-gradient(135deg, #10b981, #059669); border:none; display:flex; align-items:center; justify-content:center; gap:6px; box-shadow:0 4px 12px rgba(16,185,129,0.25); cursor:pointer;">
+                            <span id="btnActivateIcon">⚡</span> <span id="btnActivateText">បើកដំណើរការ (Activate License)</span>
+                        </button>
                     </div>
                 </div>
 
@@ -1589,13 +1588,6 @@
             <div class="license-footer-note" style="margin-top:12px; font-size:0.7rem; color:#64748b; line-height:1.4;">
                 • អាជ្ញាប័ណ្ណដំណើរការជាប់លើកុំព្យូទ័រនេះជារៀងរហូត (Hardware Locked & Protected)<br>
                 • សម្រាប់ជំនួយ ឬទិញ License សូមទាក់ទង Admin តាម Telegram: <a href="https://t.me/Thpisal33" target="_blank" onclick="openAdminTelegramChat()" style="color:#38bdf8; font-weight:700; text-decoration:underline;">@Thpisal33</a>
-            </div>
-
-            <!-- Browse Posters Button -->
-            <div style="margin-top:10px; display:flex; justify-content:center;">
-                <button type="button" class="btn btn-secondary btn-sm" onclick="closeLicenseModalForBrowsing()" style="font-size:0.75rem; color:#94a3b8; padding:5px 16px; border-radius:8px; display:flex; align-items:center; gap:6px; background:rgba(255,255,255,0.05); border-color:rgba(255,255,255,0.12); cursor:pointer;">
-                    <span>👁️</span> <span>មើលផ្ទាំងរូបភាពរឿងសិន (Browse Posters Only)</span>
-                </button>
             </div>
         </div>
     </div>

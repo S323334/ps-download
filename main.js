@@ -286,6 +286,42 @@ ipcMain.handle('app-relaunch', () => {
   app.exit(0);
 });
 
+let adminWindow = null;
+function createAdminWindow() {
+  if (adminWindow) {
+    if (adminWindow.isMinimized()) adminWindow.restore();
+    adminWindow.focus();
+    return;
+  }
+  const iconPath = fs.existsSync(path.join(__dirname, 'icon.ico'))
+    ? path.join(__dirname, 'icon.ico')
+    : (fs.existsSync(path.join(__dirname, 'icon.png')) ? path.join(__dirname, 'icon.png') : null);
+
+  adminWindow = new BrowserWindow({
+    width: 980,
+    height: 760,
+    minWidth: 720,
+    minHeight: 520,
+    title: 'PS DOWNLOAD - Admin License & Key Generator',
+    icon: iconPath,
+    backgroundColor: '#07090e',
+    autoHideMenuBar: true,
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true,
+      preload: path.join(__dirname, 'src', 'preload.js')
+    }
+  });
+
+  adminWindow.loadURL(`http://127.0.0.1:${serverPort}/admin`);
+  adminWindow.on('closed', () => { adminWindow = null; });
+}
+
+ipcMain.handle('open-admin-window', () => {
+  createAdminWindow();
+  return true;
+});
+
 app.on('before-quit', () => {
   isQuitting = true;
 });

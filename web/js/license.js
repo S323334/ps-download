@@ -78,6 +78,7 @@ function computeLicenseTimeDetails(data) {
         hours,
         mins,
         secs,
+        timeOnlyStr: timeStr,
         text: `${custPrefix}${timeStr}`,
         expiresAt: data.expires_at,
         customerName: data.custom_name || ''
@@ -93,30 +94,43 @@ function updateHeaderLicenseBadge(data) {
     const info = computeLicenseTimeDetails(data);
     badge.className = 'btn btn-license-badge';
 
+    let contentHtml = '';
+    const safeEscape = typeof escapeHtml === 'function' ? escapeHtml : (s) => String(s || '');
+    if (info.customerName && (info.status === 'active-pro' || info.status === 'expiring-soon')) {
+        contentHtml = `
+            <div style="display:flex; flex-direction:column; gap:1px; text-align:left; overflow:hidden; width:100%; line-height:1.28;">
+                <div style="font-weight:700; font-size:0.71rem; color:#f8fafc; white-space:nowrap; text-overflow:ellipsis; overflow:hidden;">👤 ${safeEscape(info.customerName)}</div>
+                <div style="font-size:0.67rem; color:inherit; font-weight:600; white-space:nowrap; overflow:hidden;">⏳ ${safeEscape(info.timeOnlyStr || info.text)}</div>
+            </div>
+        `;
+    } else {
+        contentHtml = `<span style="font-size:0.72rem; line-height:1.25;">${safeEscape(info.text)}</span>`;
+    }
+
     if (info.status === 'lifetime') {
         badge.classList.add('lifetime-vip');
         if (icon) icon.innerText = info.icon;
-        text.innerText = info.text;
+        text.innerHTML = contentHtml;
         badge.title = 'License សកម្មពេញមួយជីវិត (Lifetime VIP)';
     } else if (info.status === 'active-pro') {
         badge.classList.add('active-pro');
         if (icon) icon.innerText = info.icon;
-        text.innerText = info.text;
+        text.innerHTML = contentHtml;
         badge.title = `License សកម្ម: ${info.text}${info.expiresAt ? ` (ផុតកំណត់: ${new Date(info.expiresAt).toLocaleString()})` : ''}`;
     } else if (info.status === 'expiring-soon') {
         badge.classList.add('expiring-soon');
         if (icon) icon.innerText = info.icon;
-        text.innerText = info.text;
+        text.innerHTML = contentHtml;
         badge.title = `License ជិតផុតកំណត់: ${info.text}${info.expiresAt ? ` (ផុតកំណត់: ${new Date(info.expiresAt).toLocaleString()})` : ''}`;
     } else if (info.status === 'expired') {
         badge.classList.add('expired');
         if (icon) icon.innerText = info.icon;
-        text.innerText = info.text;
+        text.innerHTML = `<span style="font-size:0.70rem; color:#fca5a5;">${safeEscape(info.text)}</span>`;
         badge.title = 'License របស់អ្នកបានផុតកំណត់ហើយ! ចុចដើម្បីទិញ ឬបញ្ចូល Key ថ្មី';
     } else {
         badge.classList.add('unactivated');
         if (icon) icon.innerText = info.icon;
-        text.innerText = info.text;
+        text.innerHTML = `<span style="font-size:0.70rem;">${safeEscape(info.text)}</span>`;
         badge.title = 'កម្មវិធីមិនទាន់មាន License ឡើយ! ចុចដើម្បីទិញ ឬ Activate';
     }
 }
@@ -385,7 +399,7 @@ async function copyClientTelegramInfo() {
     const tgUser = tgInput ? tgInput.value.trim() : (localStorage.getItem('client_tg_user') || '');
 
     const tgPart = tgUser ? `\n👤 Telegram ខ្ញុំ: ${tgUser}` : '';
-    const message = `👋 សួស្តី Admin @Thpisal33! ខ្ញុំបានទាញយកកម្មវិធី Hongguo Downloader និងចង់ស្នើសុំ License:\n\n💻 លេខម៉ាស៊ីន (Device ID): ${deviceId}${tgPart}\n\n👉 សូមជួយបើកសិទ្ធិ ឬផ្ញើ License Key ឱ្យខ្ញុំផង! សូមអរគុណ! 🙏`;
+    const message = `👋 សួស្តី Admin @Thpisal33! ខ្ញុំបានទាញយកកម្មវិធី PS DOWNLOAD និងចង់ស្នើសុំ License:\n\n💻 លេខម៉ាស៊ីន (Device ID): ${deviceId}${tgPart}\n\n👉 សូមជួយបើកសិទ្ធិ ឬផ្ញើ License Key ឱ្យខ្ញុំផង! សូមអរគុណ! 🙏`;
 
     try {
         await copyToClipboard(message);
@@ -734,6 +748,50 @@ function checkNotifyPaidLock() {
     return false;
 }
 
+let _groupVerificationPollingTimer = null;
+
+function stopGroupVerificationPolling() {
+    if (_groupVerificationPollingTimer) {
+        clearInterval(_groupVerificationPollingTimer);
+        _groupVerificationPollingTimer = null;
+    }
+}
+
+function startGroupVerificationPolling(deviceId, amount) {
+    stopGroupVerificationPolling();
+    let checksLeft = 10; // 10 times * 3s = 30 seconds
+
+    _groupVerificationPollingTimer = setInterval(async () => {
+        checksLeft--;
+        try {
+            const res = await fetch(`/api/license/check-payment-verification?deviceId=${encodeURIComponent(deviceId)}&amount=${encodeURIComponent(amount)}`);
+            const data = await res.json();
+            if (data && data.verified && data.autoActivated) {
+                stopGroupVerificationPolling();
+                showToast('🎉 ការបង់ប្រាក់ត្រូវបានផ្ទៀងផ្ទាត់ជោគជ័យ! កម្មវិធីត្រូវបានបើកសិទ្ធិភ្លាមៗ!', '✅');
+                showLicenseAlert(`🎉 អបអរសាទរ! អាជ្ញាប័ណ្ណត្រូវបានបើកដំណើរការ: ${data.label || 'សកម្ម'}`, 'success');
+                const modal = document.getElementById('licenseActivationModal');
+                setTimeout(() => {
+                    if (modal) {
+                        modal.style.transition = 'opacity 0.4s ease';
+                        modal.style.opacity = '0';
+                        setTimeout(() => {
+                            modal.style.display = 'none';
+                            modal.style.opacity = '1';
+                        }, 400);
+                    }
+                    checkAppLicenseStatus();
+                }, 1200);
+                return;
+            }
+        } catch (e) {}
+
+        if (checksLeft <= 0) {
+            stopGroupVerificationPolling();
+        }
+    }, 3000);
+}
+
 async function notifyPaymentSent() {
     const tgInput = document.getElementById('clientTelegramInput');
     const deviceIdEl = document.getElementById('licenseDeviceIdText');
@@ -757,7 +815,7 @@ async function notifyPaymentSent() {
     sessionStorage.setItem('notify_paid_clicks', clickCount);
 
     if (btn) btn.disabled = true;
-    if (btnText) btnText.innerText = 'កំពុងផ្ញើសារជូនដំណឹង...';
+    if (btnText) btnText.innerText = '🔍 កំពុងឆែកមើលការបង់ប្រាក់...';
 
     try {
         const res = await fetch('/api/license/notify-payment', {
@@ -772,7 +830,31 @@ async function notifyPaymentSent() {
         });
 
         const data = await res.json();
-        
+
+        // 1. IF VERIFIED FROM TELEGRAM GROUP: UNLOCK IMMEDIATELY!
+        if (data.verified && data.autoActivated) {
+            stopGroupVerificationPolling();
+            showToast('🎉 ការបង់ប្រាក់ត្រូវបានផ្ទៀងផ្ទាត់ជោគជ័យ! កម្មវិធីត្រូវបានបើកសិទ្ធិភ្លាមៗ!', '✅');
+            showLicenseAlert(`🎉 អបអរសាទរ! អាជ្ញាប័ណ្ណត្រូវបានបើកដំណើរការ: ${data.label || 'សកម្ម'}`, 'success');
+            const modal = document.getElementById('licenseActivationModal');
+            setTimeout(() => {
+                if (modal) {
+                    modal.style.transition = 'opacity 0.4s ease';
+                    modal.style.opacity = '0';
+                    setTimeout(() => {
+                        modal.style.display = 'none';
+                        modal.style.opacity = '1';
+                    }, 400);
+                }
+                checkAppLicenseStatus();
+            }, 1200);
+            return;
+        }
+
+        // 2. Not verified immediately: Bank alert might arrive in 5-15 seconds
+        // Start active background verification check for 30s
+        startGroupVerificationPolling(deviceId, _currentPlan.amount);
+
         // Lock only when clicking 4-5 times (data.locked or clickCount >= 5)
         const isLocked = data.locked || clickCount >= 5;
         const cooldownSeconds = data.remaining || 60;
@@ -781,19 +863,18 @@ async function notifyPaymentSent() {
             localStorage.setItem('notify_paid_lock_until', Date.now() + (cooldownSeconds * 1000));
             sessionStorage.setItem('notify_paid_clicks', '0');
             startNotifyPaidCooldown(cooldownSeconds);
-            // ONLY SHOW THE ALERT BANNER WHEN LOCKED WITH TIMER!
             showLicenseAlert(
                 `💬 <b>សូមទាក់ទងទៅ admin ផ្ទាល់ ដើម្បីផ្ញើវិក្កយបត្រ៖</b> <a href="https://t.me/Thpisal33" target="_blank" onclick="openAdminTelegramChat()" style="color:#38bdf8; text-decoration:underline; font-weight:700;">@Thpisal33</a><br><div style="margin-top:8px;"><button type="button" class="btn btn-primary btn-sm" onclick="openAdminTelegramChat()" style="background:#229ED9; border:none; padding:5px 14px; font-size:0.78rem; font-weight:700; border-radius:6px; cursor:pointer; color:#fff;">✈️ ផ្ញើវិក្កយបត្រទៅកាន់ Telegram (@Thpisal33)</button></div>`,
                 'error'
             );
         } else {
-            // Normal clicks (1, 2, 3, 4): KEEP THE ALERT BANNER HIDDEN!
-            const alertBox = document.getElementById('licenseAlertBox');
-            if (alertBox) alertBox.style.display = 'none';
+            showLicenseAlert(
+                `📩 <b>បានផ្ញើសារជូនដំណឹងទៅ Admin រួចរាល់!</b> ប្រព័ន្ធកំពុងរង់ចាំសារធនាគារលោតចូលដើម្បី Auto-Unlock...`,
+                'info'
+            );
         }
     } catch (err) {
-        const alertBox = document.getElementById('licenseAlertBox');
-        if (alertBox) alertBox.style.display = 'none';
+        showToast('⚠️ មានបញ្ហាក្នុងការផ្ញើសារ សូមសាកល្បងម្ដងទៀត', '⚠️');
     } finally {
         if (!checkNotifyPaidLock()) {
             if (btn) btn.disabled = false;
@@ -803,7 +884,7 @@ async function notifyPaymentSent() {
                     if (!checkNotifyPaidLock()) {
                         btnText.innerText = 'ខ្ញុំបានបាញ់លុយរួចរាល់ (Notify Admin)';
                     }
-                }, 1500);
+                }, 2000);
             }
         }
     }
@@ -830,7 +911,7 @@ async function openAdminTelegramChat() {
     const plan = (_currentPlan && _currentPlan.label) || '១ សប្តាហ៍ ($1.50)';
     const amount = (_currentPlan && _currentPlan.amount) || '1.50';
 
-    const msg = `👋 សួស្តី Admin @Thpisal33! ខ្ញុំបានទូទាត់ទិញ License កម្មវិធី Hongguo Downloader:\n\n📦 កញ្ចប់: ${plan} ($${amount})\n💻 Device ID: ${deviceId}\n👤 Telegram ខ្ញុំ: ${tgUser || '(មិនបញ្ជាក់)'}\n\n👉 នេះជាវិក្កយបត្របង់ប្រាក់របស់ខ្ញុំ សូមជួយពិនិត្យ និងបើកសិទ្ធិឱ្យខ្ញុំផង! សូមអរគុណ! 🙏`;
+    const msg = `👋 សួស្តី Admin @Thpisal33! ខ្ញុំបានទូទាត់ទិញ License កម្មវិធី PS DOWNLOAD:\n\n📦 កញ្ចប់: ${plan} ($${amount})\n💻 Device ID: ${deviceId}\n👤 Telegram ខ្ញុំ: ${tgUser || '(មិនបញ្ជាក់)'}\n\n👉 នេះជាវិក្កយបត្របង់ប្រាក់របស់ខ្ញុំ សូមជួយពិនិត្យ និងបើកសិទ្ធិឱ្យខ្ញុំផង! សូមអរគុណ! 🙏`;
     
     try {
         await copyToClipboard(msg);

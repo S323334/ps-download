@@ -92,6 +92,7 @@ const server = http.createServer((req, res) => {
         key: rec.key,
         days: rec.days,
         label: rec.label,
+        expiresAt: rec.expiresAt,
         message: '🎉 ម៉ាស៊ីនរបស់អ្នកត្រូវបាន Admin អនុញ្ញាតពីចម្ងាយដោយជោគជ័យ!'
       }));
       return;
@@ -105,8 +106,8 @@ const server = http.createServer((req, res) => {
   res.end('Not Found');
 });
 
-server.listen(PORT, () => {
-  console.log(`[INFO] 🌐 Cloud Web & License API Server listening on port ${PORT}`);
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`[INFO] 🌐 Cloud Web & License API Server listening on 0.0.0.0:${PORT}`);
 });
 
 // 2. Start Telegram Bot Polling

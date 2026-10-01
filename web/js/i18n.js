@@ -713,6 +713,8 @@
             if (btnFetch) btnFetch.innerText = dict.btnFetch;
             const btnSearch = document.getElementById('btnSearchTitle');
             if (btnSearch) btnSearch.innerText = dict.btnSearch;
+            const hgPasteBtnLabel = document.getElementById('hgPasteBtnLabel');
+            if (hgPasteBtnLabel) hgPasteBtnLabel.innerText = dict.ctxPaste || 'Paste URL';
 
             // 2. Header Buttons
             const btnStar = document.getElementById('btnHeaderStarred');

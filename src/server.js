@@ -22,7 +22,8 @@ const {
   DEFAULT_HEADERS,
   loadSettings,
   saveSettings,
-  getOutputDir
+  getOutputDir,
+  isPackaged
 } = require('./config.js');
 
 const { scraper } = require('./scraper.js');
@@ -54,7 +55,7 @@ const {
   registerPendingCheckout,
   fulfillPayWayPayment
 } = require('./license.js');
-const { startTelegramBot, parseFlexiblePaymentNotification } = require('./telegram_bot.js');
+const { startTelegramBot, parseFlexiblePaymentNotification, checkGroupPaymentVerification } = require('./telegram_bot.js');
 const cenc = require('../lib/cenc.js');
 
 // Callback hook for Electron native folder dialog
@@ -1180,6 +1181,19 @@ function startServer(port = PORT, host = HOST) {
         if (targetEp > 0) {
           const epRegex = new RegExp(`(?:EP?|ភាគ|E|^|_|-|\\b)0*${targetEp}(?:[._-]|$)`, 'i');
           chosenFile = mp4Files.find(f => !f.includes('វីដេអូពេញ') && !f.includes('Full') && epRegex.test(f));
+          if (!chosenFile) {
+            // Check if inside a merged range (e.g. ភាគ01-03)
+            chosenFile = mp4Files.find(f => {
+              if (!f.includes('វីដេអូពេញ') && !f.includes('Full')) return false;
+              const mRange = f.match(/ភាគ0*(\d+)-0*(\d+)/i);
+              if (mRange) {
+                const s = parseInt(mRange[1], 10);
+                const e = parseInt(mRange[2], 10);
+                return targetEp >= s && targetEp <= e;
+              }
+              return false;
+            });
+          }
         }
 
         // If not found or no specific episode requested:
@@ -1589,7 +1603,8 @@ function startServer(port = PORT, host = HOST) {
       if (pathname === '/api/mvffm/recommend' && req.method === 'GET') {
         const type = parsedUrl.searchParams.get('type') || 'hot';
         const items = await mvffmDownloader.getRecommendations(type);
-        return sendJson(res, 200, { ok: true, data: items, type });
+        const isFallback = items && items.some(it => it.is_fallback);
+        return sendJson(res, 200, { ok: true, data: items, type, is_fallback: Boolean(isFallback) });
       }
 
       // 27b. Search: GET /api/mvffm/search?wd=...
@@ -1791,7 +1806,7 @@ function startServer(port = PORT, host = HOST) {
 
       // 28l. Admin Send Telegram Test: POST /api/license/admin/telegram-test
       if (pathname === '/api/license/admin/telegram-test' && req.method === 'POST') {
-        const testMsg = `🔔 <b>សាកល្បង Telegram Bot Alert ពី Hongguo Downloader</b>\n\n` +
+        const testMsg = `🔔 <b>សាកល្បង Telegram Bot Alert ពី PS DOWNLOAD</b>\n\n` +
           `✅ ការភ្ជាប់ជាមួយ Telegram Bot ដំណើរការបានជោគជ័យ ១០០%!\n` +
           `🕒 ម៉ោង: ${new Date().toLocaleString('en-US', { timeZone: 'Asia/Phnom_Penh' })}`;
         const testRes = await sendTelegramAlert(testMsg);
@@ -1808,13 +1823,54 @@ function startServer(port = PORT, host = HOST) {
       // 28n. Client Notify Payment (QR Scan & Paid): POST /api/license/notify-payment
       if (pathname === '/api/license/notify-payment' && req.method === 'POST') {
         const body = await parseJsonBody(req);
+        const devId = (body.deviceId || '').trim().toUpperCase();
+
+        // 1. First, check Telegram group messages for matching bank payment alert
+        if (typeof checkGroupPaymentVerification === 'function') {
+          const verifyRes = await checkGroupPaymentVerification({
+            deviceId: devId,
+            plan: body.plan,
+            amount: body.amount
+          });
+          if (verifyRes && verifyRes.verified) {
+            return sendJson(res, 200, {
+              success: true,
+              verified: true,
+              autoActivated: true,
+              key: verifyRes.key,
+              label: verifyRes.label,
+              days: verifyRes.days,
+              payer: verifyRes.payer,
+              message: verifyRes.message || '🎉 ការបង់ប្រាក់ត្រូវបានផ្ទៀងផ្ទាត់ជោគជ័យ! កម្មវិធីបានបើកសិទ្ធិដោយស្វ័យប្រវត្តិ!'
+            });
+          }
+        }
+
+        // 2. If not yet found, record pending payment notification & send alert to Admin on Telegram
         const result = await recordPaymentNotification({
-          deviceId: body.deviceId,
+          deviceId: devId,
           telegramUser: body.telegramUser,
           plan: body.plan,
           amount: body.amount
         });
+        result.verified = false;
         return sendJson(res, 200, result);
+      }
+
+      // 28n-2. Client Check Payment Verification Polling: GET /api/license/check-payment-verification
+      if (pathname === '/api/license/check-payment-verification' && req.method === 'GET') {
+        const devId = (url.searchParams.get('deviceId') || '').trim().toUpperCase();
+        const amt = url.searchParams.get('amount') || '1.50';
+        if (typeof checkGroupPaymentVerification === 'function') {
+          const verifyRes = await checkGroupPaymentVerification({
+            deviceId: devId,
+            amount: amt
+          });
+          if (verifyRes && verifyRes.verified) {
+            return sendJson(res, 200, { success: true, verified: true, ...verifyRes });
+          }
+        }
+        return sendJson(res, 200, { success: true, verified: false });
       }
 
       // 28o. Admin Get Payment Requests: GET /api/license/admin/payments
@@ -1873,11 +1929,13 @@ function startServer(port = PORT, host = HOST) {
   return new Promise((resolve, reject) => {
     server.listen(port, host, () => {
       console.log(`[Desktop Server] Listening on http://${host}:${port}`);
-      // Auto-start Telegram Bot listener for incoming commands & key generation
-      try {
-        startTelegramBot();
-      } catch (e) {
-        console.warn('[Telegram Bot] Auto-start failed:', e.message);
+      // Auto-start Telegram Bot listener for incoming commands & key generation (Only for local dev/admin, never on client builds)
+      if (!isPackaged) {
+        try {
+          startTelegramBot();
+        } catch (e) {
+          console.warn('[Telegram Bot] Auto-start failed:', e.message);
+        }
       }
       resolve(server);
     });

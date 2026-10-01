@@ -24,12 +24,17 @@ const {
   isTrxAlreadyProcessed,
   markTrxProcessed,
   setDeviceCustomName,
-  getAuthorizedDevicesMap
+  getAuthorizedDevicesMap,
+  recordUnclaimedPayment,
+  getUnclaimedPayments,
+  findAndClaimRecentPayment,
+  activateLicense
 } = require('./license.js');
 const fs = require('fs');
 const path = require('path');
+const { DATA_DIR } = require('./config.js');
 
-const LOCK_FILE = path.join(__dirname, '..', 'data', 'telegram_bot.lock');
+const LOCK_FILE = path.join(DATA_DIR, 'telegram_bot.lock');
 
 function isPidAlive(pid) {
   try {
@@ -133,7 +138,7 @@ function formatKhmerTime(dateOrIso) {
  */
 async function handleStartCommand(token, chatId, userName) {
   const menuText =
-    `🏠 <b>សូមស្វាគមន៍មកកាន់ HongGuo License Manager Bot!</b> 🤖\n\n` +
+    `🏠 <b>សូមស្វាគមន៍មកកាន់ PS DOWNLOAD License Bot!</b> 🤖\n\n` +
     `សួស្តី Admin <b>${userName || ''}</b>! នេះជាផ្ទាំងគ្រប់គ្រងអាជ្ញាប័ណ្ណ (License) ដំណើរការ 24 ម៉ោង។\n\n` +
     `🛠 <b>បញ្ជីពាក្យបញ្ជាផ្លូវការ (BotFather Commands):</b>\n` +
     `• <code>/start</code> 🏠 បើកផ្ទាំង Menu ដើម\n` +
@@ -734,41 +739,76 @@ async function handleStatsCommand(token, chatId) {
 /**
  * Flexible Payment Notification Parser.
  * Detects payments from ABA Mobile, ABA KHQR, PayWay, Bakong, Wing, ACLEDA, Canadia, etc.
- * Supports Khmer and English notification text.
+ * Supports Khmer and English notification text, USD and KHR currencies.
  */
 function parseFlexiblePaymentNotification(rawText) {
   if (!rawText || typeof rawText !== 'string') return null;
   const text = rawText.trim();
 
-  // 1. Check for payment-related keywords in Khmer or English
+  // 1. Check for payment-related keywords in Khmer or English, or plus sign with currency
   const paymentKeywords = [
     'received', 'receive', 'paid', 'payment', 'transfer', 'transferred',
     'khqr', 'aba', 'payway', 'bakong', 'wing', 'acleda', 'canadia', 'apv',
-    'ទទួល', 'បង់', 'ផ្ទេរ', 'ទូទាត់', 'ជោគជ័យ', 'លេខប្រតិបត្តិការ', 'ប្រាក់'
+    'transaction', 'trx', 'txn', 'ref', 'reference', 'success', 'successful',
+    'credited', 'credit', 'deposit', 'inward', 'balance',
+    'ទទួល', 'បង់', 'ផ្ទេរ', 'ទូទាត់', 'ជោគជ័យ', 'លេខប្រតិបត្តិការ', 'ប្រាក់', 'ចំណូល',
+    'ចូល', 'កុង', 'គណនី', 'សរុប', 'ទឹកប្រាក់', 'ប្រតិបត្តិការ', 'ស្កេន'
   ];
   const hasKeyword = paymentKeywords.some(kw => text.toLowerCase().includes(kw));
-  if (!hasKeyword) return null;
+  const hasPlusCurrency = /\+\s*(?:\$|USD)?[0-9]+/i.test(text);
 
-  // 2. Extract Amount ($X.XX, USD X.XX, X.XX USD, X.XX$)
-  const amountRegex = /(?:\$|USD\s*)\s*([0-9]+(?:\.[0-9]{1,2})?)|([0-9]+(?:\.[0-9]{1,2})?)\s*(?:\$|\s*USD)/i;
-  const amountMatch = text.match(amountRegex);
-  if (!amountMatch) return null;
+  if (!hasKeyword && !hasPlusCurrency) return null;
 
-  const amountStr = amountMatch[1] || amountMatch[2];
-  const amount = parseFloat(amountStr);
+  // 2. Extract Amount ($X.XX, USD X.XX, X.XX USD, X.XX$, or KHR / Riel)
+  let amount = 0;
+
+  // First check USD
+  const m1 = text.match(/(?:\$|USD\s*)\s*([0-9]+(?:,[0-9]{3})*(?:\.[0-9]{1,2})?)/i);
+  const m2 = text.match(/([0-9]+(?:,[0-9]{3})*(?:\.[0-9]{1,2})?)\s*(?:\$|\s*USD)/i);
+  if (m1 && m1[1]) {
+    amount = parseFloat(m1[1].replace(/,/g, ''));
+  } else if (m2 && m2[1]) {
+    amount = parseFloat(m2[1].replace(/,/g, ''));
+  }
+
+  // If no USD found, check KHR / Riel
+  if (!amount || isNaN(amount) || amount <= 0) {
+    const k1 = text.match(/(?:KHR|\s*រៀល|\s*៛)\s*([0-9]+(?:,[0-9]{3})*)/i);
+    const k2 = text.match(/([0-9]+(?:,[0-9]{3})*)\s*(?:KHR|\s*រៀល|\s*៛)/i);
+    const rawKhr = (k1 && k1[1]) || (k2 && k2[1]);
+    if (rawKhr) {
+      const numKhr = parseFloat(rawKhr.replace(/,/g, ''));
+      if (numKhr >= 20000 && numKhr <= 30000) amount = 5.99;
+      else if (numKhr >= 5000 && numKhr <= 8000) amount = 1.50;
+      else if (numKhr > 0) amount = Math.round((numKhr / 4100) * 100) / 100;
+    }
+  }
+
+  // Also check plain "+ 1.50" or "+1.50"
+  if (!amount || isNaN(amount) || amount <= 0) {
+    const p1 = text.match(/\+\s*(?:\$)?\s*([0-9]+(?:\.[0-9]{1,2})?)/);
+    if (p1 && p1[1]) {
+      amount = parseFloat(p1[1]);
+    }
+  }
+
   if (!amount || isNaN(amount) || amount <= 0) return null;
 
   // 3. Extract Payer Name if available
   let payer = 'Customer';
   const payerPatterns = [
-    /(?:ត្រូវបានបង់ដោយ|paid by|from|payer|ពី|ផ្ញើពី|ផ្ទេរពី)\s*[:\-]?\s*([^(\n\r,។\.:]+)/i,
-    /(?:អ្នកផ្ញើ|customer)\s*[:\-]?\s*([^(\n\r,។\.:]+)/i
+    /(?:ត្រូវបានបង់ដោយ|paid by|from|payer|ពី|ផ្ញើពី|ផ្ទេរពី|អ្នកផ្ញើ|customer)\s*[:\-]?\s*([^(\n\r,។\.:]+)/i,
+    /(?:account name|name|ឈ្មោះ)\s*[:\-]?\s*([^(\n\r,។\.:]+)/i
   ];
   for (const pat of payerPatterns) {
     const m = text.match(pat);
     if (m && m[1] && m[1].trim()) {
-      payer = m[1].trim();
-      break;
+      let candidate = m[1].trim();
+      candidate = candidate.replace(/\s+(?:តាម(?:រយៈ)?|via|at|by|on|នៅ).*$/i, '').trim();
+      if (candidate && candidate.length > 1) {
+        payer = candidate;
+        break;
+      }
     }
   }
 
@@ -1079,6 +1119,16 @@ async function processTelegramUpdate(token, update, adminChatId) {
 
     if (paymentData) {
       console.log('[Telegram Bot] 💳 Intercepted Bank Payment Alert:', paymentData);
+      if (typeof recordUnclaimedPayment === 'function') {
+        recordUnclaimedPayment({
+          amount: paymentData.amount,
+          payer: paymentData.payer,
+          trxId: paymentData.trxId,
+          chatId: chatId,
+          messageId: msg ? msg.message_id : null,
+          rawText: rawText || (msg.reply_to_message ? (msg.reply_to_message.text || msg.reply_to_message.caption) : '')
+        });
+      }
       await handlePayWayPayment(token, chatId, paymentData, msg);
       return;
     }
@@ -1108,7 +1158,7 @@ async function processTelegramUpdate(token, update, adminChatId) {
       const cfg = getTelegramConfig();
       const guestMsg =
         `👋 <b>សួស្តី ${(msg.from && msg.from.first_name) || ''}!</b>\n\n` +
-        `នេះជា Bot ផ្លូវការសម្រាប់គ្រប់គ្រង License កម្មវិធី <b>HongGuo Downloader</b>។\n\n` +
+        `នេះជា Bot ផ្លូវការសម្រាប់គ្រប់គ្រង License កម្មវិធី <b>PS DOWNLOAD</b>។\n\n` +
         `🛒 ប្រសិនបើអ្នកចង់ទិញ ឬសួរព័ត៌មានបន្ថែមអំពី License Key សូមទាក់ទង Admin:\n` +
         `👉 Telegram: <b>${cfg.adminTelegram || '@Thpisal33'}</b>`;
       await sendBotMessage(token, chatId, guestMsg);
@@ -1350,11 +1400,205 @@ function isBotRunning() {
   return _isPolling;
 }
 
+/**
+ * Scans recent Telegram updates (messages in group/channel/private) to verify if
+ * a bank payment matching this transaction/amount has been posted.
+ * If found and not yet redeemed, it automatically authorizes the device, activates the license,
+ * marks transaction processed, and sends celebration notification!
+ */
+async function checkGroupPaymentVerification({ deviceId, plan, amount }) {
+  const cleanId = String(deviceId || getDeviceId()).trim().toUpperCase();
+  const numAmount = parseFloat(amount || '0') || 1.50;
+
+  // 1. Check if device is ALREADY authorized in authorized_devices.json and not expired
+  const authMap = getAuthorizedDevicesMap();
+  const existingAuth = authMap[cleanId];
+  if (existingAuth && existingAuth.key && existingAuth.status === 'active') {
+    const expTime = new Date(existingAuth.expiresAt || 0).getTime();
+    if (expTime > Date.now()) {
+      // Already authorized & currently active! Ensure activated locally:
+      await activateLicense(existingAuth.key, { customExpiresAt: existingAuth.expiresAt, targetDeviceId: cleanId });
+      return {
+        verified: true,
+        autoActivated: true,
+        key: existingAuth.key,
+        label: existingAuth.label,
+        days: existingAuth.days,
+        message: '🎉 ម៉ាស៊ីនរបស់អ្នកត្រូវបានបើកសិទ្ធិដោយជោគជ័យ!'
+      };
+    }
+  }
+
+  // 2. Check unclaimed payments pool from Telegram group messages
+  if (typeof findAndClaimRecentPayment === 'function') {
+    const claimRes = findAndClaimRecentPayment({ deviceId: cleanId, amount: numAmount });
+    if (claimRes && claimRes.found) {
+      // Activate locally on client machine
+      await activateLicense(claimRes.authRes.key, {
+        customExpiresAt: claimRes.authRes.expiresAt,
+        targetDeviceId: cleanId
+      });
+
+      // Send verification notification to Telegram
+      const cfg = getTelegramConfig();
+      const successNotice =
+        `🎉🎉🎉 <b>ផ្ទៀងផ្ទាត់ការបង់ប្រាក់ជោគជ័យ (Auto-Unlocked)!</b> 🎉🎉🎉\n\n` +
+        `💵 <b>ចំនួនទឹកប្រាក់:</b> <b>$${claimRes.payment.amount.toFixed(2)}</b>\n` +
+        `👤 <b>អ្នកបង់ប្រាក់:</b> <b>${claimRes.payment.payer}</b>\n` +
+        (claimRes.payment.trxId ? `🧾 <b>លេខប្រតិបត្តិការ (Trx ID):</b> <code>${claimRes.payment.trxId}</code>\n` : '') +
+        `\n` +
+        `⚡ <b>បាន Auto-Unlock ម៉ាស៊ីនភ្ញៀវដោយជោគជ័យ:</b>\n` +
+        `💻 <b>លេខម៉ាស៊ីន (Device ID):</b> <code>${cleanId}</code>\n` +
+        `🔑 <b>License Key:</b> <code>${claimRes.authRes.key}</code>\n` +
+        `📅 <b>សុពលភាព:</b> <b>${claimRes.authRes.label}</b>\n` +
+        `🕒 <b>ម៉ោងអនុញ្ញាត:</b> ${formatKhmerTime()}\n` +
+        `🟢 <b>ស្ថានភាព:</b> កម្មវិធីលើកុំព្យូទ័រភ្ញៀវត្រូវបានបើកសិទ្ធិដំណើរការរួចរាល់!`;
+
+      if (cfg.botToken) {
+        if (cfg.chatId) {
+          sendBotMessage(cfg.botToken, cfg.chatId, successNotice).catch(() => {});
+        }
+        if (claimRes.payment.chatId && String(claimRes.payment.chatId) !== String(cfg.chatId)) {
+          sendBotMessage(cfg.botToken, claimRes.payment.chatId, successNotice, { reply_to_message_id: claimRes.payment.messageId }).catch(() => {});
+        }
+      }
+
+      console.log(`[License Verification] ✅ Successfully verified and unlocked device ${cleanId} from Telegram group payment alert!`);
+
+      return {
+        verified: true,
+        autoActivated: true,
+        key: claimRes.authRes.key,
+        days: claimRes.authRes.days,
+        label: claimRes.authRes.label,
+        payer: claimRes.payment.payer,
+        amount: claimRes.payment.amount,
+        trxId: claimRes.payment.trxId,
+        message: '🎉 ការបង់ប្រាក់ត្រូវបានផ្ទៀងផ្ទាត់ជោគជ័យ! កម្មវិធីបានបើកសិទ្ធិដោយស្វ័យប្រវត្តិ!'
+      };
+    }
+  }
+
+  // 3. Fallback: Query Telegram Bot API for latest updates
+  const cfg = getTelegramConfig();
+  if (!cfg.botToken) {
+    return { verified: false, reason: 'Missing botToken' };
+  }
+
+  try {
+    const res = await callTelegramApi(cfg.botToken, 'getUpdates', {
+      offset: -60,
+      allowed_updates: ['message', 'channel_post', 'edited_message', 'edited_channel_post']
+    });
+
+    if (!res || !res.ok || !Array.isArray(res.result) || res.result.length === 0) {
+      return { verified: false, reason: 'No recent updates' };
+    }
+
+    const nowSec = Math.floor(Date.now() / 1000);
+
+    // Loop backwards from newest update to oldest
+    for (let i = res.result.length - 1; i >= 0; i--) {
+      const u = res.result[i];
+      const msg = u.message || u.channel_post || u.edited_message || u.edited_channel_post;
+      if (!msg) continue;
+
+      // Only inspect messages sent within the last 60 minutes
+      const msgDate = msg.date || 0;
+      if (nowSec - msgDate > 3600 || nowSec - msgDate < -300) continue;
+
+      const rawText = (msg.text || msg.caption || '').trim();
+      const repText = msg.reply_to_message ? (msg.reply_to_message.text || msg.reply_to_message.caption || '').trim() : '';
+
+      const payData = parseFlexiblePaymentNotification(rawText) || parseFlexiblePaymentNotification(repText);
+      if (!payData || !payData.amount) continue;
+
+      // Check if amount satisfies the target amount
+      if (payData.amount < (numAmount - 0.05)) continue;
+
+      // Check deduplication (transaction ID or message ID)
+      const dedupeKey = payData.trxId || `TGMSG-${msg.chat.id}-${msg.message_id}-${Math.round(payData.amount * 100)}`;
+      if (isTrxAlreadyProcessed(dedupeKey)) continue;
+
+      // MATCH FOUND! Mark as processed
+      markTrxProcessed(dedupeKey, { amount: payData.amount, payer: payData.payer, deviceId: cleanId });
+
+      let days = 7;
+      let planLabel = '7 ថ្ងៃ (១ សប្តាហ៍)';
+      if (payData.amount >= 20.0) {
+        days = 365;
+        planLabel = '365 ថ្ងៃ (១ ឆ្នាំ)';
+      } else if (payData.amount >= 5.0) {
+        days = 30;
+        planLabel = '30 ថ្ងៃ (១ ខែ)';
+      } else if (payData.amount >= 1.0) {
+        days = 7;
+        planLabel = '7 ថ្ងៃ (១ សប្តាហ៍)';
+      } else {
+        days = 3;
+        planLabel = '3 ថ្ងៃ (តេស្ត)';
+      }
+
+      // Authorize the device
+      const authRes = authorizeDevice({
+        deviceId: cleanId,
+        days: days,
+        telegramUser: payData.payer,
+        customLabel: planLabel
+      });
+
+      // Activate locally on client machine
+      await activateLicense(authRes.key, { customExpiresAt: authRes.expiresAt, targetDeviceId: cleanId });
+
+      // Send verification notification to Telegram
+      const successNotice =
+        `🎉🎉🎉 <b>ផ្ទៀងផ្ទាត់ការបង់ប្រាក់ជោគជ័យ (Auto-Unlocked)!</b> 🎉🎉🎉\n\n` +
+        `💵 <b>ចំនួនទឹកប្រាក់:</b> <b>$${payData.amount.toFixed(2)}</b>\n` +
+        `👤 <b>អ្នកបង់ប្រាក់:</b> <b>${payData.payer}</b>\n` +
+        (payData.trxId ? `🧾 <b>លេខប្រតិបត្តិការ (Trx ID):</b> <code>${payData.trxId}</code>\n` : '') +
+        `\n` +
+        `⚡ <b>បាន Auto-Unlock ម៉ាស៊ីនភ្ញៀវដោយជោគជ័យ:</b>\n` +
+        `💻 <b>លេខម៉ាស៊ីន (Device ID):</b> <code>${cleanId}</code>\n` +
+        `🔑 <b>License Key:</b> <code>${authRes.key}</code>\n` +
+        `📅 <b>សុពលភាព:</b> <b>${planLabel}</b>\n` +
+        `🕒 <b>ម៉ោងអនុញ្ញាត:</b> ${formatKhmerTime()}\n` +
+        `🟢 <b>ស្ថានភាព:</b> កម្មវិធីលើកុំព្យូទ័រភ្ញៀវត្រូវបានបើកសិទ្ធិដំណើរការរួចរាល់!`;
+
+      if (cfg.chatId) {
+        sendBotMessage(cfg.botToken, cfg.chatId, successNotice).catch(() => {});
+      }
+      if (msg.chat && msg.chat.id && String(msg.chat.id) !== String(cfg.chatId)) {
+        sendBotMessage(cfg.botToken, msg.chat.id, successNotice, { reply_to_message_id: msg.message_id }).catch(() => {});
+      }
+
+      console.log(`[License Verification] ✅ Successfully verified and unlocked device ${cleanId} from Telegram payment alert!`);
+
+      return {
+        verified: true,
+        autoActivated: true,
+        key: authRes.key,
+        days: days,
+        label: planLabel,
+        payer: payData.payer,
+        amount: payData.amount,
+        trxId: payData.trxId,
+        message: '🎉 ការបង់ប្រាក់ត្រូវបានផ្ទៀងផ្ទាត់ជោគជ័យ! កម្មវិធីត្រូវបានបើកសិទ្ធិដោយស្វ័យប្រវត្តិ!'
+      };
+    }
+
+    return { verified: false, reason: 'No matching unredeemed payment found' };
+  } catch (err) {
+    console.warn('[License Verification] Error scanning Telegram updates:', err.message);
+    return { verified: false, error: err.message };
+  }
+}
+
 module.exports = {
   startTelegramBot,
   stopTelegramBot,
   isBotRunning,
   sendBotMessage,
   parseFlexiblePaymentNotification,
-  handlePayWayPayment
+  handlePayWayPayment,
+  checkGroupPaymentVerification
 };

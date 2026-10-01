@@ -8,9 +8,12 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const { exec } = require('child_process');
-const semver = require('semver');
+let semver = null;
+try {
+  semver = require('semver');
+} catch (e) {}
 
-const { APP_DIR, CACHE_DIR, APP_VERSION, DEFAULT_GITHUB_REPO, loadSettings, saveSettings } = require('./config.js');
+const { APP_DIR, CACHE_DIR, APP_VERSION, DEFAULT_GITHUB_REPO, loadSettings, saveSettings, isPackaged } = require('./config.js');
 
 /**
  * Parses a GitHub repository string into owner and repo name.
@@ -150,14 +153,26 @@ function isVersionNewer(remoteVersion, localVersion) {
   const cleanRemote = String(remoteVersion).replace(/^[^\d]*/, '').trim();
   const cleanLocal = String(localVersion).replace(/^[^\d]*/, '').trim();
 
-  try {
-    const semRemote = semver.coerce(cleanRemote);
-    const semLocal = semver.coerce(cleanLocal);
-    if (semRemote && semLocal) {
-      return semver.gt(semRemote, semLocal);
+  if (semver && semver.coerce && semver.gt) {
+    try {
+      const semRemote = semver.coerce(cleanRemote);
+      const semLocal = semver.coerce(cleanLocal);
+      if (semRemote && semLocal) {
+        return semver.gt(semRemote, semLocal);
+      }
+    } catch (e) {
+      // fallback
     }
-  } catch (e) {
-    // fallback to string comparison
+  }
+
+  // Fallback to numeric segment comparison (e.g. "3.1.1" > "3.1.0")
+  const p1 = cleanRemote.split('.').map(n => parseInt(n, 10) || 0);
+  const p2 = cleanLocal.split('.').map(n => parseInt(n, 10) || 0);
+  for (let i = 0; i < Math.max(p1.length, p2.length); i++) {
+    const a = p1[i] || 0;
+    const b = p2[i] || 0;
+    if (a > b) return true;
+    if (a < b) return false;
   }
 
   return cleanRemote !== cleanLocal && cleanRemote > cleanLocal;
@@ -290,6 +305,33 @@ async function applyUpdate(downloadUrl, targetRepo = null) {
     downloadUrl = check.download_url;
   }
 
+  // Handle direct .exe installer asset updates
+  if (downloadUrl.toLowerCase().endsWith('.exe')) {
+    const tempExePath = path.join(CACHE_DIR, `PS_DOWNLOAD_Update_${Date.now()}.exe`);
+    try {
+      console.log('[Updater] Downloading installer update from:', downloadUrl);
+      await downloadFile(downloadUrl, tempExePath);
+      console.log('[Updater] Launching installer:', tempExePath);
+      exec(`start "" "${tempExePath}"`);
+      setTimeout(() => {
+        try {
+          const { app } = require('electron');
+          if (app) app.exit(0);
+        } catch (_) {
+          process.exit(0);
+        }
+      }, 1500);
+      return {
+        status: 'success',
+        installer_launched: true,
+        updated_version: 'New Installer',
+        message: 'កំពុងបើកកម្មវិធីដំឡើងកំណែថ្មី... កម្មវិធីនឹងបិទដើម្បីដំឡើងដោយស្វ័យប្រវត្ត!'
+      };
+    } catch (e) {
+      throw new Error(`បរាជ័យក្នុងការទាញយក Installer: ${e.message}`);
+    }
+  }
+
   const tempZipPath = path.join(CACHE_DIR, `update_${Date.now()}.zip`);
   const extractDir = path.join(CACHE_DIR, `update_ext_${Date.now()}`);
 
@@ -329,9 +371,21 @@ async function applyUpdate(downloadUrl, targetRepo = null) {
       }
     }
 
-    // 4. Copy updated project files to APP_DIR, safely preserving 'data/' folder
+    // 4. Determine destination directory:
+    // In packaged Electron, APP_DIR is inside resources/app.asar (read-only archive).
+    // Placing files in resources/app overrides app.asar automatically without needing re-install!
+    let targetAppDir = APP_DIR;
+    if (isPackaged) {
+      const resDir = process.resourcesPath || path.join(path.dirname(process.execPath), 'resources');
+      targetAppDir = path.join(resDir, 'app');
+      if (!fs.existsSync(targetAppDir)) {
+        fs.mkdirSync(targetAppDir, { recursive: true });
+      }
+    }
+
+    // Copy updated project files, safely preserving 'data/' folder
     const entries = fs.readdirSync(sourceDir);
-    const skippedItems = new Set(['data', 'cache', '.git', 'node_modules']);
+    const skippedItems = new Set(['data', 'cache', '.git', 'node_modules', 'dist', 'scratch']);
 
     for (const item of entries) {
       if (skippedItems.has(item.toLowerCase())) {
@@ -339,7 +393,7 @@ async function applyUpdate(downloadUrl, targetRepo = null) {
       }
 
       const srcPath = path.join(sourceDir, item);
-      const destPath = path.join(APP_DIR, item);
+      const destPath = path.join(targetAppDir, item);
 
       try {
         fs.cpSync(srcPath, destPath, { recursive: true, force: true });
@@ -351,7 +405,7 @@ async function applyUpdate(downloadUrl, targetRepo = null) {
     // 5. Read new version from updated package.json if present
     let updatedVersion = APP_VERSION;
     try {
-      const pkgPath = path.join(APP_DIR, 'package.json');
+      const pkgPath = path.join(targetAppDir, 'package.json');
       if (fs.existsSync(pkgPath)) {
         const pkgData = JSON.parse(fs.readFileSync(pkgPath, 'utf-8'));
         if (pkgData.version) updatedVersion = pkgData.version;

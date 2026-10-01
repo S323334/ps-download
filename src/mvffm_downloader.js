@@ -7,8 +7,9 @@
 const { spawn, exec } = require('child_process');
 const path = require('path');
 const fs = require('fs');
+const http = require('http');
 const https = require('https');
-const { getOutputDir } = require('./config.js');
+const { getOutputDir, DATA_DIR } = require('./config.js');
 const { mergeDramaEpisodes } = require('./video_merger.js');
 const { libraryManager } = require('./library_manager.js');
 
@@ -29,18 +30,63 @@ function findFfmpeg() {
   return 'ffmpeg';
 }
 
-function fetchText(url, headers = {}) {
+function loadFallbackCatalog() {
+  const possiblePaths = [
+    path.join(DATA_DIR, 'mvffm_catalog.json'),
+    path.join(__dirname, '..', 'data', 'mvffm_catalog.json'),
+    path.join(__dirname, '..', 'scratch', 'short_dramas_details.json')
+  ];
+  for (const p of possiblePaths) {
+    try {
+      if (fs.existsSync(p)) {
+        const raw = JSON.parse(fs.readFileSync(p, 'utf-8'));
+        if (raw && (raw.hot || raw.latest || raw.monthly)) {
+          return raw;
+        }
+      }
+    } catch (_) {}
+  }
+  return null;
+}
+
+function fetchText(url, headers = {}, timeoutMs = 4500, maxRedirects = 3) {
   return new Promise((resolve, reject) => {
+    if (maxRedirects < 0) return resolve({ status: 508, body: '' });
+
     const defaultHeaders = {
       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
       'Referer': 'https://www.mvffm.net/',
       'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
     };
-    https.get(url, { headers: { ...defaultHeaders, ...headers } }, (res) => {
+
+    let client = https;
+    try {
+      const parsed = new URL(url);
+      client = parsed.protocol === 'http:' ? http : https;
+    } catch (e) {
+      return reject(e);
+    }
+
+    const req = client.get(url, { headers: { ...defaultHeaders, ...headers }, timeout: timeoutMs }, (res) => {
+      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+        let redirectUrl = res.headers.location;
+        if (!redirectUrl.startsWith('http')) {
+          redirectUrl = new URL(redirectUrl, url).toString();
+        }
+        return fetchText(redirectUrl, headers, timeoutMs, maxRedirects - 1).then(resolve).catch(reject);
+      }
       let data = '';
       res.on('data', chunk => data += chunk);
       res.on('end', () => resolve({ status: res.statusCode, body: data }));
-    }).on('error', reject);
+    });
+
+    req.on('timeout', () => {
+      req.destroy();
+      resolve({ status: 408, body: '' });
+    });
+    req.on('error', (err) => {
+      resolve({ status: 500, body: '', error: err.message });
+    });
   });
 }
 
@@ -68,7 +114,7 @@ class MvffmDownloader {
       return this.nonce;
     }
     try {
-      const res = await fetchText('https://www.mvffm.net/drama/');
+      const res = await fetchText('https://www.mvffm.net/drama/', {}, 4000);
       const match = res.body.match(/"nonce":"([a-f0-9]+)"/i);
       if (match) {
         this.nonce = match[1];
@@ -82,7 +128,7 @@ class MvffmDownloader {
   }
 
   /**
-   * Fetch recommendations / listings from mvffm.net
+   * Fetch recommendations / listings from mvffm.net with fallback catalog
    * @param {string} type - 'hot' (总人气), 'latest' (按时间), 'monthly' (月人气), 'rating' (按评分), 'all'
    */
   async getRecommendations(type = 'hot') {
@@ -90,7 +136,7 @@ class MvffmDownloader {
     const cacheKey = `recs_${cleanType}`;
     if (this._recsCache.has(cacheKey)) {
       const cached = this._recsCache.get(cacheKey);
-      if (Date.now() - cached.ts < 5 * 60 * 1000) {
+      if (Date.now() - cached.ts < 5 * 60 * 1000 && Array.isArray(cached.data) && cached.data.length >= 80) {
         return cached.data;
       }
     }
@@ -103,84 +149,114 @@ class MvffmDownloader {
     else if (cleanType === 'rating') orderParam = 'rating';
 
     const url = `https://www.mvffm.net/drama/?genres&region&dtyear&cats&orderby=${orderParam}&tvtype=miniseries`;
-    try {
-      const res = await fetchText(url);
-      const items = [];
-      const articleRegex = /<article id="post-(\d+)" class="item drama">([\s\S]*?)<\/article>/gi;
-      let match;
-      while ((match = articleRegex.exec(res.body)) !== null) {
-        const postId = match[1];
-        const block = match[2];
-        const titleMatch = block.match(/<h3><a [^>]*>([^<]+)<\/a><\/h3>/i) || block.match(/alt="([^"]+)"/i);
-        const linkMatch = block.match(/href="(https:\/\/www\.mvffm\.net\/drama\/\d+\/)"/i);
-        const imgMatch = block.match(/data-lazy-src="([^"]+)"/i) || block.match(/src="([^"]+)"/i);
-        const yearMatch = block.match(/<div class="update upyear">([^<]+)<\/div>/i);
-        const tagMatch = block.match(/<div class="dramaleixing">([^<]+)<\/div>/i);
+    let items = [];
 
-        if (titleMatch && linkMatch) {
-          items.push({
-            id: postId,
-            title: titleMatch[1].trim(),
-            url: linkMatch[1],
-            cover: imgMatch ? imgMatch[1] : '',
-            remarks: '短劇',
-            type: tagMatch ? tagMatch[1].trim() : '短劇'
-          });
+    try {
+      const res = await fetchText(url, {}, 4500);
+      if (res && res.status === 200 && res.body && !res.body.includes('error code: 522') && !res.body.includes('站点维护中')) {
+        const articleRegex = /<article id="post-(\d+)" class="item drama">([\s\S]*?)<\/article>/gi;
+        let match;
+        while ((match = articleRegex.exec(res.body)) !== null) {
+          const postId = match[1];
+          const block = match[2];
+          const titleMatch = block.match(/<h3><a [^>]*>([^<]+)<\/a><\/h3>/i) || block.match(/alt="([^"]+)"/i);
+          const linkMatch = block.match(/href="(https:\/\/www\.mvffm\.net\/drama\/\d+\/)"/i);
+          const imgMatch = block.match(/data-lazy-src="([^"]+)"/i) || block.match(/src="([^"]+)"/i);
+          const tagMatch = block.match(/<div class="dramaleixing">([^<]+)<\/div>/i);
+
+          if (titleMatch && linkMatch) {
+            items.push({
+              id: postId,
+              title: titleMatch[1].trim(),
+              url: linkMatch[1],
+              cover: imgMatch ? imgMatch[1] : '',
+              remarks: '短劇',
+              type: tagMatch ? tagMatch[1].trim() : '短劇'
+            });
+          }
         }
       }
+    } catch (err) {
+      console.warn('[MVFFM] Notice fetching recommendations:', err.message);
+    }
 
+    // If live fetch returned items, cache and return
+    if (items.length > 0) {
       this._recsCache.set(cacheKey, { ts: Date.now(), data: items });
       return items;
-    } catch (err) {
-      console.error('[MVFFM] Error fetching recommendations:', err);
-      return [];
     }
+
+    // Upstream outage / maintenance (522/503): Fall back to rich pre-cached catalog
+    const catalog = loadFallbackCatalog();
+    if (catalog) {
+      const list = catalog[cleanType] || catalog['monthly'] || catalog['hot'] || catalog['latest'] || [];
+      if (list.length > 0) {
+        const enriched = list.map(it => ({
+          ...it,
+          is_fallback: true
+        }));
+        this._recsCache.set(cacheKey, { ts: Date.now(), data: enriched });
+        return enriched;
+      }
+    }
+
+    return [];
   }
 
   /**
-   * Search dramas by keyword using Dooplay search API
+   * Search dramas by keyword using Dooplay search API with offline fallback
    */
   async search(keyword) {
     const kw = String(keyword || '').trim();
     if (!kw) return [];
 
-    let nonce = await this.getValidNonce();
-    let searchUrl = `https://www.mvffm.net/wp-json/dooplay/search/?keyword=${encodeURIComponent(kw)}&nonce=${nonce}`;
-
+    let results = [];
     try {
-      let res = await fetchText(searchUrl);
-      if (res.body.includes('no_verify_nonce') || res.status === 403) {
-        // refresh nonce and retry once
-        this.nonceFetchedAt = 0;
-        nonce = await this.getValidNonce();
-        searchUrl = `https://www.mvffm.net/wp-json/dooplay/search/?keyword=${encodeURIComponent(kw)}&nonce=${nonce}`;
-        res = await fetchText(searchUrl);
+      let nonce = await this.getValidNonce();
+      let searchUrl = `https://www.mvffm.net/wp-json/dooplay/search/?keyword=${encodeURIComponent(kw)}&nonce=${nonce}`;
+      let res = await fetchText(searchUrl, {}, 4500);
+      if (res.body && !res.body.includes('522') && !res.body.includes('站点维护中')) {
+        let parsed = {};
+        try {
+          parsed = JSON.parse(res.body);
+          for (const [id, item] of Object.entries(parsed)) {
+            if (typeof item === 'object' && item && item.title) {
+              results.push({
+                id: String(id),
+                title: item.title,
+                url: item.url || `https://www.mvffm.net/drama/${id}/`,
+                cover: item.img || '',
+                remarks: '短劇'
+              });
+            }
+          }
+        } catch (_) {}
       }
+    } catch (_) {}
 
-      let parsed = {};
-      try {
-        parsed = JSON.parse(res.body);
-      } catch (e) {
-        return [];
-      }
+    if (results.length > 0) return results;
 
-      const results = [];
-      for (const [id, item] of Object.entries(parsed)) {
-        if (typeof item === 'object' && item && item.title) {
+    // Fallback: search in offline catalog
+    const catalog = loadFallbackCatalog();
+    if (catalog) {
+      const allDramas = [...(catalog.hot || []), ...(catalog.latest || []), ...(catalog.monthly || [])];
+      const seen = new Set();
+      const kwLower = kw.toLowerCase();
+      for (const d of allDramas) {
+        if (!seen.has(d.id) && (d.title.toLowerCase().includes(kwLower) || (d.id === kw))) {
+          seen.add(d.id);
           results.push({
-            id: String(id),
-            title: item.title,
-            url: item.url || `https://www.mvffm.net/drama/${id}/`,
-            cover: item.img || '',
+            id: d.id,
+            title: d.title,
+            url: d.url,
+            cover: d.cover,
             remarks: '短劇'
           });
         }
       }
-      return results;
-    } catch (err) {
-      console.error('[MVFFM] Search error:', err);
-      return [];
     }
+
+    return results;
   }
 
   /**

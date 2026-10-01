@@ -7,24 +7,123 @@ const path = require('path');
 const fs = require('fs');
 
 const APP_TITLE = "PS DOWNLOAD";
-const APP_VERSION = "3.1.0";
+const APP_VERSION = "3.2.0";
 
 const PORT = parseInt(process.env.HONGGUO_PORT || '1994', 10);
 const HOST = process.env.HONGGUO_HOST || '127.0.0.1';
 const UPSTREAM_WEB_URL = "https://hongguoduanju.com";
 
+// Determine Electron environment safely
+let electronApp = null;
+try {
+  const electron = require('electron');
+  if (electron && electron.app) {
+    electronApp = electron.app;
+  }
+} catch (e) {}
+
+// Check if running inside packaged asar archive or packaged app
+const isAsar = __dirname.includes('app.asar');
+const isPackaged = Boolean((electronApp && electronApp.isPackaged) || isAsar);
+
 const APP_DIR = path.resolve(__dirname, '..');
-const DATA_DIR = path.join(APP_DIR, 'data');
-const CACHE_DIR = path.join(APP_DIR, 'cache');
 const LIB_DIR = path.join(APP_DIR, 'lib');
 const WEB_DIR = path.join(APP_DIR, 'web');
+
+/**
+ * Determine persistent writable data and cache directories.
+ * MUST NOT be inside app.asar because asar is a read-only archive!
+ */
+function resolveWritableDirs() {
+  // If in development mode (not packaged)
+  if (!isPackaged) {
+    return {
+      dataDir: path.join(APP_DIR, 'data'),
+      cacheDir: path.join(APP_DIR, 'cache')
+    };
+  }
+
+  // When packaged (Production / Portable / Installed):
+  // Check if running in Portable mode:
+  const exeDir = path.dirname(process.execPath);
+  let portableBase = null;
+
+  if (process.env.PORTABLE_EXECUTABLE_DIR && fs.existsSync(process.env.PORTABLE_EXECUTABLE_DIR)) {
+    portableBase = process.env.PORTABLE_EXECUTABLE_DIR;
+  } else if (
+    exeDir.toLowerCase().includes('portable') ||
+    fs.existsSync(path.join(exeDir, 'data')) ||
+    fs.existsSync(path.join(exeDir, 'is_portable')) ||
+    process.env.PORTABLE_MODE === '1'
+  ) {
+    // Verify write permissions in exeDir
+    try {
+      const testFile = path.join(exeDir, `.write_test_${Date.now()}`);
+      fs.writeFileSync(testFile, '1');
+      fs.unlinkSync(testFile);
+      portableBase = exeDir;
+    } catch (_) {
+      portableBase = null;
+    }
+  }
+
+  if (portableBase) {
+    return {
+      dataDir: path.join(portableBase, 'data'),
+      cacheDir: path.join(portableBase, 'cache')
+    };
+  }
+
+  // Installed app fallback: Use Electron's official writable userData path
+  let userData = null;
+  try {
+    if (electronApp && typeof electronApp.getPath === 'function') {
+      userData = electronApp.getPath('userData');
+    }
+  } catch (_) {}
+
+  if (!userData) {
+    const roaming = process.env.APPDATA || (os.homedir ? path.join(os.homedir(), 'AppData', 'Roaming') : os.tmpdir());
+    userData = path.join(roaming, 'ps-download');
+  }
+
+  return {
+    dataDir: path.join(userData, 'data'),
+    cacheDir: path.join(userData, 'cache')
+  };
+}
+
+const { dataDir: DATA_DIR, cacheDir: CACHE_DIR } = resolveWritableDirs();
 const SETTINGS_FILE = path.join(DATA_DIR, 'settings.json');
 
-// Ensure directories exist
-for (const dir of [DATA_DIR, CACHE_DIR, WEB_DIR]) {
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
+// Ensure writable directories exist on disk (NEVER attempt to mkdir inside app.asar)
+for (const dir of [DATA_DIR, CACHE_DIR]) {
+  try {
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+  } catch (e) {
+    console.warn('[Config] Could not create directory:', dir, e.message);
   }
+}
+
+// In packaged mode, copy any initial bundled template json files from asar to writable DATA_DIR
+if (isPackaged) {
+  try {
+    const bundledDataDir = path.join(APP_DIR, 'data');
+    if (fs.existsSync(bundledDataDir) && path.resolve(bundledDataDir) !== path.resolve(DATA_DIR)) {
+      const files = fs.readdirSync(bundledDataDir);
+      for (const file of files) {
+        const targetPath = path.join(DATA_DIR, file);
+        if (!fs.existsSync(targetPath)) {
+          try {
+            const data = fs.readFileSync(path.join(bundledDataDir, file));
+            fs.writeFileSync(targetPath, data);
+          } catch (_) {}
+        }
+      }
+    }
+  } catch (_) {}
 }
 
 const DEFAULT_HEADERS = {
@@ -113,5 +212,7 @@ module.exports = {
   loadSettings,
   saveSettings,
   getOutputDir,
-  DEFAULT_GITHUB_REPO
+  DEFAULT_GITHUB_REPO,
+  isPackaged,
+  isAsar
 };

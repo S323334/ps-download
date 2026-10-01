@@ -7,7 +7,7 @@
         let _currentHaoSouCategory = 'all';
         let _allHaoSouItems = [];
         let _lastHaoSouItems = [];
-        let _haosouRenderLimit = 24;
+        let _haosouRenderLimit = 60;
 
 
         async function selectHaoSouCategory(cat) {
@@ -53,7 +53,11 @@
                 if (!res.ok || !data.ok) throw new Error(data.message || 'Failed to load recommendations');
 
                 _allHaoSouItems = data.data || [];
-                _haosouRenderLimit = 24;
+                // Reshuffle feed for fresh discovery on each entry/open
+                if (typeof shuffleArray === 'function') {
+                    _allHaoSouItems = shuffleArray(_allHaoSouItems);
+                }
+                _haosouRenderLimit = 60;
                 _lastHaoSouItems = _allHaoSouItems.slice(0, _haosouRenderLimit);
                 renderHaoSouCards(_lastHaoSouItems);
                 _hsRecsLoaded = true;
@@ -63,9 +67,23 @@
             }
         }
 
+        function shuffleHaoSouFeed() {
+            if (_allHaoSouItems && _allHaoSouItems.length > 0) {
+                if (typeof shuffleArray === 'function') {
+                    _allHaoSouItems = shuffleArray(_allHaoSouItems);
+                }
+                _haosouRenderLimit = 60;
+                _lastHaoSouItems = _allHaoSouItems.slice(0, _haosouRenderLimit);
+                renderHaoSouCards(_lastHaoSouItems);
+            } else {
+                loadHaoSouRecommendations(_currentHaoSouCategory);
+            }
+        }
+        window.shuffleHaoSouFeed = shuffleHaoSouFeed;
+
         function loadMoreHaoSouDramas() {
             if (!_allHaoSouItems || !_allHaoSouItems.length) return;
-            _haosouRenderLimit += 24;
+            _haosouRenderLimit += 60;
             _lastHaoSouItems = _allHaoSouItems.slice(0, _haosouRenderLimit);
             renderHaoSouCards(_lastHaoSouItems);
         }

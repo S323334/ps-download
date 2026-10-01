@@ -14,6 +14,18 @@ function escapeHtml(str) {
 }
 window.escapeHtml = escapeHtml;
 
+// Fisher-Yates array shuffle for fresh / randomized drama feed on each entry/open
+function shuffleArray(arr) {
+    if (!Array.isArray(arr) || arr.length <= 1) return arr ? [...arr] : [];
+    const copy = [...arr];
+    for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+    }
+    return copy;
+}
+window.shuffleArray = shuffleArray;
+
 window.currentDownloadedEps = window.currentDownloadedEps || new Set();
 var currentDownloadedEps = window.currentDownloadedEps;
 window.downloadedSeriesCache = window.downloadedSeriesCache || new Map();
@@ -194,7 +206,9 @@ function switchPlatform(platformId, persist = true) {
         if (typeof stopMvffmTasksPolling === 'function') stopMvffmTasksPolling();
         startHaoSouTasksPolling();
         fetchHaoSouTasks();
-        if (!_hsRecsLoaded && typeof loadHaoSouRecommendations === 'function') {
+        if (typeof shuffleHaoSouFeed === 'function') {
+            shuffleHaoSouFeed();
+        } else if (!_hsRecsLoaded && typeof loadHaoSouRecommendations === 'function') {
             loadHaoSouRecommendations();
         }
         const hsInp = document.getElementById('hsDramaInput');
@@ -206,7 +220,9 @@ function switchPlatform(platformId, persist = true) {
             startMvffmTasksPolling();
             fetchMvffmTasks();
         }
-        if (!_mvRecsLoaded && typeof loadMvffmRecommendations === 'function') {
+        if (typeof shuffleMvffmFeed === 'function') {
+            shuffleMvffmFeed();
+        } else if (!_mvRecsLoaded && typeof loadMvffmRecommendations === 'function') {
             loadMvffmRecommendations();
         }
         const mvInp = document.getElementById('mvDramaInput');
@@ -220,6 +236,9 @@ function switchPlatform(platformId, persist = true) {
         stopYouTubeTasksPolling();
         stopHaoSouTasksPolling();
         if (typeof stopMvffmTasksPolling === 'function') stopMvffmTasksPolling();
+        if (typeof shuffleHongguoFeed === 'function') {
+            shuffleHongguoFeed();
+        }
     }
 }
 

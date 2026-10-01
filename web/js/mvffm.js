@@ -10,7 +10,7 @@ let mvTasksPollingTimer = null;
 let _mvRecsLoaded = false;
 let _currentMvCategory = 'hot';
 let _allMvItems = [];
-let _mvRenderLimit = 24;
+let _mvRenderLimit = 60;
 
 function openMvffmWebsite() {
     const url = 'https://www.mvffm.net/drama/';
@@ -33,6 +33,8 @@ async function selectMvffmCategory(cat) {
     });
     await loadMvffmRecommendations(_currentMvCategory);
 }
+
+let _isMvFallback = false;
 
 async function loadMvffmRecommendations(type = 'hot') {
     _currentMvCategory = type;
@@ -64,7 +66,12 @@ async function loadMvffmRecommendations(type = 'hot') {
         if (!res.ok || !data.ok) throw new Error(data.message || 'Failed to load MVFFM recommendations');
 
         _allMvItems = data.data || [];
-        _mvRenderLimit = 24;
+        // Reshuffle feed for fresh discovery on each entry/open
+        if (typeof shuffleArray === 'function') {
+            _allMvItems = shuffleArray(_allMvItems);
+        }
+        _isMvFallback = Boolean(data.is_fallback || (_allMvItems.length > 0 && _allMvItems[0].is_fallback));
+        _mvRenderLimit = 60;
         renderMvffmCards(_allMvItems.slice(0, _mvRenderLimit));
         _mvRecsLoaded = true;
     } catch (err) {
@@ -73,9 +80,22 @@ async function loadMvffmRecommendations(type = 'hot') {
     }
 }
 
+function shuffleMvffmFeed() {
+    if (_allMvItems && _allMvItems.length > 0) {
+        if (typeof shuffleArray === 'function') {
+            _allMvItems = shuffleArray(_allMvItems);
+        }
+        _mvRenderLimit = 60;
+        renderMvffmCards(_allMvItems.slice(0, _mvRenderLimit));
+    } else {
+        loadMvffmRecommendations(_currentMvCategory);
+    }
+}
+window.shuffleMvffmFeed = shuffleMvffmFeed;
+
 function loadMoreMvffmDramas() {
     if (!_allMvItems || !_allMvItems.length) return;
-    _mvRenderLimit += 24;
+    _mvRenderLimit += 60;
     renderMvffmCards(_allMvItems.slice(0, _mvRenderLimit));
 }
 
@@ -89,7 +109,40 @@ function renderMvffmCards(items) {
     }
 
     if (!items || items.length === 0) {
-        grid.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:40px; color:#94a3b8;">${currentLang === 'zh' ? '暂无短剧数据' : (currentLang === 'km' ? 'គ្មានទិន្នន័យរឿងទេ' : 'No dramas found')}</div>`;
+        const emptyZh = `
+            <div style="grid-column:1/-1; text-align:center; padding:40px 20px; color:#94a3b8;">
+                <div style="font-size:2rem; margin-bottom:10px;">⚠️</div>
+                <div style="font-size:1.05rem; font-weight:600; color:#f8fafc; margin-bottom:6px;">暂无短剧数据</div>
+                <div style="font-size:0.85rem; color:#94a3b8; max-width:460px; margin:0 auto 16px auto; line-height:1.5;">您可以尝试刷新，或切换到【红果短剧】与【好搜短剧】畅享数万部剧集。</div>
+                <div style="display:flex; justify-content:center; gap:10px;">
+                    <button onclick="loadMvffmRecommendations(_currentMvCategory)" class="btn btn-primary btn-sm">🔄 刷新重试</button>
+                    <button onclick="selectPlatform && selectPlatform('hongguo')" class="btn btn-secondary btn-sm">🔥 红果短剧</button>
+                    <button onclick="selectPlatform && selectPlatform('haosou')" class="btn btn-secondary btn-sm">⚡ 好搜短剧</button>
+                </div>
+            </div>`;
+        const emptyKm = `
+            <div style="grid-column:1/-1; text-align:center; padding:40px 20px; color:#94a3b8;">
+                <div style="font-size:2rem; margin-bottom:10px;">⚠️</div>
+                <div style="font-size:1.05rem; font-weight:600; color:#f8fafc; margin-bottom:6px;">មិនទាន់មានទិន្នន័យរឿងទេ</div>
+                <div style="font-size:0.85rem; color:#94a3b8; max-width:460px; margin:0 auto 16px auto; line-height:1.5;">លោកអ្នកអាចចុច Refresh ឬជ្រើសរើសទស្សនានៅលើផ្ទាំង HONGGUO ឬ HAOSOU បានភ្លាមៗ!</div>
+                <div style="display:flex; justify-content:center; gap:10px;">
+                    <button onclick="loadMvffmRecommendations(_currentMvCategory)" class="btn btn-primary btn-sm">🔄 ផ្ទុកឡើងវិញ</button>
+                    <button onclick="selectPlatform && selectPlatform('hongguo')" class="btn btn-secondary btn-sm">🔥 ទៅផ្ទាំង HONGGUO</button>
+                    <button onclick="selectPlatform && selectPlatform('haosou')" class="btn btn-secondary btn-sm">⚡ ទៅផ្ទាំង HAOSOU</button>
+                </div>
+            </div>`;
+        const emptyEn = `
+            <div style="grid-column:1/-1; text-align:center; padding:40px 20px; color:#94a3b8;">
+                <div style="font-size:2rem; margin-bottom:10px;">⚠️</div>
+                <div style="font-size:1.05rem; font-weight:600; color:#f8fafc; margin-bottom:6px;">No Dramas Found</div>
+                <div style="font-size:0.85rem; color:#94a3b8; max-width:460px; margin:0 auto 16px auto; line-height:1.5;">You can retry or switch to HONGGUO / HAOSOU platforms.</div>
+                <div style="display:flex; justify-content:center; gap:10px;">
+                    <button onclick="loadMvffmRecommendations(_currentMvCategory)" class="btn btn-primary btn-sm">🔄 Retry</button>
+                    <button onclick="selectPlatform && selectPlatform('hongguo')" class="btn btn-secondary btn-sm">🔥 HONGGUO</button>
+                    <button onclick="selectPlatform && selectPlatform('haosou')" class="btn btn-secondary btn-sm">⚡ HAOSOU</button>
+                </div>
+            </div>`;
+        grid.innerHTML = currentLang === 'zh' ? emptyZh : (currentLang === 'km' ? emptyKm : emptyEn);
         return;
     }
 
@@ -102,9 +155,8 @@ function renderMvffmCards(items) {
         });
     }
 
-    grid.innerHTML = items.map((item) => {
+    const cardsHtml = items.map((item) => {
         const cover = item.cover || '/uploads/image/20250311/5754a9f551b45a5f36800c0212460d0a.png';
-        // Strip 4-digit years like 2025 or 2026 completely as requested
         const cleanRemarks = (item.remarks || '短劇').replace(/\b\d{4}\s*/g, '').trim() || '短劇';
         const remarks = cleanRemarks ? `<span class="mv-card-badge">${escapeHtml(cleanRemarks)}</span>` : '';
         const displayTitle = (currentLang === 'zh' || currentLang === 'original') ? item.title : (typeof getDisplayTitle === 'function' ? getDisplayTitle(item.title) : item.title);
@@ -132,6 +184,8 @@ function renderMvffmCards(items) {
             </div>
         `;
     }).join('');
+
+    grid.innerHTML = cardsHtml;
 }
 
 async function pasteMvFromClipboard() {

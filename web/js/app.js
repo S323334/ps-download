@@ -78,20 +78,38 @@ let pollTimer = null;
         // ==========================================
         async function ctxPasteLink() {
             hideSearchContextMenu();
+            if (typeof pasteHgFromClipboard === 'function') {
+                return pasteHgFromClipboard();
+            }
             const inputEl = document.getElementById('searchInput');
             if (!inputEl) return;
-            try {
-                const text = await navigator.clipboard.readText();
-                if (text) {
-                    inputEl.value = text.trim();
-                    onSearchInputChanged(inputEl.value);
-                    inputEl.focus();
-                    showToast(currentLang === 'zh' ? '已成功粘贴链接/文本！' : (currentLang === 'en' ? 'Pasted successfully!' : 'បានបិទភ្ជាប់ (Paste) ដោយជោគជ័យ!'), '📋');
+            let text = '';
+            if (window.electronAPI && typeof window.electronAPI.readClipboard === 'function') {
+                try {
+                    text = await window.electronAPI.readClipboard();
+                } catch (err) {
+                    console.warn('Native clipboard read error:', err);
                 }
-            } catch (e) {
-                inputEl.focus();
-                document.execCommand('paste');
             }
+            if (!text && navigator.clipboard && navigator.clipboard.readText) {
+                try {
+                    text = await navigator.clipboard.readText();
+                } catch (err) {
+                    console.warn('Web clipboard read error:', err);
+                }
+            }
+            text = (text || '').trim();
+            if (!text) {
+                const emptyMsg = currentLang === 'zh' ? '剪贴板为空' : (currentLang === 'en' ? 'Clipboard is empty' : 'ក្តារតម្កល់ទទេ (Clipboard is empty)');
+                showToast(emptyMsg, '📋');
+                return;
+            }
+            inputEl.value = text;
+            if (typeof onSearchInputChanged === 'function') onSearchInputChanged(text);
+            inputEl.focus();
+            const pastedMsg = currentLang === 'zh' ? '已成功粘贴！' : (currentLang === 'en' ? 'Pasted successfully!' : 'បានបិទភ្ជាប់ (Paste) ដោយជោគជ័យ!');
+            showToast(pastedMsg, '📋');
+            // នៅស្ងៀមមិនដំណើរការ auto ឡើយ (ដូច Ctrl+V) ទុកឱ្យអ្នកប្រើចុច Fetch ឬ ស្វែងរកតាមឈ្មោះ
         }
 
         function ctxCutInput() {
@@ -120,6 +138,16 @@ let pollTimer = null;
         function hideSearchContextMenu() {
             const m = document.getElementById('searchContextMenu');
             if (m) m.style.display = 'none';
+        }
+
+        function openAdminDashboard() {
+            if (window.electronAPI && typeof window.electronAPI.openAdminWindow === 'function') {
+                window.electronAPI.openAdminWindow();
+            } else if (window.electronAPI && typeof window.electronAPI.openExternal === 'function') {
+                window.electronAPI.openExternal('http://127.0.0.1:1994/admin');
+            } else {
+                window.open('/admin', '_blank');
+            }
         }
 
         async function deleteFromLibrary(sid, title) {

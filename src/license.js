@@ -1049,22 +1049,28 @@ async function checkAutoActivation(deviceId = null) {
     } catch (e) {}
   }
 
-  // 2. Check remote cloud sync if configured (e.g. GitHub Gist or Raw JSON)
+  // 2. Check remote cloud sync if configured (e.g. Cloud Bot Service, GitHub Gist or Raw JSON)
   const cfg = getTelegramConfig();
   if (cfg.cloudSyncUrl) {
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 4000);
-      const res = await fetch(cfg.cloudSyncUrl, {
+      let syncUrl = cfg.cloudSyncUrl.trim();
+      if (syncUrl.includes('/api/license/check')) {
+        syncUrl += (syncUrl.includes('?') ? '&' : '?') + `deviceId=${encodeURIComponent(targetId)}`;
+      }
+      const res = await fetch(syncUrl, {
         signal: controller.signal,
         headers: { 'User-Agent': 'HongguoDownloader/3.1' }
       });
       clearTimeout(timeoutId);
       if (res.ok) {
         const cloudData = await res.json();
-        const record = cloudData[targetId] || (cloudData.devices && cloudData.devices[targetId]);
+        const record = (cloudData && cloudData.authorized && cloudData.key)
+          ? cloudData
+          : (cloudData[targetId] || (cloudData.devices && cloudData.devices[targetId]));
         if (record && record.key) {
-          const actResult = activateLicense(record.key);
+          const actResult = await activateLicense(record.key, { customExpiresAt: record.expiresAt, targetDeviceId: targetId });
           if (actResult.success) {
             return {
               authorized: true,
@@ -1265,6 +1271,133 @@ async function recordPaymentNotification({ deviceId, telegramUser, plan, amount 
  
 const PENDING_CHECKOUTS_FILE = path.join(DATA_DIR, 'pending_checkouts.json');
 const PROCESSED_TRX_FILE = path.join(DATA_DIR, 'processed_payway_trx.json');
+const UNCLAIMED_PAYMENTS_FILE = path.join(DATA_DIR, 'recent_unclaimed_payments.json');
+
+function recordUnclaimedPayment(data) {
+  if (!data || !data.amount) return null;
+  const now = Date.now();
+  let list = [];
+  if (fs.existsSync(UNCLAIMED_PAYMENTS_FILE)) {
+    try {
+      list = JSON.parse(fs.readFileSync(UNCLAIMED_PAYMENTS_FILE, 'utf-8')) || [];
+    } catch (e) { list = []; }
+  }
+
+  // Deduplicate by trxId if exists, or matching amount + payer within 60 seconds
+  const numAmount = parseFloat(data.amount || 0);
+  const exists = list.find(item => {
+    if (data.trxId && item.trxId && String(data.trxId).trim() === String(item.trxId).trim()) return true;
+    if (Math.abs(item.amount - numAmount) < 0.05 && Math.abs(item.timestamp - now) < 60000 && item.payer === data.payer) return true;
+    return false;
+  });
+
+  if (exists) return exists;
+
+  const entry = {
+    id: `PAY-${now}`,
+    amount: numAmount,
+    payer: String(data.payer || 'Customer').trim(),
+    trxId: String(data.trxId || '').trim(),
+    chatId: data.chatId || null,
+    messageId: data.messageId || null,
+    rawText: String(data.rawText || '').trim(),
+    timestamp: now,
+    claimedBy: data.claimedBy || null,
+    claimedAt: data.claimedAt || null,
+    key: data.key || null
+  };
+
+  list.unshift(entry);
+  if (list.length > 100) list = list.slice(0, 100);
+
+  try {
+    fs.writeFileSync(UNCLAIMED_PAYMENTS_FILE, JSON.stringify(list, null, 2), 'utf-8');
+  } catch (e) {}
+
+  return entry;
+}
+
+function getUnclaimedPayments(maxAgeMs = 3600000) {
+  if (!fs.existsSync(UNCLAIMED_PAYMENTS_FILE)) return [];
+  try {
+    const list = JSON.parse(fs.readFileSync(UNCLAIMED_PAYMENTS_FILE, 'utf-8')) || [];
+    const now = Date.now();
+    return list.filter(item => !item.claimedBy && (now - (item.timestamp || 0) <= maxAgeMs));
+  } catch (e) { return []; }
+}
+
+function findAndClaimRecentPayment({ deviceId, amount, maxAgeMs = 3600000 }) {
+  const cleanId = String(deviceId || getDeviceId()).trim().toUpperCase();
+  const numAmount = parseFloat(amount || 0) || 1.50;
+  const now = Date.now();
+
+  if (!fs.existsSync(UNCLAIMED_PAYMENTS_FILE)) {
+    return { found: false };
+  }
+
+  let list = [];
+  try {
+    list = JSON.parse(fs.readFileSync(UNCLAIMED_PAYMENTS_FILE, 'utf-8')) || [];
+  } catch (e) { return { found: false }; }
+
+  // Find candidate: unclaimed OR already claimed by this exact device, within maxAgeMs, amount matches
+  const candidate = list.find(item => {
+    const isUnclaimedOrMine = !item.claimedBy || item.claimedBy === cleanId;
+    const isRecent = (now - (item.timestamp || 0)) <= maxAgeMs;
+    const amountMatches = item.amount >= (numAmount - 0.15);
+    return isUnclaimedOrMine && isRecent && amountMatches;
+  });
+
+  if (!candidate) {
+    return { found: false };
+  }
+
+  let days = 7;
+  let planLabel = '7 ថ្ងៃ (១ សប្តាហ៍)';
+  if (candidate.amount >= 20.0) {
+    days = 365;
+    planLabel = '365 ថ្ងៃ (១ ឆ្នាំ)';
+  } else if (candidate.amount >= 5.0) {
+    days = 30;
+    planLabel = '30 ថ្ងៃ (១ ខែ)';
+  } else if (candidate.amount >= 1.0) {
+    days = 7;
+    planLabel = '7 ថ្ងៃ (១ សប្តាហ៍)';
+  } else {
+    days = 3;
+    planLabel = '3 ថ្ងៃ (តេស្ត)';
+  }
+
+  // Authorize device
+  const authRes = authorizeDevice({
+    deviceId: cleanId,
+    days: days,
+    telegramUser: candidate.payer,
+    customLabel: planLabel
+  });
+
+  // Mark candidate as claimed
+  candidate.claimedBy = cleanId;
+  candidate.claimedAt = new Date().toISOString();
+  candidate.key = authRes.key;
+  candidate.days = days;
+  candidate.label = planLabel;
+
+  try {
+    fs.writeFileSync(UNCLAIMED_PAYMENTS_FILE, JSON.stringify(list, null, 2), 'utf-8');
+  } catch (e) {}
+
+  // Mark transaction deduplicated
+  if (candidate.trxId) {
+    markTrxProcessed(candidate.trxId, { amount: candidate.amount, payer: candidate.payer, deviceId: cleanId });
+  }
+
+  return {
+    found: true,
+    payment: candidate,
+    authRes
+  };
+}
 
 function registerPendingCheckout({ deviceId, plan, amount }) {
   const cleanId = String(deviceId || getDeviceId()).trim().toUpperCase();
@@ -1423,8 +1556,8 @@ function getPaymentRequests() {
 
 function getTelegramConfig() {
   const defaults = {
-    botToken: process.env.TELEGRAM_BOT_TOKEN || '',
-    chatId: process.env.TELEGRAM_CHAT_ID || '',
+    botToken: process.env.TELEGRAM_BOT_TOKEN || '8928655174:AAGpYf-8kHhPCRRBcj21bvJ-sGXtxk5tlUE',
+    chatId: process.env.TELEGRAM_CHAT_ID || '925539914',
     cloudSyncUrl: process.env.LICENSE_CLOUD_SYNC_URL || '',
     adminTelegram: '@Thpisal33',
     qrImageUrl: '/qr_payment.png'
@@ -1503,6 +1636,9 @@ module.exports = {
   recoverLicenseFromVaults,
   setDeviceCustomName,
   getAuthorizedDevicesMap,
+  recordUnclaimedPayment,
+  getUnclaimedPayments,
+  findAndClaimRecentPayment,
   MASTER_KEYS
 };
 

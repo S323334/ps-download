@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🔑 Admin License & Security Dashboard - Hongguo Downloader</title>
+    <title>🔑 PS DOWNLOAD - Admin License & Key Generator</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
@@ -524,7 +524,7 @@
             <div class="admin-brand">
                 <div class="admin-brand-icon">🔐</div>
                 <div>
-                    <h1 class="admin-brand-title">Hongguo Admin Control Center</h1>
+                    <h1 class="admin-brand-title">PS DOWNLOAD - ADMIN CONTROL CENTER</h1>
                     <p class="admin-brand-subtitle">ប្រព័ន្ធបង្កើត License Key, បើកសិទ្ធិអូតូ និងតាមដានម៉ាស៊ីនពន្លាហ្វាល (Anti-Leak Tracker)</p>
                 </div>
             </div>
@@ -849,7 +849,9 @@
         async function pasteAdminDeviceId() {
             try {
                 let text = '';
-                if (navigator.clipboard && navigator.clipboard.readText) {
+                if (window.electronAPI && typeof window.electronAPI.readClipboard === 'function') {
+                    text = await window.electronAPI.readClipboard();
+                } else if (navigator.clipboard && navigator.clipboard.readText) {
                     text = await navigator.clipboard.readText();
                 }
                 const inp = document.getElementById('adminDeviceId');
@@ -999,7 +1001,7 @@
 
         async function copyTelegramKeyTemplate() {
             if (!_currentGeneratedKey) return;
-            const msg = `🎉 សួស្តី! នេះជា License Key កម្មវិធី Hongguo Downloader របស់អ្នក៖\n\n🔑 License Key: ${_currentGeneratedKey.key}\n💻 សម្រាប់ម៉ាស៊ីន: ${_currentGeneratedKey.device_id}\n⏱️ សុពលភាព: ${_currentGeneratedKey.label}\n\n👉 សូមចម្លង Key ខាងលើនេះ រួច Paste ចូលក្នុងផ្ទាំងកម្មវិធីដើម្បីបើកដំណើរការ! សូមអរគុណ! 🙏`;
+            const msg = `🎉 សួស្តី! នេះជា License Key កម្មវិធី PS DOWNLOAD របស់អ្នក៖\n\n🔑 License Key: ${_currentGeneratedKey.key}\n💻 សម្រាប់ម៉ាស៊ីន: ${_currentGeneratedKey.device_id}\n⏱️ សុពលភាព: ${_currentGeneratedKey.label}\n\n👉 សូមចម្លង Key ខាងលើនេះ រួច Paste ចូលក្នុងផ្ទាំងកម្មវិធីដើម្បីបើកដំណើរការ! សូមអរគុណ! 🙏`;
             await copyText(msg);
             showToast('💬 បានចម្លងសារ Telegram រួចរាល់!', '✅');
         }

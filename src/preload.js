@@ -28,5 +28,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // App Lifecycle / Update Reload
   reload: () => ipcRenderer.invoke('app-reload'),
-  relaunch: () => ipcRenderer.invoke('app-relaunch')
+  relaunch: () => ipcRenderer.invoke('app-relaunch'),
+
+  // Dedicated Admin Window
+  openAdminWindow: () => ipcRenderer.invoke('open-admin-window')
 });
