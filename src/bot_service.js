@@ -5,8 +5,17 @@
  */
 
 const http = require('http');
-const { startTelegramBot, stopTelegramBot } = require('./telegram_bot.js');
-const { getTelegramConfig, getDeviceId, getAuthorizedDevicesMap } = require('./license.js');
+const { startTelegramBot, stopTelegramBot, sendBotMessage, parseFlexiblePaymentNotification } = require('./telegram_bot.js');
+const {
+  getTelegramConfig,
+  getDeviceId,
+  getAuthorizedDevicesMap,
+  findAndClaimRecentPayment,
+  registerPendingCheckout,
+  fulfillPayWayPayment,
+  recordUnclaimedPayment,
+  getUnclaimedPayments
+} = require('./license.js');
 
 const PORT = parseInt(process.env.PORT || '3000', 10);
 
@@ -25,8 +34,32 @@ if (!cfg.botToken) {
   process.exit(1);
 }
 
+function parseJsonBody(req) {
+  return new Promise((resolve) => {
+    let bodyText = '';
+    req.on('data', chunk => bodyText += chunk);
+    req.on('end', () => {
+      try {
+        resolve(JSON.parse(bodyText || '{}'));
+      } catch (e) {
+        resolve({});
+      }
+    });
+  });
+}
+
+function sendJson(res, statusCode, data) {
+  res.writeHead(statusCode, {
+    'Content-Type': 'application/json',
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type'
+  });
+  res.end(JSON.stringify(data));
+}
+
 // 1. Start HTTP Server for Cloud Health Checks & Remote License Verification
-const server = http.createServer((req, res) => {
+const server = http.createServer(async (req, res) => {
   // Enable CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -75,31 +108,158 @@ const server = http.createServer((req, res) => {
 
   // Health check for Cloud Platforms
   if (url.pathname === '/healthz' || url.pathname === '/api/health') {
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ status: 'ok', uptime: process.uptime(), bot: 'running' }));
-    return;
+    return sendJson(res, 200, { status: 'ok', uptime: process.uptime(), bot: 'running' });
   }
 
   // Remote check for client auto-activation
-  if (url.pathname === '/api/license/check') {
+  if (url.pathname === '/api/license/check' && req.method === 'GET') {
     const devId = (url.searchParams.get('deviceId') || '').trim().toUpperCase();
     const authorizedMap = typeof getAuthorizedDevicesMap === 'function' ? getAuthorizedDevicesMap() : {};
     if (devId && authorizedMap[devId]) {
       const rec = authorizedMap[devId];
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({
-        authorized: true,
+      const isRevoked = Boolean(rec.revoked || rec.status === 'revoked');
+      return sendJson(res, 200, {
+        authorized: !isRevoked,
+        revoked: isRevoked,
         key: rec.key,
         days: rec.days,
         label: rec.label,
+        customName: rec.customName || '',
         expiresAt: rec.expiresAt,
-        message: '🎉 ម៉ាស៊ីនរបស់អ្នកត្រូវបាន Admin អនុញ្ញាតពីចម្ងាយដោយជោគជ័យ!'
-      }));
-      return;
+        message: isRevoked ? 'License ត្រូវបានដកហូតដោយ Admin' : '🎉 ម៉ាស៊ីនរបស់អ្នកត្រូវបាន Admin អនុញ្ញាតពីចម្ងាយដោយជោគជ័យ!'
+      });
     }
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ authorized: false, message: 'មិនទាន់មានការអនុញ្ញាតពី Admin ឡើយ' }));
-    return;
+    return sendJson(res, 200, { authorized: false, message: 'មិនទាន់មានការអនុញ្ញាតពី Admin ឡើយ' });
+  }
+
+  // Register pending checkout intent from client
+  if (url.pathname === '/api/license/pending-checkout' && req.method === 'POST') {
+    const body = await parseJsonBody(req);
+    const result = registerPendingCheckout(body);
+    return sendJson(res, 200, { success: true, pending: result });
+  }
+
+  // Verify payment immediately when client clicks "ខ្ញុំបានបាញ់រួចហើយ"
+  if (url.pathname === '/api/license/verify-payment' && req.method === 'POST') {
+    const body = await parseJsonBody(req);
+    const cleanId = String(body.deviceId || '').trim().toUpperCase();
+    const numAmount = parseFloat(body.amount || 0) || 1.50;
+
+    if (!cleanId) {
+      return sendJson(res, 400, { verified: false, error: 'Missing deviceId' });
+    }
+
+    // 1. Check if device is ALREADY active in authorized_devices
+    const authMap = typeof getAuthorizedDevicesMap === 'function' ? getAuthorizedDevicesMap() : {};
+    const existing = authMap[cleanId];
+    if (existing && existing.key && existing.status === 'active') {
+      const expTime = new Date(existing.expiresAt || 0).getTime();
+      if (expTime > Date.now()) {
+        return sendJson(res, 200, {
+          verified: true,
+          autoActivated: true,
+          key: existing.key,
+          days: existing.days,
+          label: existing.label,
+          expiresAt: existing.expiresAt,
+          message: '🎉 ម៉ាស៊ីនរបស់អ្នកត្រូវបានបើកសិទ្ធិដោយជោគជ័យរួចរាល់!'
+        });
+      }
+    }
+
+    // 2. Check unclaimed payments pool from Telegram group messages
+    const claimRes = findAndClaimRecentPayment({ deviceId: cleanId, amount: numAmount });
+    if (claimRes && claimRes.found) {
+      // Send celebration alert to Telegram
+      const currentCfg = getTelegramConfig();
+      const celebration =
+        `🎉🎉🎉 <b>ផ្ទៀងផ្ទាត់ការបង់ប្រាក់ជោគជ័យ (Auto-Unlocked)!</b> 🎉🎉🎉\n\n` +
+        `💵 <b>ចំនួនទឹកប្រាក់:</b> <b>$${claimRes.payment.amount.toFixed(2)}</b>\n` +
+        `👤 <b>អ្នកបង់ប្រាក់:</b> <b>${claimRes.payment.payer}</b>\n` +
+        (claimRes.payment.trxId ? `🧾 <b>លេខប្រតិបត្តិការ (Trx ID):</b> <code>${claimRes.payment.trxId}</code>\n` : '') +
+        `\n` +
+        `⚡ <b>បាន Auto-Unlock ម៉ាស៊ីនភ្ញៀវដោយស្វ័យប្រវត្តិ:</b>\n` +
+        `💻 <b>លេខម៉ាស៊ីន (Device ID):</b> <code>${cleanId}</code>\n` +
+        `🔑 <b>License Key:</b> <code>${claimRes.authRes.key}</code>\n` +
+        `📅 <b>សុពលភាព:</b> <b>${claimRes.authRes.label}</b>\n` +
+        `🕒 <b>ម៉ោងអនុញ្ញាត:</b> ${new Date().toLocaleString('en-US', { timeZone: 'Asia/Phnom_Penh' })}\n` +
+        `🟢 <b>ស្ថានភាព:</b> កម្មវិធីលើកុំព្យូទ័រភ្ញៀវត្រូវបានបើកសិទ្ធិដំណើរការរួចរាល់!`;
+
+      if (currentCfg.botToken) {
+        if (currentCfg.chatId) {
+          sendBotMessage(currentCfg.botToken, currentCfg.chatId, celebration).catch(() => {});
+        }
+        if (claimRes.payment.chatId && String(claimRes.payment.chatId) !== String(currentCfg.chatId)) {
+          sendBotMessage(currentCfg.botToken, claimRes.payment.chatId, celebration).catch(() => {});
+        }
+      }
+
+      console.log(`[Cloud Verify] ✅ Claimed payment $${claimRes.payment.amount} for device ${cleanId}!`);
+
+      return sendJson(res, 200, {
+        verified: true,
+        autoActivated: true,
+        key: claimRes.authRes.key,
+        days: claimRes.authRes.days,
+        label: claimRes.authRes.label,
+        expiresAt: claimRes.authRes.expiresAt,
+        payer: claimRes.payment.payer,
+        amount: claimRes.payment.amount,
+        trxId: claimRes.payment.trxId,
+        message: '🎉 ការបង់ប្រាក់ត្រូវបានផ្ទៀងផ្ទាត់ជោគជ័យ! កម្មវិធីត្រូវបានបើកសិទ្ធិភ្លាមៗ!'
+      });
+    }
+
+    // 3. Not found yet: register pending checkout intent so when bank alert arrives it matches
+    registerPendingCheckout({ deviceId: cleanId, plan: body.plan, amount: numAmount });
+
+    return sendJson(res, 200, {
+      verified: false,
+      message: '⚠️ មិនទាន់ទទួលបានការបង់ប្រាក់នៅឡើយទេ! សូមរង់ចាំបន្តិច (ប្រហែល 5-10 វិនាទី) រួចចុច "ខ្ញុំបានបាញ់រួចរាល់" ម្តងទៀត'
+    });
+  }
+
+  // Webhook for External Forwarders (SMS Forwarder app, Webhook from Bank, etc.)
+  if ((url.pathname === '/api/payway/webhook' || url.pathname === '/api/payment/webhook') && req.method === 'POST') {
+    const body = await parseJsonBody(req);
+    let amount = body.amount;
+    let payer = body.payer || '';
+    let trxId = body.trxId || body.hash || body.transactionId || '';
+    let devId = body.deviceId || null;
+
+    if (body.text || body.message) {
+      const parsed = parseFlexiblePaymentNotification(body.text || body.message);
+      if (parsed) {
+        amount = parsed.amount;
+        payer = parsed.payer || payer;
+        trxId = parsed.trxId || trxId;
+      }
+    }
+
+    if (amount) {
+      const numAmt = parseFloat(amount) || 1.50;
+      // Also record as unclaimed payment
+      recordUnclaimedPayment({
+        amount: numAmt,
+        payer: payer || 'Webhook',
+        trxId: trxId || `WH-${Date.now()}`
+      });
+
+      const result = fulfillPayWayPayment({
+        amount: numAmt,
+        payer: payer || 'External-Webhook',
+        trxId: trxId || `WH-${Date.now()}`,
+        deviceId: devId
+      });
+      return sendJson(res, 200, result);
+    }
+
+    return sendJson(res, 400, { error: 'No valid amount found' });
+  }
+
+  // Get Unclaimed Payments (for debugging or admin inspection)
+  if (url.pathname === '/api/license/unclaimed-payments' && req.method === 'GET') {
+    return sendJson(res, 200, { success: true, unclaimed: getUnclaimedPayments() });
   }
 
   res.writeHead(404, { 'Content-Type': 'text/plain' });

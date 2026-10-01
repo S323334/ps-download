@@ -7,7 +7,7 @@ const path = require('path');
 const fs = require('fs');
 
 const APP_TITLE = "PS DOWNLOAD";
-const APP_VERSION = "3.2.0";
+const APP_VERSION = "3.2.1";
 
 const PORT = parseInt(process.env.HONGGUO_PORT || '1994', 10);
 const HOST = process.env.HONGGUO_HOST || '127.0.0.1';
@@ -26,7 +26,19 @@ try {
 const isAsar = __dirname.includes('app.asar');
 const isPackaged = Boolean((electronApp && electronApp.isPackaged) || isAsar);
 
-const APP_DIR = path.resolve(__dirname, '..');
+// Check if an updated 'app' directory exists in resources (placed by software updater)
+let effectiveAppDir = path.resolve(__dirname, '..');
+if (isPackaged) {
+  try {
+    const resDir = process.resourcesPath || path.join(path.dirname(process.execPath), 'resources');
+    const overrideAppDir = path.join(resDir, 'app');
+    if (fs.existsSync(overrideAppDir) && fs.existsSync(path.join(overrideAppDir, 'web', 'index.html'))) {
+      effectiveAppDir = overrideAppDir;
+    }
+  } catch (_) {}
+}
+
+const APP_DIR = effectiveAppDir;
 const LIB_DIR = path.join(APP_DIR, 'lib');
 const WEB_DIR = path.join(APP_DIR, 'web');
 

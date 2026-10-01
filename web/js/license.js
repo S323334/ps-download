@@ -96,11 +96,12 @@ function updateHeaderLicenseBadge(data) {
 
     let contentHtml = '';
     const safeEscape = typeof escapeHtml === 'function' ? escapeHtml : (s) => String(s || '');
-    if (info.customerName && (info.status === 'active-pro' || info.status === 'expiring-soon')) {
+    if (info.customerName && (info.status === 'active-pro' || info.status === 'expiring-soon' || info.status === 'lifetime')) {
+        const subText = info.status === 'lifetime' ? '👑 Lifetime VIP' : `⏳ ${safeEscape(info.timeOnlyStr || info.text)}`;
         contentHtml = `
             <div style="display:flex; flex-direction:column; gap:1px; text-align:left; overflow:hidden; width:100%; line-height:1.28;">
                 <div style="font-weight:700; font-size:0.71rem; color:#f8fafc; white-space:nowrap; text-overflow:ellipsis; overflow:hidden;">👤 ${safeEscape(info.customerName)}</div>
-                <div style="font-size:0.67rem; color:inherit; font-weight:600; white-space:nowrap; overflow:hidden;">⏳ ${safeEscape(info.timeOnlyStr || info.text)}</div>
+                <div style="font-size:0.67rem; color:inherit; font-weight:600; white-space:nowrap; overflow:hidden;">${subText}</div>
             </div>
         `;
     } else {
@@ -144,8 +145,39 @@ function startLicenseLiveCountdown() {
     }, 1000);
 }
 
+let _modalFastSyncTimer = null;
+function startModalFastSync() {
+    if (_modalFastSyncTimer) clearInterval(_modalFastSyncTimer);
+    _modalFastSyncTimer = setInterval(async () => {
+        const modal = document.getElementById('licenseActivationModal');
+        if (!modal || modal.style.display === 'none' || !modal.classList.contains('active')) {
+            stopModalFastSync();
+            return;
+        }
+        try {
+            const res = await fetch('/api/license/check-auto');
+            const data = await res.json();
+            if (data && data.authorized) {
+                stopModalFastSync();
+                modal.style.display = 'none';
+                modal.classList.remove('active');
+                showToast('🎉 ' + (data.message || 'ម៉ាស៊ីនរបស់អ្នកត្រូវបាន Admin អនុញ្ញាតដោយជោគជ័យ!'), '✅');
+                checkAppLicenseStatus();
+            }
+        } catch (_) {}
+    }, 3000);
+}
+
+function stopModalFastSync() {
+    if (_modalFastSyncTimer) {
+        clearInterval(_modalFastSyncTimer);
+        _modalFastSyncTimer = null;
+    }
+}
+
 function closeLicenseModalForBrowsing() {
     stopPaymentAutoCheck();
+    stopModalFastSync();
     const modal = document.getElementById('licenseActivationModal');
     if (modal) {
         modal.style.transition = 'opacity 0.25s ease';
@@ -171,6 +203,7 @@ function openLicenseActivationModal(force = false) {
         modal.style.opacity = '1';
         modal.classList.add('active');
     }
+    startModalFastSync();
 }
 
 /**
@@ -233,8 +266,21 @@ async function checkAppLicenseStatus() {
 
     try {
         const res = await fetch('/api/license/status');
-        const data = await res.json();
+        let data = await res.json();
         _currentLicenseData = data;
+
+        // If not activated locally, silently check Cloud for Remote Auto-Authorization
+        if (!data.activated) {
+            try {
+                const autoRes = await fetch('/api/license/check-auto');
+                const autoData = await autoRes.json();
+                if (autoData && autoData.authorized) {
+                    const freshRes = await fetch('/api/license/status');
+                    data = await freshRes.json();
+                    _currentLicenseData = data;
+                }
+            } catch (_) {}
+        }
 
         if (deviceIdEl && data.device_id) {
             deviceIdEl.innerText = data.device_id;
@@ -242,6 +288,36 @@ async function checkAppLicenseStatus() {
 
         // Auto-report ping to server (Device Tracking & Anti-Leak)
         reportDevicePing(data.device_id, savedTg);
+        if (!window._devicePingInterval) {
+            window._devicePingInterval = setInterval(() => {
+                if (_currentLicenseData && _currentLicenseData.device_id) {
+                    reportDevicePing(_currentLicenseData.device_id);
+                }
+            }, 120000);
+        }
+
+        // Continuous Background Live-Sync: syncs days and names from Telegram Bot every 25 seconds
+        if (!window._backgroundLiveSyncInterval) {
+            window._backgroundLiveSyncInterval = setInterval(async () => {
+                try {
+                    const chkRes = await fetch('/api/license/check-auto');
+                    const cloudRes = await chkRes.json();
+                    if (cloudRes) {
+                        if (cloudRes.revoked) {
+                            showToast('🔒 License ត្រូវបានដកហូតដោយ Admin', '⚠️');
+                            checkAppLicenseStatus();
+                        } else if (cloudRes.authorized) {
+                            const freshRes = await fetch('/api/license/status');
+                            const freshData = await freshRes.json();
+                            if (freshData && freshData.activated) {
+                                _currentLicenseData = freshData;
+                                updateHeaderLicenseBadge(freshData);
+                            }
+                        }
+                    }
+                } catch (_) {}
+            }, 25000);
+        }
 
         // Update header status badge & start live countdown timer
         updateHeaderLicenseBadge(data);
@@ -768,20 +844,16 @@ function startGroupVerificationPolling(deviceId, amount) {
             const data = await res.json();
             if (data && data.verified && data.autoActivated) {
                 stopGroupVerificationPolling();
+                stopPaymentAutoCheck();
                 showToast('🎉 ការបង់ប្រាក់ត្រូវបានផ្ទៀងផ្ទាត់ជោគជ័យ! កម្មវិធីត្រូវបានបើកសិទ្ធិភ្លាមៗ!', '✅');
-                showLicenseAlert(`🎉 អបអរសាទរ! អាជ្ញាប័ណ្ណត្រូវបានបើកដំណើរការ: ${data.label || 'សកម្ម'}`, 'success');
-                const modal = document.getElementById('licenseActivationModal');
-                setTimeout(() => {
-                    if (modal) {
-                        modal.style.transition = 'opacity 0.4s ease';
-                        modal.style.opacity = '0';
-                        setTimeout(() => {
-                            modal.style.display = 'none';
-                            modal.style.opacity = '1';
-                        }, 400);
-                    }
-                    checkAppLicenseStatus();
-                }, 1200);
+                
+                // Immediately close modal and return to drama view
+                const modal = document.getElementById('licenseActivationModal') || document.getElementById('licenseModal');
+                if (modal) {
+                    modal.style.display = 'none';
+                    modal.classList.remove('active');
+                }
+                await checkAppLicenseStatus();
                 return;
             }
         } catch (e) {}
@@ -801,19 +873,6 @@ async function notifyPaymentSent() {
     const tgUser = tgInput ? tgInput.value.trim() : (localStorage.getItem('client_tg_user') || '');
     const deviceId = deviceIdEl ? deviceIdEl.innerText.trim() : '';
 
-    // Check if already in 1-minute lock
-    const lockUntil = parseInt(localStorage.getItem('notify_paid_lock_until') || '0', 10);
-    const now = Date.now();
-    if (lockUntil > now) {
-        const remainingSec = Math.ceil((lockUntil - now) / 1000);
-        showToast(`⏱️ សូមរង់ចាំ ${remainingSec} វិនាទីសិន!`, '⚠️');
-        return;
-    }
-
-    // Increment click counter: 1, 2, 3, 4, 5
-    let clickCount = parseInt(sessionStorage.getItem('notify_paid_clicks') || '0', 10) + 1;
-    sessionStorage.setItem('notify_paid_clicks', clickCount);
-
     if (btn) btn.disabled = true;
     if (btnText) btnText.innerText = '🔍 កំពុងឆែកមើលការបង់ប្រាក់...';
 
@@ -831,62 +890,40 @@ async function notifyPaymentSent() {
 
         const data = await res.json();
 
-        // 1. IF VERIFIED FROM TELEGRAM GROUP: UNLOCK IMMEDIATELY!
+        // 1. IF VERIFIED: UNLOCK IMMEDIATELY, CLOSE POPUP & ENTER DRAMA
         if (data.verified && data.autoActivated) {
             stopGroupVerificationPolling();
-            showToast('🎉 ការបង់ប្រាក់ត្រូវបានផ្ទៀងផ្ទាត់ជោគជ័យ! កម្មវិធីត្រូវបានបើកសិទ្ធិភ្លាមៗ!', '✅');
-            showLicenseAlert(`🎉 អបអរសាទរ! អាជ្ញាប័ណ្ណត្រូវបានបើកដំណើរការ: ${data.label || 'សកម្ម'}`, 'success');
-            const modal = document.getElementById('licenseActivationModal');
-            setTimeout(() => {
-                if (modal) {
-                    modal.style.transition = 'opacity 0.4s ease';
-                    modal.style.opacity = '0';
-                    setTimeout(() => {
-                        modal.style.display = 'none';
-                        modal.style.opacity = '1';
-                    }, 400);
-                }
-                checkAppLicenseStatus();
-            }, 1200);
+            stopPaymentAutoCheck();
+            showToast('🎉 ការបង់ប្រាក់ត្រូវបានផ្ទៀងផ្ទាត់ជោគជ័យ! កម្មវិធីត្រូវបានបើកសិទ្ធិ!', '✅');
+            
+            // Close modal immediately and return to drama
+            const modal = document.getElementById('licenseActivationModal') || document.getElementById('licenseModal');
+            if (modal) {
+                modal.style.display = 'none';
+                modal.classList.remove('active');
+            }
+            await checkAppLicenseStatus();
             return;
         }
 
-        // 2. Not verified immediately: Bank alert might arrive in 5-15 seconds
-        // Start active background verification check for 30s
+        // 2. Not verified yet: Show clear warning and let user click again!
         startGroupVerificationPolling(deviceId, _currentPlan.amount);
 
-        // Lock only when clicking 4-5 times (data.locked or clickCount >= 5)
-        const isLocked = data.locked || clickCount >= 5;
-        const cooldownSeconds = data.remaining || 60;
-
-        if (isLocked) {
-            localStorage.setItem('notify_paid_lock_until', Date.now() + (cooldownSeconds * 1000));
-            sessionStorage.setItem('notify_paid_clicks', '0');
-            startNotifyPaidCooldown(cooldownSeconds);
-            showLicenseAlert(
-                `💬 <b>សូមទាក់ទងទៅ admin ផ្ទាល់ ដើម្បីផ្ញើវិក្កយបត្រ៖</b> <a href="https://t.me/Thpisal33" target="_blank" onclick="openAdminTelegramChat()" style="color:#38bdf8; text-decoration:underline; font-weight:700;">@Thpisal33</a><br><div style="margin-top:8px;"><button type="button" class="btn btn-primary btn-sm" onclick="openAdminTelegramChat()" style="background:#229ED9; border:none; padding:5px 14px; font-size:0.78rem; font-weight:700; border-radius:6px; cursor:pointer; color:#fff;">✈️ ផ្ញើវិក្កយបត្រទៅកាន់ Telegram (@Thpisal33)</button></div>`,
-                'error'
-            );
-        } else {
-            showLicenseAlert(
-                `📩 <b>បានផ្ញើសារជូនដំណឹងទៅ Admin រួចរាល់!</b> ប្រព័ន្ធកំពុងរង់ចាំសារធនាគារលោតចូលដើម្បី Auto-Unlock...`,
-                'info'
-            );
-        }
+        showLicenseAlert(
+            `⚠️ <b>មិនទាន់ទទួលបានការបង់ប្រាក់នៅឡើយទេ!</b><br>` +
+            `ប្រព័ន្ធមិនទាន់ឃើញសារលុយចូលពីធនាគារឡើយ។ សូមរង់ចាំបន្តិច (ប្រហែល 5-10 វិនាទី) រួចចុច <b>"ខ្ញុំបានបាញ់រួចរាល់"</b> ម្តងទៀត!`,
+            'error'
+        );
     } catch (err) {
-        showToast('⚠️ មានបញ្ហាក្នុងការផ្ញើសារ សូមសាកល្បងម្ដងទៀត', '⚠️');
+        showToast('⚠️ មានបញ្ហាក្នុងការផ្ទៀងផ្ទាត់ សូមសាកល្បងម្ដងទៀត', '⚠️');
     } finally {
-        if (!checkNotifyPaidLock()) {
+        // Reset button after 1.5s so customer can click again without being locked out!
+        setTimeout(() => {
             if (btn) btn.disabled = false;
             if (btnText) {
-                btnText.innerText = '✓ បានផ្ញើរួចរាល់';
-                setTimeout(() => {
-                    if (!checkNotifyPaidLock()) {
-                        btnText.innerText = 'ខ្ញុំបានបាញ់លុយរួចរាល់ (Notify Admin)';
-                    }
-                }, 2000);
+                btnText.innerText = '🔄 ចុចផ្ទៀងផ្ទាត់ម្តងទៀត (Check Again)';
             }
-        }
+        }, 1500);
     }
 }
 
@@ -1011,4 +1048,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Run license check right away
     checkAppLicenseStatus();
+
+    // Auto-sync license changes (e.g. name or days changed in Admin) when switching back to app
+    window.addEventListener('focus', () => {
+        checkAppLicenseStatus();
+    });
+
+    // Background auto-sync every 20s
+    setInterval(() => {
+        checkAppLicenseStatus();
+    }, 20000);
 });

@@ -28,7 +28,10 @@ const {
   recordUnclaimedPayment,
   getUnclaimedPayments,
   findAndClaimRecentPayment,
-  activateLicense
+  activateLicense,
+  adjustDeviceDays,
+  revokeDeviceAuthorization,
+  transferDeviceLicense
 } = require('./license.js');
 const fs = require('fs');
 const path = require('path');
@@ -70,12 +73,24 @@ async function callTelegramApi(token, method, body = {}) {
  * Sends a Telegram message
  */
 async function sendBotMessage(token, chatId, textHtml, options = {}) {
-  return await callTelegramApi(token, 'sendMessage', {
+  const res = await callTelegramApi(token, 'sendMessage', {
     chat_id: chatId,
     text: textHtml,
     parse_mode: 'HTML',
     ...options
   });
+  // If failed with reply_to_message_id, retry sending directly without reply_to_message_id
+  if (!res.ok && options && options.reply_to_message_id) {
+    const fallbackOpts = { ...options };
+    delete fallbackOpts.reply_to_message_id;
+    return await callTelegramApi(token, 'sendMessage', {
+      chat_id: chatId,
+      text: textHtml,
+      parse_mode: 'HTML',
+      ...fallbackOpts
+    });
+  }
+  return res;
 }
 
 /**
@@ -140,17 +155,18 @@ async function handleStartCommand(token, chatId, userName) {
   const menuText =
     `🏠 <b>សូមស្វាគមន៍មកកាន់ PS DOWNLOAD License Bot!</b> 🤖\n\n` +
     `សួស្តី Admin <b>${userName || ''}</b>! នេះជាផ្ទាំងគ្រប់គ្រងអាជ្ញាប័ណ្ណ (License) ដំណើរការ 24 ម៉ោង។\n\n` +
-    `🛠 <b>បញ្ជីពាក្យបញ្ជាផ្លូវការ (BotFather Commands):</b>\n` +
-    `• <code>/start</code> 🏠 បើកផ្ទាំង Menu ដើម\n` +
-    `• <code>/keygen</code> 🔑 បង្កើត License Key\n` +
+    `🛠 <b>បញ្ជីពាក្យបញ្ជាគ្រប់គ្រងពេញលេញ:</b>\n` +
+    `• <code>/add &lt;ID&gt; &lt;ថ្ងៃ&gt;</code> ➕ បន្ថែមថ្ងៃ (ឧ. /add HG-1111 7)\n` +
+    `• <code>/deduct &lt;ID&gt; &lt;ថ្ងៃ&gt;</code> ➖ ដកថ្ងៃចេញ (ឧ. /deduct HG-1111 3)\n` +
+    `• <code>/setdays &lt;ID&gt; &lt;ថ្ងៃ&gt;</code> ⚙️ កំណត់ថ្ងៃជាក់លាក់ (0 = Lifetime)\n` +
+    `• <code>/name &lt;ID&gt; &lt;ឈ្មោះ&gt;</code> ✏️ ដាក់/កែឈ្មោះភ្ញៀវ (បង្ហាញលើ App)\n` +
+    `• <code>/revoke &lt;ID&gt;</code> 🔒 ចាក់សោរ/ដកហូត License ភ្លាមៗ\n` +
+    `• <code>/transfer &lt;ចាស់&gt; &lt;ថ្មី&gt;</code> 🔄 ផ្ទេរ License ទៅម៉ាស៊ីនថ្មី\n` +
+    `• <code>/keygen &lt;ID&gt; [ថ្ងៃ]</code> 🔑 បង្កើត License Key 16 ខ្ទង់\n` +
     `• <code>/playlist</code> 📋 បញ្ជីភ្ញៀវទាំងអស់\n` +
     `• <code>/online</code> 🟢 ភ្ញៀវកំពុង Online\n` +
-    `• <code>/today</code> 📅 ភ្ញៀវថ្ងៃនេះ (Today)\n` +
-    `• <code>/memory</code> 📜 អង្គចងចាំ ៣ ខែ (Archive)\n` +
-    `• <code>/add</code> ➕ បន្ថែមថ្ងៃ និងតម្លៃ\n` +
-    `• <code>/reset_trial</code> 🔄 Reset សិទ្ធិតេស្ត 3 ថ្ងៃ\n` +
     `• <code>/stats</code> 📊 ស្ថិតិប្រព័ន្ធសរុប\n\n` +
-    `👇 <b>ចុចប៊ូតុងខាងក្រោមដើម្បីដំណើរការមុខងារនីមួយៗភ្លាមៗ:</b>`;
+    `👇 <b>ចុចប៊ូតុងខាងក្រោមដើម្បីដំណើរការមុខងាររហ័ស:</b>`;
 
   await sendBotMessage(token, chatId, menuText, getMainMenuKeyboard());
 }
@@ -660,6 +676,162 @@ async function handleRenameCommand(token, chatId, args = []) {
 }
 
 /**
+ * Command Handler: /deduct or /sub (➖ ដកចំនួនថ្ងៃចេញពីម៉ាស៊ីន)
+ */
+async function handleDeductCommand(token, chatId, args = []) {
+  if (!args.length || !args[0]) {
+    const devices = getTrackedDevices();
+    const exampleId = devices.length ? devices[0].deviceId : 'HG-D801-31FE-A516';
+    const helpMsg =
+      `➖ <b>ដកចំនួនថ្ងៃចេញពីម៉ាស៊ីន (Deduct Days):</b>\n\n` +
+      `👉 <b>របៀបវាយបញ្ជា:</b>\n` +
+      `<code>/deduct &lt;DeviceID&gt; &lt;ចំនួនថ្ងៃ&gt;</code>\n\n` +
+      `<b>ឧទាហរណ៍:</b>\n` +
+      `• <code>/deduct ${exampleId} 3</code> (ដក 3 ថ្ងៃចេញ)\n` +
+      `• <code>/deduct ${exampleId} 7</code> (ដក 7 ថ្ងៃចេញ)\n\n` +
+      `💡 <i>ពេលដកថ្ងៃរួច កម្មវិធីលើកុំព្យូទ័រភ្ញៀវនឹងថយចុះចំនួនថ្ងៃភ្លាមៗដោយស្វ័យប្រវត្តិ!</i>`;
+    await sendBotMessage(token, chatId, helpMsg);
+    return;
+  }
+
+  const rawTarget = args[0].trim();
+  const targetId = findMatchingDeviceId(rawTarget);
+  const daysToDeduct = parseInt(args[1] || '1', 10);
+
+  if (isNaN(daysToDeduct) || daysToDeduct <= 0) {
+    await sendBotMessage(token, chatId, `⚠️ សូមបញ្ជាក់ចំនួនថ្ងៃដែលត្រូវដកចេញឱ្យត្រឹមត្រូវ (ឧ. <code>/deduct ${targetId} 3</code>)`);
+    return;
+  }
+
+  const result = adjustDeviceDays({ deviceId: targetId, daysChange: -Math.abs(daysToDeduct) });
+  const remaining = formatDeviceRemainingText(targetId);
+
+  const reply =
+    `➖ <b>បានកាត់បន្ថយថ្ងៃចេញដោយជោគជ័យ!</b>\n\n` +
+    `💻 <b>លេខម៉ាស៊ីន (Device ID):</b> <code>${targetId}</code>\n` +
+    `🔻 <b>ចំនួនថ្ងៃដែលបានដក:</b> <b>-${daysToDeduct} ថ្ងៃ</b>\n` +
+    `⏱️ <b>សុពលភាពនៅសល់ថ្មី:</b> <b>${remaining}</b>\n` +
+    `🕒 <b>ម៉ោងកែប្រែ:</b> ${formatKhmerTime()}\n\n` +
+    `👉 <i>កម្មវិធីលើកុំព្យូទ័រភ្ញៀវនឹងអាប់ដេត Live Countdown ថ្មីភ្លាមៗ!</i>`;
+
+  await sendBotMessage(token, chatId, reply);
+}
+
+/**
+ * Command Handler: /setdays or /days (⚙️ កំណត់ចំនួនថ្ងៃជាក់លាក់)
+ */
+async function handleSetDaysCommand(token, chatId, args = []) {
+  if (!args.length || !args[0] || args[1] === undefined) {
+    const devices = getTrackedDevices();
+    const exampleId = devices.length ? devices[0].deviceId : 'HG-D801-31FE-A516';
+    const helpMsg =
+      `⚙️ <b>កំណត់ចំនួនថ្ងៃជាក់លាក់ (Set Exact Days):</b>\n\n` +
+      `👉 <b>របៀបវាយបញ្ជា:</b>\n` +
+      `<code>/setdays &lt;DeviceID&gt; &lt;ចំនួនថ្ងៃ&gt;</code>\n\n` +
+      `<b>ឧទាហរណ៍:</b>\n` +
+      `• <code>/setdays ${exampleId} 15</code> (កំណត់ឱ្យសល់ 15 ថ្ងៃគត់)\n` +
+      `• <code>/setdays ${exampleId} 60</code> (កំណត់ឱ្យសល់ 60 ថ្ងៃ)\n` +
+      `• <code>/setdays ${exampleId} 0</code> (ដំឡើងទៅ Lifetime VIP ពេញមួយជីវិត)\n\n` +
+      `💡 <i>ដាក់ចំនួនថ្ងៃប៉ុន្មាន លើកុំព្យូទ័រភ្ញៀវនឹងបង្ហាញប៉ុណ្ណឹងថ្ងៃភ្លាមៗ!</i>`;
+    await sendBotMessage(token, chatId, helpMsg);
+    return;
+  }
+
+  const rawTarget = args[0].trim();
+  const targetId = findMatchingDeviceId(rawTarget);
+  let days = 30;
+  if (args[1].toLowerCase() === 'lifetime' || args[1] === '0') days = 0;
+  else days = Math.max(0, parseInt(args[1], 10) || 30);
+
+  const authRes = authorizeDevice({
+    deviceId: targetId,
+    days: days,
+    extend: false
+  });
+
+  const label = authRes.label || (days > 0 ? `${days} ថ្ងៃ` : 'Lifetime VIP (ពេញមួយជីវិត)');
+  const remaining = formatDeviceRemainingText(targetId);
+
+  const reply =
+    `✅ <b>បានកំណត់សុពលភាពថ្មីដោយជោគជ័យ!</b> 🎉\n\n` +
+    `💻 <b>លេខម៉ាស៊ីន (Device ID):</b> <code>${targetId}</code>\n` +
+    `📅 <b>សុពលភាពកំណត់ថ្មី:</b> <b>${label}</b>\n` +
+    `⏱️ <b>ពេលនៅសល់:</b> <b>${remaining}</b>\n` +
+    `🔑 <b>License Key:</b> <code>${authRes.key}</code>\n` +
+    `🕒 <b>ម៉ោងអនុវត្ត:</b> ${formatKhmerTime()}\n\n` +
+    `👉 <i>កុំព្យូទ័រភ្ញៀវនឹងទទួលយកសុពលភាពនេះដោយស្វ័យប្រវត្តិ!</i>`;
+
+  await sendBotMessage(token, chatId, reply);
+}
+
+/**
+ * Command Handler: /revoke or /lock (🔒 ចាក់សោរ / ដកហូត License)
+ */
+async function handleRevokeCommand(token, chatId, args = []) {
+  if (!args.length || !args[0]) {
+    await sendBotMessage(token, chatId, `🔒 <b>ចាក់សោរម៉ាស៊ីន:</b> <code>/revoke &lt;DeviceID&gt;</code>`);
+    return;
+  }
+
+  const rawTarget = args[0].trim();
+  const targetId = findMatchingDeviceId(rawTarget);
+  const result = revokeDeviceAuthorization(targetId);
+
+  const reply =
+    `🔒 <b>បានចាក់សោរ និងដកហូត License ដោយជោគជ័យ!</b>\n\n` +
+    `💻 <b>លេខម៉ាស៊ីន (Device ID):</b> <code>${targetId}</code>\n` +
+    `🛑 <b>ស្ថានភាព:</b> បានចាក់សោរ (Revoked / Locked)\n` +
+    `🕒 <b>ម៉ោងចាក់សោរ:</b> ${formatKhmerTime()}\n\n` +
+    `👉 <i>កម្មវិធីលើកុំព្យូទ័រភ្ញៀវនឹងចាក់សោរមិនឱ្យប្រើប្រាស់ភ្លាមៗ!</i>`;
+
+  await sendBotMessage(token, chatId, reply);
+}
+
+/**
+ * Command Handler: /transfer (🔄 ផ្ទេរ License ពីម៉ាស៊ីនចាស់ទៅថ្មី)
+ */
+async function handleTransferCommand(token, chatId, args = []) {
+  if (args.length < 2) {
+    const helpMsg =
+      `🔄 <b>ផ្ទេរ License រវាងកុំព្យូទ័រ (Transfer License):</b>\n\n` +
+      `👉 <b>របៀបវាយបញ្ជា:</b>\n` +
+      `<code>/transfer &lt;DeviceIDចាស់&gt; &lt;DeviceIDថ្មី&gt; [ឈ្មោះភ្ញៀវ]</code>\n\n` +
+      `<b>ឧទាហរណ៍:</b>\n` +
+      `<code>/transfer HG-1111 HG-2222 CHANTHA</code>\n\n` +
+      `💡 <i>ប្រព័ន្ធនឹងដកហូតថ្ងៃពីម៉ាស៊ីនចាស់ (ចាក់សោរ) ហើយយកថ្ងៃដែលនៅសល់ទាំងអស់ទៅផ្ទេរឱ្យម៉ាស៊ីនថ្មីភ្លាមៗ!</i>`;
+    await sendBotMessage(token, chatId, helpMsg);
+    return;
+  }
+
+  const fromId = findMatchingDeviceId(args[0].trim());
+  const toId = String(args[1]).trim().toUpperCase();
+  const newName = args.slice(2).join(' ').trim();
+
+  const res = transferDeviceLicense({
+    fromDeviceId: fromId,
+    toDeviceId: toId,
+    newCustomName: newName
+  });
+
+  if (!res.success) {
+    await sendBotMessage(token, chatId, `❌ បរាជ័យក្នុងការផ្ទេរ License: ${res.error || 'ទិន្នន័យមិនត្រឹមត្រូវ'}`);
+    return;
+  }
+
+  const reply =
+    `🎉 <b>បានផ្ទេរ License ជោគជ័យ!</b> 🔄\n\n` +
+    `📤 <b>ពីម៉ាស៊ីនចាស់:</b> <code>${fromId}</code> (បានកាត់ថ្ងៃសល់ 0 និងចាក់សោរ)\n` +
+    `📥 <b>ទៅម៉ាស៊ីនថ្មី:</b> <code>${toId}</code>\n` +
+    (res.customName ? `👤 <b>ឈ្មោះភ្ញៀវ:</b> <b>${res.customName}</b>\n` : '') +
+    `📅 <b>រយៈពេលដែលទទួលបាន:</b> <b>${res.toDays} ថ្ងៃ</b>\n` +
+    `🔑 <b>License Key ថ្មី:</b> <code>${res.newKey}</code>\n` +
+    `🕒 <b>ម៉ោងផ្ទេរ:</b> ${formatKhmerTime()}\n\n` +
+    `👉 <i>ម៉ាស៊ីនថ្មីនឹង Auto-Activate ដោយស្វ័យប្រវត្តិ!</i>`;
+
+  await sendBotMessage(token, chatId, reply);
+}
+
+/**
  * Command Handler 8: /reset_trial (🔄 Reset សិទ្ធិតេស្ត 3 ថ្ងៃ)
  */
 async function handleResetTrialCommand(token, chatId, args = []) {
@@ -747,12 +919,13 @@ function parseFlexiblePaymentNotification(rawText) {
 
   // 1. Check for payment-related keywords in Khmer or English, or plus sign with currency
   const paymentKeywords = [
-    'received', 'receive', 'paid', 'payment', 'transfer', 'transferred',
+    'received', 'receive', 'paid', 'payment', 'transfer', 'transferred', 'sent', 'send', 'sender',
     'khqr', 'aba', 'payway', 'bakong', 'wing', 'acleda', 'canadia', 'apv',
     'transaction', 'trx', 'txn', 'ref', 'reference', 'success', 'successful',
-    'credited', 'credit', 'deposit', 'inward', 'balance',
-    'ទទួល', 'បង់', 'ផ្ទេរ', 'ទូទាត់', 'ជោគជ័យ', 'លេខប្រតិបត្តិការ', 'ប្រាក់', 'ចំណូល',
-    'ចូល', 'កុង', 'គណនី', 'សរុប', 'ទឹកប្រាក់', 'ប្រតិបត្តិការ', 'ស្កេន'
+    'credited', 'credit', 'deposit', 'inward', 'balance', 'income',
+    'ទទួល', 'បានទទួល', 'បង់', 'បានបង់', 'ផ្ទេរ', 'បានផ្ទេរ', 'ផ្ញើ', 'បានផ្ញើ', 'ទូទាត់', 'បានទូទាត់',
+    'ជោគជ័យ', 'លេខប្រតិបត្តិការ', 'ប្រាក់', 'ចំណូល',
+    'ចូល', 'ចូលកុង', 'ចូលគណនី', 'កុង', 'គណនី', 'សរុប', 'ទឹកប្រាក់', 'ប្រតិបត្តិការ', 'ស្កេន'
   ];
   const hasKeyword = paymentKeywords.some(kw => text.toLowerCase().includes(kw));
   const hasPlusCurrency = /\+\s*(?:\$|USD)?[0-9]+/i.test(text);
@@ -765,10 +938,13 @@ function parseFlexiblePaymentNotification(rawText) {
   // First check USD
   const m1 = text.match(/(?:\$|USD\s*)\s*([0-9]+(?:,[0-9]{3})*(?:\.[0-9]{1,2})?)/i);
   const m2 = text.match(/([0-9]+(?:,[0-9]{3})*(?:\.[0-9]{1,2})?)\s*(?:\$|\s*USD)/i);
+  const m3 = text.match(/(?:amount|ចំនួនទឹកប្រាក់|ទឹកប្រាក់|តម្លៃ)\s*[:=]?\s*(?:\$|USD)?\s*([0-9]+(?:,[0-9]{3})*(?:\.[0-9]{1,2})?)/i);
   if (m1 && m1[1]) {
     amount = parseFloat(m1[1].replace(/,/g, ''));
   } else if (m2 && m2[1]) {
     amount = parseFloat(m2[1].replace(/,/g, ''));
+  } else if (m3 && m3[1]) {
+    amount = parseFloat(m3[1].replace(/,/g, ''));
   }
 
   // If no USD found, check KHR / Riel
@@ -1225,6 +1401,36 @@ async function processTelegramUpdate(token, update, adminChatId) {
       return;
     }
 
+    // Command 11: /deduct or /sub
+    if (cmd === '/deduct' || cmd === '/sub') {
+      await handleDeductCommand(token, chatId, args);
+      return;
+    }
+
+    // Command 12: /setdays or /days
+    if (cmd === '/setdays' || cmd === '/days') {
+      await handleSetDaysCommand(token, chatId, args);
+      return;
+    }
+
+    // Command 13: /revoke or /lock
+    if (cmd === '/revoke' || cmd === '/lock') {
+      await handleRevokeCommand(token, chatId, args);
+      return;
+    }
+
+    // Command 14: /transfer
+    if (cmd === '/transfer') {
+      await handleTransferCommand(token, chatId, args);
+      return;
+    }
+
+    // Command 15: /help
+    if (cmd === '/help') {
+      await handleStartCommand(token, chatId, (msg.from && msg.from.first_name) || 'Admin');
+      return;
+    }
+
     // Auto-detect if user typed or pasted a Device ID directly (e.g. HG-XXXXXXXX or D73B4D8E)
     const cleanCandidate = cleanRawText.replace(/[\s:`"']/g, '').toUpperCase();
     if ((cleanCandidate.startsWith('HG-') && cleanCandidate.length >= 8) || /^(?:HG-)?[A-F0-9]{8,16}(?:-[A-F0-9]{4,16})*$/i.test(cleanCandidate)) {
@@ -1549,6 +1755,29 @@ async function checkGroupPaymentVerification({ deviceId, plan, amount }) {
 
       // Activate locally on client machine
       await activateLicense(authRes.key, { customExpiresAt: authRes.expiresAt, targetDeviceId: cleanId });
+
+      // Record verified payment in payments.json
+      try {
+        const PAYMENTS_FILE = path.join(path.resolve(__dirname, '..'), 'data', 'payments.json');
+        let payments = [];
+        if (fs.existsSync(PAYMENTS_FILE)) {
+          payments = JSON.parse(fs.readFileSync(PAYMENTS_FILE, 'utf-8')) || [];
+        }
+        payments.unshift({
+          id: `PAY-VERIFIED-${Date.now()}`,
+          deviceId: cleanId,
+          telegramUser: payData.payer || '',
+          plan: planLabel,
+          amount: payData.amount.toFixed(2),
+          trxId: payData.trxId || '',
+          createdAt: new Date().toISOString(),
+          status: 'verified',
+          verified: true,
+          autoActivated: true
+        });
+        if (payments.length > 200) payments = payments.slice(0, 200);
+        fs.writeFileSync(PAYMENTS_FILE, JSON.stringify(payments, null, 2), 'utf-8');
+      } catch (_) {}
 
       // Send verification notification to Telegram
       const successNotice =

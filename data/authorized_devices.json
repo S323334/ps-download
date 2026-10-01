@@ -1,0 +1,15 @@
+{
+  "HG-D801-31FE-A516": {
+    "deviceId": "HG-D801-31FE-A516",
+    "key": "D007-7BDE-34DE-41B5",
+    "days": 7,
+    "hours": 0,
+    "label": "7 ថ្ងៃ (១ សប្តាហ៍)",
+    "telegramUser": "CHANTHA",
+    "customName": "CHANTHA (Thailand)",
+    "authorizedAt": "2026-10-01T10:46:33.340Z",
+    "expiresAt": "2026-10-08T16:33:00.000Z",
+    "status": "active",
+    "revoked": false
+  }
+}

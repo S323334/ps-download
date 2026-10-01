@@ -235,7 +235,7 @@ async function checkForUpdates(customRepo = null) {
         release_notes: release.body || 'មិនមាន Release notes ទេ។',
         published_at: release.published_at || null,
         html_url: release.html_url || `https://github.com/${owner}/${repo}/releases`,
-        download_url: zipDownloadUrl,
+        download_url: (exeAsset && exeAsset.download_url) ? exeAsset.download_url : zipDownloadUrl,
         exe_asset: exeAsset,
         message: hasUpdate ? `រកឃើញកំណែថ្មី v${cleanRemoteVer}!` : `កម្មវិធីរបស់អ្នកជាកំណែចុងក្រោយបំផុតហើយ (v${APP_VERSION})`
       };

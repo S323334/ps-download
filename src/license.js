@@ -70,20 +70,29 @@ function getDeviceId() {
 const GENERATED_KEYS_FILE = path.join(DATA_DIR, 'generated_keys.json');
 
 /**
- * Generates a valid HMAC License Key for a given Device ID with optional duration in days.
+ * Generates a valid HMAC License Key for a given Device ID with optional duration in days or hours.
  * Key formats:
- * - Lifetime: LIFE-XXXX-XXXX-XXXX
- * - N Days:   D030-XXXX-XXXX-XXXX (e.g. D030 for 30 days, D090 for 90 days, D365 for 1 year)
+ * - Lifetime:        LIFE-XXXX-XXXX-XXXX
+ * - N Days:          D030-XXXX-XXXX-XXXX (e.g. D030 for 30 days, D001 for 1 day, D002 for 2 days)
+ * - N Hours:         H001-XXXX-XXXX-XXXX (e.g. H001 for 1 hour, H006 for 6 hours, H024 for 24 hours)
  */
-function generateLicenseKey(deviceId, durationDays = 0) {
+function generateLicenseKey(deviceId, durationValue = 0, unit = 'days') {
   const cleanId = String(deviceId || '').trim().toUpperCase();
-  const days = Math.max(0, parseInt(durationDays || '0', 10));
+  const dur = Math.max(0, parseInt(durationValue || '0', 10));
   
   let prefix = 'LIFE';
   let label = 'Lifetime VIP (ពេញមួយជីវិត)';
-  if (days > 0) {
-    prefix = `D${String(days).padStart(3, '0')}`;
-    label = `${days} ថ្ងៃ (${days} Days)`;
+  let days = 0;
+  let hours = 0;
+
+  if (unit === 'hours' && dur > 0) {
+    prefix = `H${String(dur).padStart(3, '0')}`;
+    label = `${dur} ម៉ោង (${dur} Hours)`;
+    hours = dur;
+  } else if (dur > 0) {
+    prefix = `D${String(dur).padStart(3, '0')}`;
+    label = `${dur} ថ្ងៃ (${dur} Days)`;
+    days = dur;
   }
 
   const salt = `${LICENSE_SECRET}:${prefix}`;
@@ -100,6 +109,8 @@ function generateLicenseKey(deviceId, durationDays = 0) {
     deviceId: cleanId,
     key: fullKey,
     days: days,
+    hours: hours,
+    isUniversal: false,
     label: label,
     createdAt: new Date().toISOString()
   });
@@ -108,7 +119,74 @@ function generateLicenseKey(deviceId, durationDays = 0) {
 }
 
 /**
+ * Generates a Universal / Public Trial Key for ALL machines (សម្រាប់គ្រប់ម៉ាស៊ីន).
+ * Does NOT require entering any Client Device ID.
+ * Parameters:
+ * - accessHours: Total usage hours granted to a client upon activation (e.g. 1h, 6h, 24h/1 day, 48h/2 days, 72h/3 days, 168h/7 days).
+ * - claimWindowHours: Time window from now within which clients can claim/redeem this key (e.g. 1h, 2h, 12h, 24h).
+ *   After claimWindowHours, new clients CANNOT activate this key anymore ("Expire មិនអាចចូលបានទៀតទេ")!
+ *   Clients who claimed it in time continue using it until their access duration expires!
+ * Format: UNIV-<AccessCode>-<DeadlineHex>-<Chk> (e.g. UNIV-D01-1E5A8C-7B42)
+ */
+function generateUniversalKey({ accessHours = 24, claimWindowHours = 24, label = '' } = {}) {
+  const accHours = Math.max(1, parseInt(accessHours || '24', 10));
+  const claimHours = Math.max(1, parseInt(claimWindowHours || '24', 10));
+
+  // Determine access code
+  let accessCode = '';
+  if (accHours % 24 === 0 && accHours >= 24) {
+    accessCode = `D${String(accHours / 24).padStart(2, '0')}`; // e.g. D01, D02, D07
+  } else {
+    accessCode = `H${String(accHours).padStart(2, '0')}`; // e.g. H01, H06, H12
+  }
+
+  // Claim deadline timestamp in epoch minutes
+  const claimDeadlineMs = Date.now() + (claimHours * 3600 * 1000);
+  const deadlineMin = Math.floor(claimDeadlineMs / 60000);
+  const deadlineHex = deadlineMin.toString(16).toUpperCase();
+
+  // Cryptographic signature
+  const salt = `${LICENSE_SECRET}:UNIV`;
+  const hmac = crypto.createHmac('sha256', salt).update(`${accessCode}:${deadlineHex}`).digest('hex').toUpperCase();
+  const chk = hmac.substring(0, 4);
+
+  const fullKey = `UNIV-${accessCode}-${deadlineHex}-${chk}`;
+
+  const accessLabel = accHours >= 24 ? `${Math.round(accHours / 24)} ថ្ងៃ` : `${accHours} ម៉ោង`;
+  const claimLabel = claimHours >= 24 ? `${Math.round(claimHours / 24)} ថ្ងៃ` : `${claimHours} ម៉ោង`;
+  const fullLabel = label || `សាកល្បងគ្រប់ម៉ាស៊ីន (${accessLabel}) • ផុតកំណត់ចែកក្នុង ${claimLabel}`;
+
+  const record = {
+    deviceId: 'ALL_MACHINES (គ្រប់ម៉ាស៊ីន)',
+    key: fullKey,
+    isUniversal: true,
+    accessHours: accHours,
+    claimWindowHours: claimHours,
+    claimDeadline: new Date(claimDeadlineMs).toISOString(),
+    label: fullLabel,
+    createdAt: new Date().toISOString()
+  };
+
+  saveGeneratedKeyRecord(record);
+
+  return {
+    success: true,
+    key: fullKey,
+    accessHours: accHours,
+    claimWindowHours: claimHours,
+    claimDeadline: new Date(claimDeadlineMs).toISOString(),
+    label: fullLabel
+  };
+}
+
+/**
  * Validates a License Key against a Device ID.
+ * Supports:
+ * 1. Master Keys
+ * 2. Single Machine Lifetime (LIFE-XXXX-XXXX-XXXX)
+ * 3. Single Machine Days (D030-XXXX-XXXX-XXXX)
+ * 4. Single Machine Hours (H001-XXXX-XXXX-XXXX)
+ * 5. Universal Trial Keys for ALL machines (UNIV-D01-XXXXXX-XXXX)
  */
 function verifyLicenseKey(inputKey, deviceId = null) {
   if (!inputKey || typeof inputKey !== 'string') {
@@ -131,7 +209,59 @@ function verifyLicenseKey(inputKey, deviceId = null) {
     }
   }
 
-  // 2. Check Prefix-based Dynamic Keys (LIFE-XXXX-XXXX-XXXX or D030-XXXX-XXXX-XXXX)
+  // 2. Check Universal Trial Key (UNIV-<AccessCode>-<DeadlineHex>-<Chk>)
+  if (cleanKey.startsWith('UNIV-')) {
+    const uParts = cleanKey.split('-');
+    if (uParts.length === 4) {
+      const [, accessCode, deadlineHex, chk] = uParts;
+      const salt = `${LICENSE_SECRET}:UNIV`;
+      const hmac = crypto.createHmac('sha256', salt).update(`${accessCode}:${deadlineHex}`).digest('hex').toUpperCase();
+
+      if (hmac.substring(0, 4) !== chk) {
+        return { valid: false, reason: 'License Key សាកល្បងនេះមិនត្រឹមត្រូវឡើយ' };
+      }
+
+      const deadlineMin = parseInt(deadlineHex, 16);
+      if (isNaN(deadlineMin)) {
+        return { valid: false, reason: 'License Key សាកល្បងនេះមិនត្រឹមត្រូវឡើយ' };
+      }
+
+      const deadlineMs = deadlineMin * 60000;
+      const now = Date.now();
+
+      // Check if claim window has expired ("ក្នុងរយៈពេល ២៤ ម៉ោង ឬ ១ ម៉ោង ដែលខ្ញុំឲ្យហ្នឹងគឺវា expire មិនអាចចូលបានទៀតទេ")
+      if (now > deadlineMs) {
+        return {
+          valid: false,
+          expiredClaim: true,
+          reason: '🚨 Key សាកល្បងនេះបានផុតកំណត់នៃការយកទៅបើកសោរហើយ (Claim Window Expired)! មិនអាចយកទៅ Activate បានទៀតឡើយ។'
+        };
+      }
+
+      let accessHours = 24;
+      if (accessCode.startsWith('D')) {
+        accessHours = parseInt(accessCode.substring(1), 10) * 24;
+      } else if (accessCode.startsWith('H')) {
+        accessHours = parseInt(accessCode.substring(1), 10);
+      }
+      if (isNaN(accessHours) || accessHours <= 0) accessHours = 24;
+
+      const expiresAt = new Date(now + accessHours * 3600 * 1000).toISOString();
+      const durLabel = accessHours >= 24 ? `${Math.round(accessHours / 24)} ថ្ងៃ` : `${accessHours} ម៉ោង`;
+
+      return {
+        valid: true,
+        type: 'universal_trial',
+        label: `✨ សាកល្បង VIP (${durLabel})`,
+        expires_at: expiresAt,
+        is_lifetime: false,
+        access_hours: accessHours,
+        claim_deadline: new Date(deadlineMs).toISOString()
+      };
+    }
+  }
+
+  // 3. Check Prefix-based Dynamic Single-Machine Keys (LIFE-XXXX-XXXX-XXXX, D030-XXXX-XXXX-XXXX, H006-XXXX-XXXX-XXXX)
   const parts = cleanKey.split('-');
   if (parts.length === 4) {
     const prefix = parts[0];
@@ -161,11 +291,23 @@ function verifyLicenseKey(inputKey, deviceId = null) {
             is_lifetime: false
           };
         }
+      } else if (prefix.startsWith('H')) {
+        const hours = parseInt(prefix.substring(1), 10);
+        if (!isNaN(hours) && hours > 0) {
+          const expiresAt = new Date(Date.now() + hours * 3600 * 1000).toISOString();
+          return {
+            valid: true,
+            type: `${hours}_hours`,
+            label: `អាជ្ញាប័ណ្ណ ${hours} ម៉ោង`,
+            expires_at: expiresAt,
+            is_lifetime: false
+          };
+        }
       }
     }
   }
 
-  // 3. Fallback: Legacy Lifetime key (16 hex chars without LIFE- prefix)
+  // 4. Fallback: Legacy Lifetime key (16 hex chars without LIFE- prefix)
   const legacyLifetimeHmac = crypto.createHmac('sha256', LICENSE_SECRET).update(targetDeviceId).digest('hex').toUpperCase();
   const legacyKey = `${legacyLifetimeHmac.substring(0, 4)}-${legacyLifetimeHmac.substring(4, 8)}-${legacyLifetimeHmac.substring(8, 12)}-${legacyLifetimeHmac.substring(12, 16)}`;
   if (cleanKey === legacyKey) {
@@ -394,14 +536,55 @@ function getLicenseStatus() {
     }
   }
 
-  // Check custom customer name if set by Admin
+  // Check custom customer name and revocation if set by Admin
   const authMap = getAuthorizedDevicesMap();
   const authRecord = authMap[currentDevice];
-  let customName = data.custom_name || (authRecord && authRecord.customName) || '';
+
+  // If Admin expired, revoked or transferred this license, apply expired state cleanly
+  if (authRecord && (authRecord.revoked || authRecord.status === 'revoked' || authRecord.status === 'expired')) {
+    deactivateLicense();
+    return {
+      activated: false,
+      expired: true,
+      device_id: currentDevice,
+      license_key: data.key,
+      label: data.label || verification.label,
+      expires_at: authRecord.expiresAt || data.expires_at,
+      remaining_days: 0,
+      remaining_hours: 0,
+      remaining_minutes: 0,
+      custom_name: customName,
+      app_version: APP_VERSION,
+      message: 'License របស់អ្នកបានផុតកំណត់ហើយ'
+    };
+  }
+
+  // If Admin dynamically adjusted expiresAt in authRecord, apply it
+  if (authRecord && authRecord.expiresAt && data.type !== 'master') {
+    data.expires_at = authRecord.expiresAt;
+    const expTime = new Date(data.expires_at).getTime();
+    const diffMs = expTime - Date.now();
+    if (diffMs <= 0) {
+      isExpired = true;
+      remainingDays = 0;
+      remainingHours = 0;
+      remainingMinutes = 0;
+    } else {
+      isExpired = false;
+      remainingDays = Math.floor(diffMs / 86400000);
+      remainingHours = Math.floor((diffMs % 86400000) / 3600000);
+      remainingMinutes = Math.floor((diffMs % 3600000) / 60000);
+    }
+  }
+
+  let customName = (authRecord && authRecord.customName) || data.custom_name || '';
   if (!customName) {
     const trackedList = getTrackedDevices();
     const item = trackedList.find(d => d.deviceId === currentDevice);
     if (item && item.customName) customName = item.customName;
+  }
+  if (customName && data.custom_name !== customName) {
+    data.custom_name = customName;
   }
 
   if (isExpired) {
@@ -652,6 +835,100 @@ function resetDeviceFails(deviceId) {
 }
 
 /**
+ * Returns list of crack suspects and failed attempts with full geolocation & Google Maps info.
+ */
+function getCrackSuspectsList() {
+  const failMap = getFailedAttemptsMap();
+  const tracked = getTrackedDevices();
+  const result = [];
+
+  for (const cleanId of Object.keys(failMap)) {
+    const item = failMap[cleanId];
+    const tr = tracked.find(d => d.deviceId === cleanId);
+    const loc = item.location || (tr && tr.location) || null;
+    const isLocked = Boolean(item.lockedUntil && Date.now() < item.lockedUntil);
+
+    result.push({
+      deviceId: cleanId,
+      telegramUser: item.telegramUser || (tr && tr.telegramUser) || '',
+      computerName: item.computerName || (tr && tr.computerName) || '',
+      failedCount: item.failedCount || 1,
+      attempts: item.attempts || [],
+      lastFailedKey: (item.attempts && item.attempts[item.attempts.length - 1]) || (tr && tr.lastFailedKey) || '',
+      firstFailedAt: item.firstFailedAt || '',
+      lastFailedAt: item.lastFailedAt || (tr && tr.lastSeen) || '',
+      isLocked: isLocked,
+      location: loc,
+      mapsUrl: loc ? loc.mapsUrl : '',
+      ip: loc ? loc.ip : '',
+      isp: loc ? loc.isp : '',
+      city: loc ? loc.city : '',
+      country: loc ? loc.country : ''
+    });
+  }
+
+  // Also include any devices from tracker marked with crackSuspect
+  for (const tr of tracked) {
+    if ((tr.crackSuspect || (tr.failedAttempts && tr.failedAttempts >= 3)) && !result.some(r => r.deviceId === tr.deviceId)) {
+      result.push({
+        deviceId: tr.deviceId,
+        telegramUser: tr.telegramUser || '',
+        computerName: tr.computerName || '',
+        failedCount: tr.failedAttempts || 1,
+        attempts: tr.lastFailedKey ? [tr.lastFailedKey] : [],
+        lastFailedKey: tr.lastFailedKey || '',
+        firstFailedAt: tr.firstSeen || '',
+        lastFailedAt: tr.lastSeen || '',
+        isLocked: false,
+        location: tr.location || null,
+        mapsUrl: tr.location ? tr.location.mapsUrl : '',
+        ip: tr.location ? tr.location.ip : '',
+        isp: tr.location ? tr.location.isp : '',
+        city: tr.location ? tr.location.city : '',
+        country: tr.location ? tr.location.country : ''
+      });
+    }
+  }
+
+  result.sort((a, b) => (b.failedCount || 0) - (a.failedCount || 0));
+  return result;
+}
+
+/**
+ * Clears failed attempts / crack suspect history.
+ */
+function clearFailedAttemptsHistory() {
+  try {
+    saveFailedAttemptsMap({});
+    if (fs.existsSync(DEVICES_TRACKER_FILE)) {
+      const list = JSON.parse(fs.readFileSync(DEVICES_TRACKER_FILE, 'utf-8')) || [];
+      for (const item of list) {
+        item.crackSuspect = false;
+        item.failedAttempts = 0;
+      }
+      fs.writeFileSync(DEVICES_TRACKER_FILE, JSON.stringify(list, null, 2), 'utf-8');
+    }
+    return { success: true, message: 'បានសំអាតប្រវត្តិ Crack រួចរាល់' };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+
+/**
+ * Clears payment requests / notifications.
+ */
+function clearPaymentRequests() {
+  try {
+    if (fs.existsSync(PAYMENTS_FILE)) {
+      fs.writeFileSync(PAYMENTS_FILE, JSON.stringify([], null, 2), 'utf-8');
+    }
+    return { success: true, message: 'បានសំអាតបញ្ជីសារបង់ប្រាក់រួចរាល់' };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+
+/**
  * Activates the application with the provided License Key.
  * Verifies key, tracks failed attempts, locks out brute-force attacks, and alerts Admin.
  */
@@ -729,11 +1006,25 @@ async function activateLicense(inputKey, metadata = {}) {
 
   const finalExpiresAt = (metadata && metadata.customExpiresAt) || existingExpiresAt || result.expires_at;
 
+  let custName = (metadata && metadata.customName) || '';
+  if (!custName) {
+    const authMap = getAuthorizedDevicesMap();
+    if (authMap[currentDevice] && authMap[currentDevice].customName) {
+      custName = authMap[currentDevice].customName;
+    }
+  }
+  if (!custName) {
+    const trackedList = getTrackedDevices();
+    const item = trackedList.find(d => d.deviceId === currentDevice);
+    if (item && item.customName) custName = item.customName;
+  }
+
   const record = {
     key: cleanKey,
     device_id: currentDevice,
     type: result.type,
     label: result.label,
+    custom_name: custName,
     activated_at: new Date().toISOString(),
     expires_at: finalExpiresAt,
     app_version: APP_VERSION
@@ -851,7 +1142,7 @@ function getTrackedDevices() {
  * Authorizes a client device for Auto-Activation (when owner enters ID + days in Admin panel).
  * Supports days, hours, extending existing time, and custom names.
  */
-function authorizeDevice({ deviceId, days = 0, hours = 0, telegramUser = '', extend = false, customLabel = null }) {
+function authorizeDevice({ deviceId, days = 0, hours = 0, telegramUser = '', customName = '', extend = false, customLabel = null }) {
   const cleanId = String(deviceId || '').trim().toUpperCase();
   const numDays = Math.max(0, parseInt(days || '0', 10));
   const numHours = Math.max(0, parseInt(hours || '0', 10));
@@ -902,7 +1193,7 @@ function authorizeDevice({ deviceId, days = 0, hours = 0, telegramUser = '', ext
     hours: numHours,
     label: label,
     telegramUser: telegramUser || existingRecord.telegramUser || '',
-    customName: existingRecord.customName || '',
+    customName: customName || existingRecord.customName || '',
     authorizedAt: new Date().toISOString(),
     expiresAt: expiresAt,
     status: 'active'
@@ -923,7 +1214,7 @@ function authorizeDevice({ deviceId, days = 0, hours = 0, telegramUser = '', ext
 
   // If authorizing the current machine directly, activate immediately
   if (cleanId === getDeviceId()) {
-    activateLicense(key, { customExpiresAt: authMap[cleanId].expiresAt });
+    activateLicense(key, { customExpiresAt: authMap[cleanId].expiresAt, customName: authMap[cleanId].customName });
   }
 
   // Update status in devices tracker
@@ -934,6 +1225,7 @@ function authorizeDevice({ deviceId, days = 0, hours = 0, telegramUser = '', ext
       if (item) {
         item.status = label;
         if (telegramUser) item.telegramUser = telegramUser;
+        if (customName) item.customName = customName;
         fs.writeFileSync(DEVICES_TRACKER_FILE, JSON.stringify(list, null, 2), 'utf-8');
       }
     }
@@ -979,10 +1271,410 @@ function setDeviceCustomName(deviceId, customName) {
         fs.writeFileSync(AUTHORIZED_DEVICES_FILE, JSON.stringify(authMap, null, 2), 'utf-8');
         updated = true;
       }
+      for (const p of getSystemAuthVaultPaths()) {
+        try {
+          const vDir = path.dirname(p);
+          if (!fs.existsSync(vDir)) fs.mkdirSync(vDir, { recursive: true });
+          fs.writeFileSync(p, JSON.stringify(authMap, null, 2), 'utf-8');
+        } catch (_) {}
+      }
     } catch (e) {}
   }
 
+  // Also update local license.json if it belongs to this device
+  try {
+    if (fs.existsSync(LICENSE_FILE)) {
+      const lic = JSON.parse(fs.readFileSync(LICENSE_FILE, 'utf-8'));
+      if (lic && (lic.device_id === cleanId || cleanId === getDeviceId())) {
+        lic.custom_name = cleanName;
+        saveLicenseToVaults(lic);
+      }
+    }
+  } catch (_) {}
+
   return { success: true, deviceId: cleanId, customName: cleanName };
+}
+
+/**
+ * Gets enriched list of all tracked devices merged with authorization, online status,
+ * granted days, remaining days/hours, and customer custom names.
+ */
+function getTrackedDevicesWithLicenseInfo() {
+  const trackedList = getTrackedDevices();
+  const authMap = getAuthorizedDevicesMap();
+  const mapByDevice = new Map();
+
+  // Add all tracked devices
+  for (const t of trackedList) {
+    if (!t.deviceId) continue;
+    mapByDevice.set(t.deviceId, { ...t });
+  }
+
+  // Also include any authorized devices not yet in tracker
+  for (const devId of Object.keys(authMap)) {
+    const auth = authMap[devId];
+    if (!mapByDevice.has(devId)) {
+      mapByDevice.set(devId, {
+        deviceId: devId,
+        telegramUser: auth.telegramUser || '',
+        customName: auth.customName || '',
+        computerName: 'Authorized PC',
+        osUser: '',
+        firstSeen: auth.authorizedAt || new Date().toISOString(),
+        lastSeen: auth.authorizedAt || new Date().toISOString(),
+        openCount: 0,
+        status: auth.status || 'active'
+      });
+    }
+  }
+
+  const now = Date.now();
+  const result = [];
+
+  for (const dev of mapByDevice.values()) {
+    const devId = dev.deviceId;
+    const auth = authMap[devId] || null;
+
+    const customName = (auth && auth.customName) || dev.customName || '';
+
+    // Online status: active within the last 5 minutes (300,000 ms)
+    let isOnline = false;
+    let lastSeenAgo = '';
+    if (dev.lastSeen) {
+      const lastMs = new Date(dev.lastSeen).getTime();
+      const diffMin = Math.floor((now - lastMs) / 60000);
+      if (diffMin <= 5 && diffMin >= 0) {
+        isOnline = true;
+      }
+      if (diffMin < 1) lastSeenAgo = 'អម្បាញ់មិញ (Just now)';
+      else if (diffMin < 60) lastSeenAgo = `${diffMin} នាទីមុន`;
+      else {
+        const diffHours = Math.floor(diffMin / 60);
+        if (diffHours < 24) lastSeenAgo = `${diffHours} ម៉ោងមុន`;
+        else lastSeenAgo = `${Math.floor(diffHours / 24)} ថ្ងៃមុន`;
+      }
+    }
+
+    let isAuthorized = Boolean(auth && (auth.key || auth.status === 'active' || auth.days !== undefined));
+    let isExpired = Boolean(auth && auth.status === 'expired');
+    let isRevoked = Boolean(auth && (auth.revoked || auth.status === 'revoked'));
+    let isLifetime = Boolean(auth && (auth.days === 0 && (!auth.expiresAt || String(auth.label).includes('Lifetime'))));
+    let daysGranted = auth ? (auth.days || 0) : 0;
+    let expiresAt = auth ? auth.expiresAt : null;
+    let remainingDays = 0;
+    let remainingHours = 0;
+    let remainingMinutes = 0;
+
+    if (isRevoked || isExpired) {
+      isExpired = true;
+      remainingDays = 0;
+      remainingHours = 0;
+    } else if (isLifetime) {
+      remainingDays = 9999;
+    } else if (expiresAt) {
+      const expMs = new Date(expiresAt).getTime();
+      const diffMs = expMs - now;
+      if (diffMs <= 0) {
+        isExpired = true;
+        remainingDays = 0;
+        remainingHours = 0;
+      } else {
+        remainingDays = Math.floor(diffMs / 86400000);
+        remainingHours = Math.floor((diffMs % 86400000) / 3600000);
+        remainingMinutes = Math.floor((diffMs % 3600000) / 60000);
+      }
+    }
+
+    result.push({
+      deviceId: devId,
+      customName: customName,
+      telegramUser: dev.telegramUser || (auth && auth.telegramUser) || '',
+      computerName: dev.computerName || '',
+      osUser: dev.osUser || '',
+      openCount: dev.openCount || 1,
+      firstSeen: dev.firstSeen || null,
+      lastSeen: dev.lastSeen || null,
+      lastSeenAgo: lastSeenAgo,
+      isOnline: isOnline,
+      isAuthorized: isAuthorized,
+      isRevoked: isRevoked,
+      isLifetime: isLifetime,
+      isExpired: isExpired,
+      daysGranted: daysGranted,
+      expiresAt: expiresAt,
+      remainingDays: remainingDays,
+      remainingHours: remainingHours,
+      remainingMinutes: remainingMinutes,
+      key: (auth && auth.key) || '',
+      label: (auth && auth.label) || dev.status || (isAuthorized ? 'Active' : 'Unactivated'),
+      crackSuspect: Boolean(dev.crackSuspect || (dev.failedAttempts && dev.failedAttempts >= 4))
+    });
+  }
+
+  // Sort: Online machines first, then latest lastSeen first
+  result.sort((a, b) => {
+    if (a.isOnline && !b.isOnline) return -1;
+    if (!a.isOnline && b.isOnline) return 1;
+    const timeA = a.lastSeen ? new Date(a.lastSeen).getTime() : 0;
+    const timeB = b.lastSeen ? new Date(b.lastSeen).getTime() : 0;
+    return timeB - timeA;
+  });
+
+  return result;
+}
+
+/**
+ * Adjusts remaining days on a device (+days or -days).
+ * Immediately recalculates expiresAt and generates/updates authorization.
+ */
+function adjustDeviceDays({ deviceId, daysChange = 0 }) {
+  const cleanId = String(deviceId || '').trim().toUpperCase();
+  const change = parseInt(daysChange, 10);
+  if (!cleanId || isNaN(change)) {
+    return { success: false, error: 'ទិន្នន័យមិនត្រឹមត្រូវ (Invalid parameters)' };
+  }
+
+  let authMap = getAuthorizedDevicesMap();
+  let auth = authMap[cleanId];
+  const now = Date.now();
+
+  if (!auth) {
+    authMap[cleanId] = {
+      deviceId: cleanId,
+      days: Math.max(0, change),
+      status: 'active',
+      authorizedAt: new Date().toISOString()
+    };
+    auth = authMap[cleanId];
+  }
+
+  let baseExpMs = now;
+  if (auth.expiresAt) {
+    const curExpMs = new Date(auth.expiresAt).getTime();
+    if (curExpMs > now) {
+      baseExpMs = curExpMs;
+    }
+  }
+
+  const deltaMs = change * 86400000;
+  const newExpMs = baseExpMs + deltaMs;
+
+  if (newExpMs <= now) {
+    auth.expiresAt = new Date(now - 1000).toISOString();
+    auth.status = 'expired';
+    auth.days = 0;
+  } else {
+    auth.expiresAt = new Date(newExpMs).toISOString();
+    auth.revoked = false;
+    auth.status = 'active';
+    const remDays = Math.ceil((newExpMs - now) / 86400000);
+    auth.days = remDays;
+    auth.label = `${remDays} ថ្ងៃ`;
+    auth.key = generateLicenseKey(cleanId, remDays);
+  }
+
+  fs.writeFileSync(AUTHORIZED_DEVICES_FILE, JSON.stringify(authMap, null, 2), 'utf-8');
+  for (const p of getSystemAuthVaultPaths()) {
+    try {
+      const vDir = path.dirname(p);
+      if (!fs.existsSync(vDir)) fs.mkdirSync(vDir, { recursive: true });
+      fs.writeFileSync(p, JSON.stringify(authMap, null, 2), 'utf-8');
+    } catch (e) {}
+  }
+
+  // If modifying current device
+  if (cleanId === getDeviceId()) {
+    if (newExpMs <= now) {
+      deactivateLicense();
+    } else {
+      activateLicense(auth.key, { customExpiresAt: auth.expiresAt });
+    }
+  }
+
+  const finalDays = Math.max(0, Math.ceil((newExpMs - now) / 86400000));
+  return {
+    success: true,
+    deviceId: cleanId,
+    newExpiresAt: auth.expiresAt,
+    daysChange: change,
+    newDays: finalDays,
+    key: auth.key || ''
+  };
+}
+
+/**
+ * Expires/Disconnects license from a device immediately (resets days to 0 and marks as expired).
+ */
+function revokeDeviceLicense(deviceId) {
+  const cleanId = String(deviceId || '').trim().toUpperCase();
+  if (!cleanId) return { success: false, error: 'Missing deviceId' };
+
+  let authMap = getAuthorizedDevicesMap();
+  const pastExpiry = new Date(Date.now() - 1000).toISOString();
+  if (authMap[cleanId]) {
+    authMap[cleanId].revoked = false;
+    authMap[cleanId].status = 'expired';
+    authMap[cleanId].expiresAt = pastExpiry;
+    authMap[cleanId].days = 0;
+  } else {
+    authMap[cleanId] = {
+      deviceId: cleanId,
+      revoked: false,
+      status: 'expired',
+      expiresAt: pastExpiry,
+      days: 0,
+      authorizedAt: new Date().toISOString()
+    };
+  }
+
+  fs.writeFileSync(AUTHORIZED_DEVICES_FILE, JSON.stringify(authMap, null, 2), 'utf-8');
+  for (const p of getSystemAuthVaultPaths()) {
+    try {
+      const vDir = path.dirname(p);
+      if (!fs.existsSync(vDir)) fs.mkdirSync(vDir, { recursive: true });
+      fs.writeFileSync(p, JSON.stringify(authMap, null, 2), 'utf-8');
+    } catch (e) {}
+  }
+
+  // Update in tracker
+  try {
+    if (fs.existsSync(DEVICES_TRACKER_FILE)) {
+      const list = JSON.parse(fs.readFileSync(DEVICES_TRACKER_FILE, 'utf-8')) || [];
+      const item = list.find(d => d.deviceId === cleanId);
+      if (item) {
+        item.status = 'expired';
+        fs.writeFileSync(DEVICES_TRACKER_FILE, JSON.stringify(list, null, 2), 'utf-8');
+      }
+    }
+  } catch (e) {}
+
+  if (cleanId === getDeviceId()) {
+    deactivateLicense();
+  }
+
+  return { success: true, deviceId: cleanId, message: 'បានកាត់ License លើម៉ាស៊ីននេះឱ្យផុតកំណត់ (០ ថ្ងៃ) រួចរាល់!' };
+}
+
+/**
+ * Transfers remaining days from Machine 1 to Machine 2.
+ * Machine 1 is completely revoked. Machine 2 gets authorized with the remaining time.
+ */
+function transferDeviceLicense({ fromDeviceId, toDeviceId, newCustomName = '' }) {
+  const cleanFrom = String(fromDeviceId || '').trim().toUpperCase();
+  const cleanTo = String(toDeviceId || '').trim().toUpperCase();
+
+  if (!cleanFrom || !cleanTo) {
+    return { success: false, error: 'សូមបញ្ចូលលេខកូដម៉ាស៊ីនទាំងពីរ (Missing Device IDs)' };
+  }
+  if (cleanFrom === cleanTo) {
+    return { success: false, error: 'មិនអាចផ្ទេរទៅម៉ាស៊ីនដដែលបានទេ!' };
+  }
+
+  const authMap = getAuthorizedDevicesMap();
+  const fromAuth = authMap[cleanFrom];
+
+  let remainingDays = 0;
+  let remainingMs = 0;
+  let isLifetime = false;
+  const now = Date.now();
+
+  if (fromAuth) {
+    if (fromAuth.revoked || fromAuth.status === 'revoked') {
+      return { success: false, error: `ម៉ាស៊ីន ${cleanFrom} ត្រូវបានដកហូត License រួចហើយ មិនអាចផ្ទេរបានទេ!` };
+    }
+    if (fromAuth.days === 0 && (!fromAuth.expiresAt || String(fromAuth.label).includes('Lifetime'))) {
+      isLifetime = true;
+    } else if (fromAuth.expiresAt) {
+      const expMs = new Date(fromAuth.expiresAt).getTime();
+      remainingMs = expMs - now;
+      if (remainingMs <= 0) {
+        return { success: false, error: `ម៉ាស៊ីន ${cleanFrom} បានផុតកំណត់ License ហើយ គ្មានថ្ងៃនៅសល់ដើម្បីផ្ទេរឡើយ!` };
+      }
+      remainingDays = Math.ceil(remainingMs / 86400000);
+    } else if (fromAuth.days > 0) {
+      remainingDays = fromAuth.days;
+      remainingMs = remainingDays * 86400000;
+    }
+  } else {
+    return { success: false, error: `រកមិនឃើញ License របស់ម៉ាស៊ីន ${cleanFrom} ឡើយ!` };
+  }
+
+  const custName = newCustomName || (fromAuth && fromAuth.customName) || '';
+
+  // 1. EXPIRE Machine 1 (Transferred)
+  authMap[cleanFrom].revoked = false;
+  authMap[cleanFrom].status = 'expired';
+  authMap[cleanFrom].transferredTo = cleanTo;
+  authMap[cleanFrom].expiresAt = new Date(now - 1000).toISOString();
+  authMap[cleanFrom].days = 0;
+
+  // 2. AUTHORIZE Machine 2
+  let toExpiresAt = null;
+  let toDays = isLifetime ? 0 : Math.max(1, remainingDays);
+  let toLabel = isLifetime ? 'Lifetime VIP (ពេញមួយជីវិត)' : `${toDays} ថ្ងៃ (ផ្ទេរពី ${cleanFrom})`;
+
+  if (!isLifetime && remainingMs > 0) {
+    toExpiresAt = new Date(now + remainingMs).toISOString();
+  }
+
+  const newKey = generateLicenseKey(cleanTo, toDays);
+
+  authMap[cleanTo] = {
+    deviceId: cleanTo,
+    key: newKey,
+    days: toDays,
+    label: toLabel,
+    customName: custName,
+    telegramUser: fromAuth.telegramUser || '',
+    authorizedAt: new Date().toISOString(),
+    expiresAt: toExpiresAt,
+    transferredFrom: cleanFrom,
+    status: 'active',
+    revoked: false
+  };
+
+  fs.writeFileSync(AUTHORIZED_DEVICES_FILE, JSON.stringify(authMap, null, 2), 'utf-8');
+  for (const p of getSystemAuthVaultPaths()) {
+    try {
+      const vDir = path.dirname(p);
+      if (!fs.existsSync(vDir)) fs.mkdirSync(vDir, { recursive: true });
+      fs.writeFileSync(p, JSON.stringify(authMap, null, 2), 'utf-8');
+    } catch (e) {}
+  }
+
+  try {
+    if (fs.existsSync(DEVICES_TRACKER_FILE)) {
+      const list = JSON.parse(fs.readFileSync(DEVICES_TRACKER_FILE, 'utf-8')) || [];
+      const itemFrom = list.find(d => d.deviceId === cleanFrom);
+      if (itemFrom) itemFrom.status = `revoked (Transferred to ${cleanTo})`;
+      
+      const itemTo = list.find(d => d.deviceId === cleanTo);
+      if (itemTo) {
+        itemTo.status = toLabel;
+        itemTo.customName = custName;
+      }
+      fs.writeFileSync(DEVICES_TRACKER_FILE, JSON.stringify(list, null, 2), 'utf-8');
+    }
+  } catch (e) {}
+
+  if (cleanFrom === getDeviceId()) {
+    deactivateLicense();
+  }
+  if (cleanTo === getDeviceId()) {
+    activateLicense(newKey, { customExpiresAt: toExpiresAt });
+  }
+
+  return {
+    success: true,
+    fromDeviceId: cleanFrom,
+    toDeviceId: cleanTo,
+    transferredDays: toDays,
+    isLifetime: isLifetime,
+    newKey: newKey,
+    expiresAt: toExpiresAt,
+    customName: custName,
+    message: `🎉 បានផ្ទេរ License ពី ${cleanFrom} ទៅ ${cleanTo} (${toDays} ថ្ងៃ) ដោយជោគជ័យ!`
+  };
 }
 
 /**
@@ -1007,14 +1699,24 @@ async function checkAutoActivation(deviceId = null) {
 
   // Helper to find record in an auth map
   const checkRecord = async (record) => {
+    if (record && (record.revoked || record.status === 'revoked')) {
+      deactivateLicense();
+      return { authorized: false, revoked: true, message: 'License ត្រូវបានដកហូតដោយ Admin' };
+    }
     if (record && record.key) {
-      const actResult = await activateLicense(record.key, { customExpiresAt: record.expiresAt, targetDeviceId: targetId });
+      const actResult = await activateLicense(record.key, {
+        customExpiresAt: record.expiresAt,
+        targetDeviceId: targetId,
+        customName: record.customName || record.customerName || ''
+      });
       if (actResult.success) {
         return {
           authorized: true,
           key: record.key,
           days: record.days,
           label: record.label,
+          customName: record.customName || '',
+          expiresAt: record.expiresAt,
           message: '🎉 ម៉ាស៊ីនរបស់អ្នកត្រូវបាន Admin អនុញ្ញាតដោយជោគជ័យ!'
         };
       }
@@ -1056,6 +1758,9 @@ async function checkAutoActivation(deviceId = null) {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 4000);
       let syncUrl = cfg.cloudSyncUrl.trim();
+      if (!syncUrl.includes('/api/license/check') && !syncUrl.includes('.json')) {
+        syncUrl = syncUrl.replace(/\/+$/, '') + '/api/license/check';
+      }
       if (syncUrl.includes('/api/license/check')) {
         syncUrl += (syncUrl.includes('?') ? '&' : '?') + `deviceId=${encodeURIComponent(targetId)}`;
       }
@@ -1066,17 +1771,31 @@ async function checkAutoActivation(deviceId = null) {
       clearTimeout(timeoutId);
       if (res.ok) {
         const cloudData = await res.json();
+        if (cloudData && (cloudData.revoked || cloudData.status === 'revoked')) {
+          deactivateLicense();
+          return { authorized: false, revoked: true, message: 'License ត្រូវបានដកហូតដោយ Admin' };
+        }
         const record = (cloudData && cloudData.authorized && cloudData.key)
           ? cloudData
           : (cloudData[targetId] || (cloudData.devices && cloudData.devices[targetId]));
+        if (record && (record.revoked || record.status === 'revoked')) {
+          deactivateLicense();
+          return { authorized: false, revoked: true, message: 'License ត្រូវបានដកហូតដោយ Admin' };
+        }
         if (record && record.key) {
-          const actResult = await activateLicense(record.key, { customExpiresAt: record.expiresAt, targetDeviceId: targetId });
+          const actResult = await activateLicense(record.key, {
+            customExpiresAt: record.expiresAt,
+            targetDeviceId: targetId,
+            customName: record.customName || record.customerName || ''
+          });
           if (actResult.success) {
             return {
               authorized: true,
               key: record.key,
               days: record.days,
               label: record.label,
+              customName: record.customName || '',
+              expiresAt: record.expiresAt,
               message: '🎉 ម៉ាស៊ីនរបស់អ្នកត្រូវបាន Admin អនុញ្ញាតពីចម្ងាយដោយជោគជ័យ!'
             };
           }
@@ -1550,7 +2269,9 @@ function fulfillPayWayPayment({ amount, payer = '', trxId = '', deviceId = null 
 function getPaymentRequests() {
   if (!fs.existsSync(PAYMENTS_FILE)) return [];
   try {
-    return JSON.parse(fs.readFileSync(PAYMENTS_FILE, 'utf-8')) || [];
+    const list = JSON.parse(fs.readFileSync(PAYMENTS_FILE, 'utf-8')) || [];
+    // Only return confirmed/verified payments from Telegram bot or auto-buy
+    return list.filter(p => p.status === 'verified' || p.status === 'approved' || p.status === 'fulfilled' || p.verified === true || p.autoActivated === true);
   } catch (e) { return []; }
 }
 
@@ -1558,13 +2279,18 @@ function getTelegramConfig() {
   const defaults = {
     botToken: process.env.TELEGRAM_BOT_TOKEN || '8928655174:AAGpYf-8kHhPCRRBcj21bvJ-sGXtxk5tlUE',
     chatId: process.env.TELEGRAM_CHAT_ID || '925539914',
-    cloudSyncUrl: process.env.LICENSE_CLOUD_SYNC_URL || '',
+    cloudSyncUrl: process.env.LICENSE_CLOUD_SYNC_URL || 'https://ps-download-bot-irhw.onrender.com',
     adminTelegram: '@Thpisal33',
     qrImageUrl: '/qr_payment.png'
   };
   if (fs.existsSync(TELEGRAM_CONFIG_FILE)) {
     try {
-      return { ...defaults, ...JSON.parse(fs.readFileSync(TELEGRAM_CONFIG_FILE, 'utf-8')) };
+      const cfg = JSON.parse(fs.readFileSync(TELEGRAM_CONFIG_FILE, 'utf-8')) || {};
+      return {
+        ...defaults,
+        ...cfg,
+        cloudSyncUrl: (cfg.cloudSyncUrl && cfg.cloudSyncUrl.trim()) || defaults.cloudSyncUrl
+      };
     } catch (e) {}
   }
   return defaults;
@@ -1611,6 +2337,7 @@ if (require.main === module) {
 module.exports = {
   getDeviceId,
   generateLicenseKey,
+  generateUniversalKey,
   verifyLicenseKey,
   getLicenseStatus,
   activateLicense,
@@ -1632,9 +2359,16 @@ module.exports = {
   isTrxAlreadyProcessed,
   markTrxProcessed,
   resetDeviceFails,
+  getCrackSuspectsList,
+  clearFailedAttemptsHistory,
+  clearPaymentRequests,
   getSystemVaultPaths,
   recoverLicenseFromVaults,
   setDeviceCustomName,
+  getTrackedDevicesWithLicenseInfo,
+  adjustDeviceDays,
+  revokeDeviceLicense,
+  transferDeviceLicense,
   getAuthorizedDevicesMap,
   recordUnclaimedPayment,
   getUnclaimedPayments,

@@ -41,15 +41,24 @@ const {
   deactivateLicense,
   getDeviceId,
   generateLicenseKey,
+  generateUniversalKey,
   getGeneratedKeysList,
   recordDeviceTracking,
   getTrackedDevices,
+  getTrackedDevicesWithLicenseInfo,
   authorizeDevice,
   checkAutoActivation,
   saveTelegramConfig,
   getTelegramConfig,
   sendTelegramAlert,
   resetDeviceFails,
+  getCrackSuspectsList,
+  clearFailedAttemptsHistory,
+  clearPaymentRequests,
+  setDeviceCustomName,
+  adjustDeviceDays,
+  revokeDeviceLicense,
+  transferDeviceLicense,
   recordPaymentNotification,
   getPaymentRequests,
   registerPendingCheckout,
@@ -1748,7 +1757,8 @@ function startServer(port = PORT, host = HOST) {
         const result = authorizeDevice({
           deviceId: body.deviceId,
           days: body.days,
-          telegramUser: body.telegramUser
+          telegramUser: body.telegramUser,
+          customName: body.customName
         });
         return sendJson(res, result.success ? 200 : 400, result);
       }
@@ -1757,25 +1767,98 @@ function startServer(port = PORT, host = HOST) {
       if (pathname === '/api/license/admin/tracked' && req.method === 'GET') {
         return sendJson(res, 200, {
           success: true,
-          devices: getTrackedDevices()
+          devices: getTrackedDevicesWithLicenseInfo()
         });
+      }
+
+      // 28g2. Admin Set Device Custom Name: POST /api/license/admin/set-name
+      if (pathname === '/api/license/admin/set-name' && req.method === 'POST') {
+        const body = await parseJsonBody(req);
+        const result = setDeviceCustomName(body.deviceId, body.customName);
+        return sendJson(res, 200, result);
+      }
+
+      // 28g3. Admin Adjust Remaining Days: POST /api/license/admin/adjust-days
+      if (pathname === '/api/license/admin/adjust-days' && req.method === 'POST') {
+        const body = await parseJsonBody(req);
+        const result = adjustDeviceDays({
+          deviceId: body.deviceId,
+          daysChange: body.daysChange
+        });
+        return sendJson(res, result.success ? 200 : 400, result);
+      }
+
+      // 28g4. Admin Revoke Device License: POST /api/license/admin/revoke
+      if (pathname === '/api/license/admin/revoke' && req.method === 'POST') {
+        const body = await parseJsonBody(req);
+        const result = revokeDeviceLicense(body.deviceId);
+        return sendJson(res, result.success ? 200 : 400, result);
+      }
+
+      // 28g5. Admin Transfer License to Another Device: POST /api/license/admin/transfer
+      if (pathname === '/api/license/admin/transfer' && req.method === 'POST') {
+        const body = await parseJsonBody(req);
+        const result = transferDeviceLicense({
+          fromDeviceId: body.fromDeviceId,
+          toDeviceId: body.toDeviceId,
+          newCustomName: body.newCustomName
+        });
+        return sendJson(res, result.success ? 200 : 400, result);
       }
 
       // 28h. Admin Generate Key: POST /api/license/admin/generate
       if (pathname === '/api/license/admin/generate' && req.method === 'POST') {
         const body = await parseJsonBody(req);
+        const isUniversal = Boolean(body.isUniversal);
+
+        if (isUniversal) {
+          const accessHours = body.accessHours !== undefined ? parseInt(body.accessHours, 10) : 24;
+          const claimWindowHours = body.claimWindowHours !== undefined ? parseInt(body.claimWindowHours, 10) : 24;
+          const result = generateUniversalKey({
+            accessHours,
+            claimWindowHours,
+            label: body.label
+          });
+          return sendJson(res, 200, result);
+        }
+
         const deviceId = body.deviceId;
-        const days = body.days !== undefined ? parseInt(body.days, 10) : 0;
+        const unit = body.unit || (body.hours ? 'hours' : 'days');
+        let durationValue = 0;
+        if (unit === 'hours') {
+          durationValue = body.hours !== undefined ? parseInt(body.hours, 10) : (body.durationValue !== undefined ? parseInt(body.durationValue, 10) : 1);
+        } else {
+          durationValue = body.days !== undefined ? parseInt(body.days, 10) : (body.durationValue !== undefined ? parseInt(body.durationValue, 10) : 0);
+        }
+
         if (!deviceId) return sendError(res, 400, 'Missing deviceId');
-        const key = generateLicenseKey(deviceId, days);
-        const label = days > 0 ? `${days} ថ្ងៃ` : 'Lifetime VIP (ពេញមួយជីវិត)';
+        const key = generateLicenseKey(deviceId, durationValue, unit);
+        const label = unit === 'hours' && durationValue > 0
+          ? `${durationValue} ម៉ោង (${durationValue} Hours)`
+          : (durationValue > 0 ? `${durationValue} ថ្ងៃ (${durationValue} Days)` : 'Lifetime VIP (ពេញមួយជីវិត)');
+
         return sendJson(res, 200, {
           success: true,
           key,
           device_id: deviceId,
-          days,
+          days: unit === 'days' ? durationValue : Math.ceil(durationValue / 24),
+          hours: unit === 'hours' ? durationValue : durationValue * 24,
+          unit,
           label
         });
+      }
+
+      // 28h2. Admin Generate Universal Trial Key: POST /api/license/admin/generate-universal
+      if (pathname === '/api/license/admin/generate-universal' && req.method === 'POST') {
+        const body = await parseJsonBody(req);
+        const accessHours = body.accessHours !== undefined ? parseInt(body.accessHours, 10) : 24;
+        const claimWindowHours = body.claimWindowHours !== undefined ? parseInt(body.claimWindowHours, 10) : 24;
+        const result = generateUniversalKey({
+          accessHours,
+          claimWindowHours,
+          label: body.label
+        });
+        return sendJson(res, 200, result);
       }
 
       // 28i. Admin Key History: GET /api/license/admin/history
@@ -1824,13 +1907,56 @@ function startServer(port = PORT, host = HOST) {
       if (pathname === '/api/license/notify-payment' && req.method === 'POST') {
         const body = await parseJsonBody(req);
         const devId = (body.deviceId || '').trim().toUpperCase();
+        const amt = body.amount || '1.50';
+        const plan = body.plan || '១ សប្តាហ៍ ($1.50)';
 
-        // 1. First, check Telegram group messages for matching bank payment alert
+        // 1. Primary: Verify with 24/7 Cloud Bot on Render (where bank notifications arrive)
+        const cloudVerifyUrl = 'https://ps-download-bot-irhw.onrender.com/api/license/verify-payment';
+        try {
+          const controller = new AbortController();
+          const tId = setTimeout(() => controller.abort(), 6000);
+          const cloudRes = await fetch(cloudVerifyUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              deviceId: devId,
+              plan: plan,
+              amount: amt,
+              telegramUser: body.telegramUser
+            }),
+            signal: controller.signal
+          });
+          clearTimeout(tId);
+          if (cloudRes.ok) {
+            const cloudData = await cloudRes.json();
+            if (cloudData && cloudData.verified && cloudData.key) {
+              // Auto-activate license on client PC!
+              await activateLicense(cloudData.key, {
+                customExpiresAt: cloudData.expiresAt,
+                targetDeviceId: devId
+              });
+              return sendJson(res, 200, {
+                success: true,
+                verified: true,
+                autoActivated: true,
+                key: cloudData.key,
+                label: cloudData.label,
+                days: cloudData.days,
+                payer: cloudData.payer,
+                message: cloudData.message || '🎉 ការបង់ប្រាក់ត្រូវបានផ្ទៀងផ្ទាត់ជោគជ័យ! កម្មវិធីត្រូវបានបើកដំណើរការ!'
+              });
+            }
+          }
+        } catch (cloudErr) {
+          console.warn('[License Cloud Verify] Cloud check:', cloudErr.message);
+        }
+
+        // 2. Secondary: Fallback to local bot if running locally
         if (typeof checkGroupPaymentVerification === 'function') {
           const verifyRes = await checkGroupPaymentVerification({
             deviceId: devId,
-            plan: body.plan,
-            amount: body.amount
+            plan: plan,
+            amount: amt
           });
           if (verifyRes && verifyRes.verified) {
             return sendJson(res, 200, {
@@ -1846,14 +1972,15 @@ function startServer(port = PORT, host = HOST) {
           }
         }
 
-        // 2. If not yet found, record pending payment notification & send alert to Admin on Telegram
+        // 3. Payment not yet detected: send notification alert to Admin on Telegram
         const result = await recordPaymentNotification({
           deviceId: devId,
           telegramUser: body.telegramUser,
-          plan: body.plan,
-          amount: body.amount
+          plan: plan,
+          amount: amt
         });
         result.verified = false;
+        result.message = '⚠️ មិនទាន់ទទួលបានការបង់ប្រាក់នៅឡើយទេ! សូមរង់ចាំបន្តិច (ប្រហែល 5-10 វិនាទី) រួចចុច "ខ្ញុំបានបាញ់រួចរាល់" ម្តងទៀត';
         return sendJson(res, 200, result);
       }
 
@@ -1861,6 +1988,25 @@ function startServer(port = PORT, host = HOST) {
       if (pathname === '/api/license/check-payment-verification' && req.method === 'GET') {
         const devId = (url.searchParams.get('deviceId') || '').trim().toUpperCase();
         const amt = url.searchParams.get('amount') || '1.50';
+
+        // 1. Query Render Cloud
+        try {
+          const controller = new AbortController();
+          const tId = setTimeout(() => controller.abort(), 4000);
+          const cloudRes = await fetch(`https://ps-download-bot-irhw.onrender.com/api/license/check?deviceId=${encodeURIComponent(devId)}`, {
+            signal: controller.signal
+          });
+          clearTimeout(tId);
+          if (cloudRes.ok) {
+            const data = await cloudRes.json();
+            if (data && data.authorized && data.key) {
+              await activateLicense(data.key, { customExpiresAt: data.expiresAt, targetDeviceId: devId });
+              return sendJson(res, 200, { success: true, verified: true, autoActivated: true, ...data });
+            }
+          }
+        } catch (e) {}
+
+        // 2. Local fallback
         if (typeof checkGroupPaymentVerification === 'function') {
           const verifyRes = await checkGroupPaymentVerification({
             deviceId: devId,
@@ -1879,6 +2025,26 @@ function startServer(port = PORT, host = HOST) {
           success: true,
           payments: getPaymentRequests()
         });
+      }
+
+      // 28o-2. Admin Clear Payment Requests: POST /api/license/admin/clear-payments
+      if (pathname === '/api/license/admin/clear-payments' && req.method === 'POST') {
+        const result = clearPaymentRequests();
+        return sendJson(res, 200, result);
+      }
+
+      // 28r. Admin Get Crack Suspects: GET /api/license/admin/crack-suspects
+      if (pathname === '/api/license/admin/crack-suspects' && req.method === 'GET') {
+        return sendJson(res, 200, {
+          success: true,
+          suspects: getCrackSuspectsList()
+        });
+      }
+
+      // 28s. Admin Clear Crack History: POST /api/license/admin/clear-crack-history
+      if (pathname === '/api/license/admin/clear-crack-history' && req.method === 'POST') {
+        const result = clearFailedAttemptsHistory();
+        return sendJson(res, 200, result);
       }
 
       // 28p. Register Pending Checkout Intent: POST /api/license/pending-checkout

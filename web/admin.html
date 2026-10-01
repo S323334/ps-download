@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🔑 PS DOWNLOAD - Admin License & Key Generator</title>
+    <link rel="icon" type="image/png" href="/admin_logo.png">
+    <link rel="shortcut icon" href="/admin_logo.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
@@ -28,133 +30,136 @@
         }
 
         body {
-            background: radial-gradient(circle at 50% 10%, #0f172a 0%, #030712 100%);
+            background-color: var(--bg-deep);
+            color: var(--text-main);
+            font-family: 'Outfit', 'Kantumruy Pro', -apple-system, BlinkMacSystemFont, sans-serif;
             min-height: 100vh;
             display: flex;
-            justify-content: center;
-            padding: 24px 16px 40px;
-            font-family: 'Kantumruy Pro', 'Outfit', sans-serif;
-            color: var(--text-main);
+            flex-direction: column;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 15% 15%, rgba(59, 130, 246, 0.12) 0%, transparent 40%),
+                radial-gradient(circle at 85% 85%, rgba(139, 92, 246, 0.1) 0%, transparent 40%),
+                radial-gradient(circle at 50% 50%, rgba(16, 185, 129, 0.05) 0%, transparent 60%);
+            background-attachment: fixed;
         }
 
         .admin-wrapper {
+            max-width: 1320px;
             width: 100%;
-            max-width: 900px;
+            margin: 0 auto;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
         }
 
-        /* Top Header Bar */
+        /* Top Header */
         .admin-top-bar {
-            background: var(--bg-card);
-            border: 1.5px solid rgba(255, 255, 255, 0.1);
-            border-radius: 20px;
-            padding: 20px 26px;
             display: flex;
-            align-items: center;
             justify-content: space-between;
-            margin-bottom: 20px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
-            backdrop-filter: blur(16px);
+            align-items: center;
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 16px 24px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
         }
 
         .admin-brand {
             display: flex;
             align-items: center;
-            gap: 14px;
+            gap: 16px;
         }
 
-        .admin-brand-icon {
-            width: 48px;
-            height: 48px;
-            border-radius: 14px;
-            background: linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(139, 92, 246, 0.3));
-            border: 1.5px solid #3b82f6;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-            box-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
+        .admin-brand img {
+            width: 52px;
+            height: 52px;
+            border-radius: 12px;
+            object-fit: cover;
+            border: 2px solid #f59e0b;
+            box-shadow: 0 0 20px rgba(245, 158, 11, 0.4);
         }
 
         .admin-brand-title {
             font-size: 1.25rem;
             font-weight: 800;
-            color: #ffffff;
+            background: linear-gradient(135deg, #fbbf24, #f59e0b, #38bdf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
             letter-spacing: 0.5px;
         }
 
         .admin-brand-subtitle {
-            font-size: 0.78rem;
+            font-size: 0.8rem;
             color: var(--text-sub);
             margin-top: 2px;
         }
 
-        /* Navigation Tabs */
+        /* Tabs */
         .admin-tabs {
             display: flex;
-            gap: 8px;
-            background: rgba(0, 0, 0, 0.45);
-            padding: 6px;
-            border-radius: 14px;
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            margin-bottom: 22px;
+            gap: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 12px;
         }
 
         .admin-tab-btn {
-            flex: 1;
-            padding: 10px 14px;
-            border: none;
-            background: transparent;
-            color: #94a3b8;
-            font-family: inherit;
-            font-size: 0.86rem;
-            font-weight: 700;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: var(--text-sub);
+            padding: 10px 20px;
             border-radius: 10px;
+            font-family: inherit;
+            font-size: 0.9rem;
+            font-weight: 600;
             cursor: pointer;
             display: flex;
             align-items: center;
-            justify-content: center;
             gap: 8px;
-            transition: all 0.25s ease;
+            transition: all 0.2s ease;
         }
 
         .admin-tab-btn:hover {
-            color: #ffffff;
-            background: rgba(255, 255, 255, 0.05);
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--text-main);
         }
 
         .admin-tab-btn.active {
-            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(37, 99, 235, 0.15));
+            border-color: rgba(59, 130, 246, 0.6);
             color: #ffffff;
-            box-shadow: 0 4px 18px rgba(37, 99, 235, 0.4);
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.3);
         }
 
         .tab-badge {
-            background: rgba(239, 68, 68, 0.9);
+            background: #ef4444;
             color: #fff;
-            font-size: 0.7rem;
-            padding: 1px 7px;
-            border-radius: 10px;
+            font-size: 0.72rem;
+            padding: 2px 7px;
+            border-radius: 20px;
             font-weight: 800;
         }
 
         .tab-badge.green {
-            background: rgba(16, 185, 129, 0.9);
+            background: #10b981;
         }
 
-        /* Tab Content Panel */
+        /* Tab Panels */
         .tab-panel {
             display: none;
             background: var(--bg-card);
-            border: 1.5px solid rgba(255, 255, 255, 0.1);
-            border-radius: 22px;
-            padding: 28px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
             backdrop-filter: blur(16px);
-            animation: fadeIn 0.25s ease;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 18px;
+            padding: 24px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
         }
 
         .tab-panel.active {
             display: block;
+            animation: fadeIn 0.25s ease;
         }
 
         @keyframes fadeIn {
@@ -162,14 +167,13 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        /* Section Titles */
         .panel-heading {
-            margin-bottom: 22px;
-            padding-bottom: 14px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
             display: flex;
             justify-content: space-between;
             align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 14px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
         }
 
         .panel-title {
@@ -187,16 +191,71 @@
             margin-top: 4px;
         }
 
-        /* Form Controls */
+        /* Metrics Row */
+        .metrics-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 14px;
+            margin-bottom: 20px;
+        }
+
+        .metric-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 14px;
+            padding: 14px 18px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-2px);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .metric-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .metric-card.blue .metric-icon { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
+        .metric-card.green .metric-icon { background: rgba(16, 185, 129, 0.15); color: #34d399; }
+        .metric-card.purple .metric-icon { background: rgba(139, 92, 246, 0.15); color: #c084fc; }
+        .metric-card.amber .metric-icon { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
+
+        .metric-val {
+            font-size: 1.45rem;
+            font-weight: 800;
+            color: #ffffff;
+            line-height: 1.2;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .metric-label {
+            font-size: 0.74rem;
+            color: var(--text-sub);
+            font-weight: 600;
+            margin-top: 2px;
+        }
+
+        /* Forms */
         .form-group {
             margin-bottom: 18px;
         }
 
         .form-label {
             display: block;
-            font-size: 0.84rem;
+            font-size: 0.82rem;
             font-weight: 700;
-            color: #e2e8f0;
+            color: #cbd5e1;
             margin-bottom: 8px;
         }
 
@@ -207,287 +266,444 @@
 
         .custom-input {
             flex: 1;
-            height: 46px;
-            background: rgba(0, 0, 0, 0.5);
-            border: 1.5px solid rgba(255, 255, 255, 0.14);
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.14);
             border-radius: 10px;
+            padding: 12px 16px;
             color: #ffffff;
             font-size: 0.95rem;
-            font-family: 'JetBrains Mono', 'Consolas', monospace;
-            font-weight: 700;
-            padding: 0 16px;
-            transition: all 0.25s ease;
+            outline: none;
+            transition: all 0.2s ease;
         }
 
         .custom-input:focus {
-            outline: none;
             border-color: #3b82f6;
-            box-shadow: 0 0 16px rgba(59, 130, 246, 0.4);
-            background: rgba(0, 0, 0, 0.7);
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.3);
+            background: rgba(0, 0, 0, 0.55);
         }
 
-        /* Duration Picker Cards */
+        .custom-input::placeholder {
+            color: #64748b;
+        }
+
+        /* Duration Cards Grid */
         .duration-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
             gap: 10px;
-            margin-top: 6px;
         }
 
         .duration-card {
             background: rgba(255, 255, 255, 0.03);
-            border: 1.5px solid rgba(255, 255, 255, 0.09);
-            border-radius: 12px;
-            padding: 12px 10px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 10px;
+            padding: 12px 8px;
             text-align: center;
             cursor: pointer;
             transition: all 0.2s ease;
-            user-select: none;
         }
 
         .duration-card:hover {
-            border-color: rgba(59, 130, 246, 0.6);
-            background: rgba(59, 130, 246, 0.08);
+            background: rgba(255, 255, 255, 0.07);
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
         }
 
         .duration-card.active {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.25), rgba(37, 99, 235, 0.15));
             border-color: #3b82f6;
-            background: linear-gradient(135deg, rgba(59, 130, 246, 0.28), rgba(37, 99, 235, 0.18));
-            box-shadow: 0 0 18px rgba(59, 130, 246, 0.35);
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.35);
         }
 
         .duration-title {
             font-size: 0.88rem;
-            font-weight: 800;
+            font-weight: 700;
             color: #ffffff;
         }
 
         .duration-desc {
-            font-size: 0.72rem;
+            font-size: 0.7rem;
             color: var(--text-sub);
             margin-top: 2px;
         }
 
-        /* Dual Action Buttons (Auto-Authorize vs Generate Key) */
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px 18px;
+            border-radius: 10px;
+            font-family: inherit;
+            font-size: 0.88rem;
+            font-weight: 700;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: #ffffff;
+            box-shadow: 0 4px 15px rgba(37, 99, 235, 0.35);
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #60a5fa, #3b82f6);
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            color: #ffffff;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.14);
+            border-color: rgba(255, 255, 255, 0.25);
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 0.78rem;
+            border-radius: 8px;
+        }
+
         .action-buttons-row {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 14px;
-            margin-top: 24px;
-        }
-
-        @media (max-width: 600px) {
-            .action-buttons-row {
-                grid-template-columns: 1fr;
-            }
+            margin-top: 20px;
         }
 
         .btn-action-primary {
-            height: 50px;
-            border: none;
-            border-radius: 12px;
-            font-family: inherit;
-            font-size: 0.94rem;
+            height: 52px;
+            font-size: 1rem;
             font-weight: 800;
-            color: #ffffff;
-            cursor: pointer;
+            border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 8px;
-            transition: all 0.25s ease;
+            gap: 10px;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s ease;
         }
 
         .btn-auto-auth {
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: #ffffff;
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.35);
         }
 
         .btn-auto-auth:hover {
+            background: linear-gradient(135deg, #34d399, #10b981);
             transform: translateY(-2px);
-            box-shadow: 0 8px 26px rgba(16, 185, 129, 0.6);
+            box-shadow: 0 0 25px rgba(16, 185, 129, 0.5);
         }
 
         .btn-gen-key {
-            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-            box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4);
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: #ffffff;
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.35);
         }
 
         .btn-gen-key:hover {
+            background: linear-gradient(135deg, #60a5fa, #3b82f6);
             transform: translateY(-2px);
-            box-shadow: 0 8px 26px rgba(37, 99, 235, 0.6);
+            box-shadow: 0 0 25px rgba(59, 130, 246, 0.5);
         }
 
         /* Result Cards */
         .result-box {
-            margin-top: 22px;
-            border-radius: 16px;
-            padding: 20px;
-            animation: fadeIn 0.3s ease;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 14px;
+            padding: 18px;
+            margin-top: 20px;
+            animation: fadeIn 0.25s ease;
         }
 
         .result-box.success {
-            background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(6, 95, 70, 0.25));
-            border: 2px solid #10b981;
-            box-shadow: 0 0 30px rgba(16, 185, 129, 0.25);
+            border: 1px solid rgba(16, 185, 129, 0.4);
+            box-shadow: 0 0 25px rgba(16, 185, 129, 0.2);
         }
 
         .result-box.blue {
-            background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(30, 58, 138, 0.25));
-            border: 2px solid #3b82f6;
-            box-shadow: 0 0 30px rgba(59, 130, 246, 0.25);
+            border: 1px solid rgba(59, 130, 246, 0.4);
+            box-shadow: 0 0 25px rgba(59, 130, 246, 0.2);
         }
 
         .result-key-text {
-            font-family: 'JetBrains Mono', 'Consolas', monospace;
+            font-family: 'JetBrains Mono', monospace;
             font-size: 1.45rem;
             font-weight: 800;
             color: #38bdf8;
             letter-spacing: 2px;
-            background: rgba(0, 0, 0, 0.55);
-            padding: 12px 18px;
-            border-radius: 10px;
-            border: 1px dashed #3b82f6;
             text-align: center;
-            margin: 12px 0 16px;
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px dashed rgba(56, 189, 248, 0.4);
+            border-radius: 10px;
+            padding: 12px;
+            margin: 14px 0;
             user-select: all;
         }
 
         .result-actions {
             display: flex;
             gap: 10px;
-            flex-wrap: wrap;
         }
 
-        /* Tracker Table */
+        /* Table Styling */
         .tracker-table-wrapper {
-            background: rgba(0, 0, 0, 0.4);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 14px;
             overflow-x: auto;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            background: rgba(0, 0, 0, 0.25);
             margin-top: 14px;
         }
 
         .tracker-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 0.82rem;
-            text-align: left;
+            font-size: 0.84rem;
         }
 
         .tracker-table th {
             background: rgba(255, 255, 255, 0.04);
-            color: #94a3b8;
+            color: #cbd5e1;
             font-weight: 700;
             padding: 12px 14px;
+            text-align: left;
             border-bottom: 1px solid rgba(255, 255, 255, 0.08);
             white-space: nowrap;
         }
 
         .tracker-table td {
             padding: 12px 14px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            color: #e2e8f0;
             vertical-align: middle;
         }
 
         .tracker-table tr:hover td {
-            background: rgba(255, 255, 255, 0.02);
+            background: rgba(255, 255, 255, 0.025);
         }
 
-        .user-pill {
+        /* Badges & Status */
+        .pulse-dot {
+            display: inline-block;
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            background-color: #10b981;
+            box-shadow: 0 0 8px #10b981;
+            animation: pulse 1.8s infinite;
+            margin-right: 6px;
+        }
+
+        .pulse-dot.offline {
+            background-color: #64748b;
+            box-shadow: none;
+            animation: none;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+            70% { transform: scale(1.1); box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+
+        .badge-status {
             display: inline-flex;
             align-items: center;
-            gap: 6px;
-            font-weight: 700;
-            color: #38bdf8;
-            background: rgba(56, 189, 248, 0.1);
-            padding: 3px 10px;
-            border-radius: 16px;
-            border: 1px solid rgba(56, 189, 248, 0.25);
-        }
-
-        .status-badge {
-            display: inline-block;
-            padding: 3px 8px;
-            border-radius: 6px;
-            font-size: 0.72rem;
-            font-weight: 700;
-        }
-
-        .status-unact {
-            background: rgba(239, 68, 68, 0.2);
-            color: #f87171;
-            border: 1px solid rgba(239, 68, 68, 0.4);
-        }
-
-        .status-active {
-            background: rgba(16, 185, 129, 0.2);
-            color: #34d399;
-            border: 1px solid rgba(16, 185, 129, 0.4);
-        }
-
-        .btn-table-sm {
             padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+
+        .badge-active {
+            background: rgba(16, 185, 129, 0.15);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.35);
+        }
+
+        .badge-expired {
+            background: rgba(239, 68, 68, 0.15);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.35);
+        }
+
+        .badge-revoked {
+            background: rgba(220, 38, 38, 0.25);
+            color: #fca5a5;
+            border: 1px solid #ef4444;
+            font-weight: 800;
+        }
+
+        .badge-unact {
+            background: rgba(148, 163, 184, 0.12);
+            color: #94a3b8;
+            border: 1px solid rgba(148, 163, 184, 0.25);
+        }
+
+        /* Table Action Buttons */
+        .btn-table {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            padding: 5px 10px;
             font-size: 0.74rem;
             font-weight: 700;
             border-radius: 6px;
+            border: 1px solid transparent;
+            cursor: pointer;
+            transition: all 0.18s ease;
+        }
+
+        .btn-table-add {
+            background: rgba(16, 185, 129, 0.15);
+            border-color: rgba(16, 185, 129, 0.4);
+            color: #34d399;
+        }
+        .btn-table-add:hover {
+            background: #10b981;
+            color: #ffffff;
+        }
+
+        .btn-table-sub {
+            background: rgba(245, 158, 11, 0.15);
+            border-color: rgba(245, 158, 11, 0.4);
+            color: #fbbf24;
+        }
+        .btn-table-sub:hover {
+            background: #f59e0b;
+            color: #ffffff;
+        }
+
+        .btn-table-transfer {
+            background: rgba(59, 130, 246, 0.15);
+            border-color: rgba(59, 130, 246, 0.4);
+            color: #60a5fa;
+        }
+        .btn-table-transfer:hover {
+            background: #3b82f6;
+            color: #ffffff;
+        }
+
+        .btn-table-revoke {
+            background: rgba(239, 68, 68, 0.15);
+            border-color: rgba(239, 68, 68, 0.4);
+            color: #f87171;
+        }
+        .btn-table-revoke:hover {
+            background: #ef4444;
+            color: #ffffff;
+        }
+
+        .btn-table-edit {
+            background: transparent;
             border: none;
+            color: #94a3b8;
+            cursor: pointer;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+        }
+        .btn-table-edit:hover {
+            color: #38bdf8;
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        /* Filter Pills */
+        .filter-pill {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: var(--text-sub);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.78rem;
+            font-weight: 700;
             cursor: pointer;
             transition: all 0.2s ease;
         }
-
-        .btn-quick-auth {
-            background: rgba(16, 185, 129, 0.2);
-            color: #34d399;
-            border: 1px solid #10b981;
+        .filter-pill:hover {
+            background: rgba(255, 255, 255, 0.08);
+            color: #ffffff;
         }
-        .btn-quick-auth:hover {
-            background: #10b981;
-            color: #fff;
-        }
-
-        .btn-quick-fill {
-            background: rgba(59, 130, 246, 0.2);
-            color: #93c5fd;
-            border: 1px solid #3b82f6;
-        }
-        .btn-quick-fill:hover {
-            background: #3b82f6;
-            color: #fff;
+        .filter-pill.active {
+            background: rgba(59, 130, 246, 0.25);
+            border-color: #3b82f6;
+            color: #38bdf8;
         }
 
-        /* History List */
-        .history-box {
-            margin-top: 24px;
-            background: rgba(0, 0, 0, 0.35);
-            border-radius: 14px;
-            padding: 16px;
-            border: 1px solid rgba(255, 255, 255, 0.06);
-        }
-
-        .history-list {
-            max-height: 200px;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            margin-top: 10px;
-        }
-
-        .history-item {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            border-radius: 8px;
-            padding: 8px 12px;
-            display: flex;
+        /* Modal Overlay */
+        .admin-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(8px);
+            display: none;
             align-items: center;
-            justify-content: space-between;
-            font-size: 0.78rem;
-            gap: 10px;
+            justify-content: center;
+            z-index: 10000;
+            padding: 20px;
         }
 
-        .history-item:hover {
-            background: rgba(255, 255, 255, 0.05);
+        .admin-modal-overlay.active {
+            display: flex;
+            animation: fadeIn 0.2s ease;
+        }
+
+        .admin-modal-card {
+            background: #0f172a;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 16px;
+            max-width: 520px;
+            width: 100%;
+            padding: 24px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.8);
+        }
+
+        .admin-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .admin-modal-title {
+            font-size: 1.1rem;
+            font-weight: 800;
+            color: #ffffff;
+        }
+
+        .admin-modal-close {
+            background: transparent;
+            border: none;
+            color: #94a3b8;
+            font-size: 1.4rem;
+            cursor: pointer;
+        }
+        .admin-modal-close:hover { color: #ffffff; }
+
+        .admin-modal-body {
+            font-size: 0.86rem;
+            color: #cbd5e1;
+            line-height: 1.5;
+            margin-bottom: 20px;
+        }
+
+        .admin-modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
         }
 
         /* Toast Notifications */
@@ -498,7 +714,7 @@
             display: flex;
             flex-direction: column;
             gap: 10px;
-            z-index: 9999;
+            z-index: 99999;
         }
 
         .toast {
@@ -522,39 +738,45 @@
         <!-- Top Header Bar -->
         <div class="admin-top-bar">
             <div class="admin-brand">
-                <div class="admin-brand-icon">🔐</div>
+                <img src="/admin_logo.png" alt="PS Admin Logo">
                 <div>
                     <h1 class="admin-brand-title">PS DOWNLOAD - ADMIN CONTROL CENTER</h1>
-                    <p class="admin-brand-subtitle">ប្រព័ន្ធបង្កើត License Key, បើកសិទ្ធិអូតូ និងតាមដានម៉ាស៊ីនពន្លាហ្វាល (Anti-Leak Tracker)</p>
+                    <p class="admin-brand-subtitle">ប្រព័ន្ធបង្កើត License Key, បើកសិទ្ធិអូតូ និងគ្រប់គ្រងម៉ាស៊ីន (Machine &amp; License Manager)</p>
                 </div>
             </div>
-            <div>
-                <a href="/" class="btn btn-secondary" style="height:36px; font-size:0.8rem; text-decoration:none; display:inline-flex; align-items:center; gap:6px;">
-                    <span>←</span> <span>ត្រឡប់ទៅ App</span>
-                </a>
+            <div style="display:flex; align-items:center; gap:10px;">
+                <span style="font-size:0.8rem; font-weight:700; color:#34d399; background:rgba(16,185,129,0.15); border:1px solid rgba(16,185,129,0.3); padding:4px 12px; border-radius:20px;">
+                    🛡️ Admin Panel 24/7 (Isolated)
+                </span>
             </div>
         </div>
 
         <!-- Navigation Tabs -->
         <div class="admin-tabs">
             <button type="button" class="admin-tab-btn active" onclick="switchTab('tabKeygen', this)">
-                <span>⚡</span> <span>បើកសិទ្ធិ & បង្កើត Key</span>
+                <span>⚡</span> <span>បើកសិទ្ធិ &amp; បង្កើត Key</span>
             </button>
             <button type="button" class="admin-tab-btn" onclick="switchTab('tabTracker', this)">
-                <span>🛡️</span> <span>បញ្ជីតាមដានម៉ាស៊ីន & Telegram</span>
-                <span class="tab-badge" id="trackerCountBadge">0</span>
+                <span>💻</span> <span>គ្រប់គ្រងម៉ាស៊ីន &amp; ឡាយសិន</span>
+                <span class="tab-badge green" id="trackerOnlineCountBadge">0</span>
+            </button>
+            <button type="button" class="admin-tab-btn" onclick="switchTab('tabCrackTracker', this)">
+                <span>🚨</span> <span>តាមដានអ្នកលួច Crack (Anti-Crack &amp; Maps)</span>
+                <span class="tab-badge" id="crackCountBadge" style="display:none;">0</span>
             </button>
             <button type="button" class="admin-tab-btn" onclick="switchTab('tabTelegram', this)">
                 <span>🤖</span> <span>Telegram Bot Alerts</span>
             </button>
         </div>
 
-        <!-- TAB 1: Keygen & Auto Authorize -->
+        <!-- ============================================== -->
+        <!-- TAB 1: KEYGEN & AUTO AUTHORIZE -->
+        <!-- ============================================== -->
         <div id="tabKeygen" class="tab-panel active">
             <div class="panel-heading">
                 <div>
-                    <h2 class="panel-title">⚡ ផ្ដល់សិទ្ធិប្រើប្រាស់កម្មវិធី (Authorize & Keygen)</h2>
-                    <p class="panel-desc">បញ្ចូលលេខកូដម៉ាស៊ីនរបស់ភ្ញៀវ រួចជ្រើសរើសបើកសិទ្ធិអូតូ ឬបង្កើត Key ផ្ញើឱ្យគាត់វ៉ៃដោយខ្លួនឯង</p>
+                    <h2 class="panel-title">⚡ បើកសិទ្ធិ ឬបង្កើត License Key ជូនភ្ញៀវ</h2>
+                    <p class="panel-desc">គ្រាន់តែបិទភ្ជាប់លេខម៉ាស៊ីន (Device ID) របស់ភ្ញៀវ រួចជ្រើសរើសចំនួនថ្ងៃ ហើយចុចបើកសិទ្ធិ ឬបង្កើត Key បានភ្លាមៗ</p>
                 </div>
             </div>
 
@@ -562,65 +784,66 @@
             <div class="form-group">
                 <label class="form-label">💻 លេខសម្គាល់ម៉ាស៊ីនភ្ញៀវ (Client Device ID):</label>
                 <div class="input-row">
-                    <input type="text" id="adminDeviceId" class="custom-input" placeholder="ឧ. HG-DBC0-79F8-FD0C" autocomplete="off" spellcheck="false">
+                    <input type="text" id="adminDeviceId" class="custom-input" placeholder="ឧ. HG-DBC0-79F8-FD0C" autocomplete="off" spellcheck="false" style="font-family:'JetBrains Mono', monospace; font-weight:700;">
                     <button type="button" class="btn btn-secondary" onclick="pasteAdminDeviceId()" style="height:46px; padding:0 18px; font-weight:700;">
                         <span>📋</span> <span>Paste</span>
                     </button>
                 </div>
             </div>
 
-            <!-- Client Telegram Username -->
+            <!-- Client Nickname / Tag -->
             <div class="form-group">
-                <label class="form-label">👤 ឈ្មោះ Telegram ភ្ញៀវ (Client Telegram Username - ស្រេចចិត្ត):</label>
-                <input type="text" id="adminTelegramUser" class="custom-input" placeholder="ឧ. @username" autocomplete="off" spellcheck="false" style="font-family:inherit;">
+                <label class="form-label">👤 ឈ្មោះសម្គាល់ភ្ញៀវ (Customer Name / Nickname - ស្រេចចិត្ត):</label>
+                <div class="input-row">
+                    <input type="text" id="adminCustomerName" class="custom-input" placeholder="ឧ. បង សុខ, ភ្ញៀវ VIP ភ្នំពេញ, ម៉ាស៊ីនទី 1..." autocomplete="off">
+                    <input type="text" id="adminTelegramUser" class="custom-input" placeholder="Telegram: @username" style="max-width:220px;" autocomplete="off">
+                </div>
             </div>
 
-            <!-- Duration Selection -->
+            <!-- Duration Selection Pills -->
             <div class="form-group">
-                <label class="form-label">⏱️ ជ្រើសរើសចំនួនថ្ងៃ / សុពលភាព (Duration):</label>
-                <div class="duration-grid" id="durationGrid">
-                    <div class="duration-card active" data-days="0" onclick="selectDuration(this, 0)">
-                        <div class="duration-title">🌟 ពេញមួយជីវិត</div>
-                        <div class="duration-desc">Lifetime VIP</div>
+                <label class="form-label">⏱️ ជ្រើសរើសរយៈពេល / សុពលភាព (Duration):</label>
+                <div class="duration-grid" id="durationGridSingle">
+                    <div class="duration-card" data-val="1" onclick="selectDuration(this, 1)">
+                        <div class="duration-title">⏱️ ១ ថ្ងៃ</div>
+                        <div class="duration-desc">1 Day Trial</div>
                     </div>
-                    <div class="duration-card" data-days="7" onclick="selectDuration(this, 7)">
-                        <div class="duration-title">⏱️ ៧ ថ្ងៃ ($1.50)</div>
+                    <div class="duration-card" data-val="7" onclick="selectDuration(this, 7)">
+                        <div class="duration-title">⏱️ ៧ ថ្ងៃ</div>
                         <div class="duration-desc">1 Week (7d)</div>
                     </div>
-                    <div class="duration-card" data-days="30" onclick="selectDuration(this, 30)">
-                        <div class="duration-title">🌟 ៣០ ថ្ងៃ ($5.99)</div>
+                    <div class="duration-card active" data-val="30" onclick="selectDuration(this, 30)">
+                        <div class="duration-title">🌟 ៣០ ថ្ងៃ</div>
                         <div class="duration-desc">1 Month (30d)</div>
                     </div>
-                    <div class="duration-card" data-days="60" onclick="selectDuration(this, 60)">
+                    <div class="duration-card" data-val="60" onclick="selectDuration(this, 60)">
                         <div class="duration-title">⏱️ ៦០ ថ្ងៃ</div>
                         <div class="duration-desc">2 Months (60d)</div>
                     </div>
-                    <div class="duration-card" data-days="90" onclick="selectDuration(this, 90)">
-                        <div class="duration-title">⏱️ ៩០ ថ្ងៃ</div>
-                        <div class="duration-desc">3 Months (90d)</div>
-                    </div>
-                    <div class="duration-card" data-days="365" onclick="selectDuration(this, 365)">
+                    <div class="duration-card" data-val="365" onclick="selectDuration(this, 365)">
                         <div class="duration-title">⏱️ ៣៦៥ ថ្ងៃ</div>
                         <div class="duration-desc">1 Year (365d)</div>
                     </div>
+                    <div class="duration-card" data-val="0" onclick="selectDuration(this, 0)">
+                        <div class="duration-title">👑 ពេញមួយជីវិត</div>
+                        <div class="duration-desc">Lifetime VIP</div>
+                    </div>
                 </div>
 
-                <div style="margin-top:10px; display:flex; align-items:center; gap:8px;">
-                    <span style="font-size:0.8rem; color:var(--text-sub);">ឬវាយចំនួនថ្ងៃផ្ទាល់ខ្លួន:</span>
-                    <input type="number" id="customDaysInput" placeholder="ចំនួនថ្ងៃ..." min="1" max="999" style="width:110px; height:34px; background:rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.15); border-radius:6px; color:#fff; padding:0 8px; font-size:0.85rem;" oninput="onCustomDaysInput(this.value)">
+                <div style="margin-top:12px; display:flex; align-items:center; gap:8px;">
+                    <span style="font-size:0.82rem; color:var(--text-sub);">ឬវាយចំនួនថ្ងៃផ្ទាល់ខ្លួន:</span>
+                    <input type="number" id="customDaysInput" placeholder="ចំនួនថ្ងៃ..." min="1" max="9999" style="width:110px; height:36px; background:rgba(0,0,0,0.5); border:1px solid rgba(255,255,255,0.18); border-radius:8px; color:#fff; padding:0 10px; font-size:0.88rem; font-weight:700;" oninput="onCustomDaysInput()">
+                    <span style="font-size:0.82rem; color:var(--text-sub);">ថ្ងៃ (Days)</span>
                 </div>
             </div>
 
             <!-- Two Big Action Buttons -->
             <div class="action-buttons-row">
-                <!-- Option 1: Auto Authorize -->
                 <button type="button" class="btn-action-primary btn-auto-auth" onclick="executeAutoAuthorize()">
-                    <span>🌐</span> <span>បើកសិទ្ធិអូតូ (Auto Authorize)</span>
+                    <span>⚡</span> <span>បើកសិទ្ធិអូតូ (Auto Authorize)</span>
                 </button>
-
-                <!-- Option 2: Generate Key for manual entry -->
                 <button type="button" class="btn-action-primary btn-gen-key" onclick="executeGenerateKey()">
-                    <span>🔑</span> <span>បង្កើត License Key ផ្ញើឱ្យភ្ញៀវ</span>
+                    <span>🔑</span> <span>បង្កើត License Key សម្រាប់ម៉ាស៊ីននេះ</span>
                 </button>
             </div>
 
@@ -630,7 +853,7 @@
                     <div style="font-weight:800; color:#34d399; font-size:1.05rem;">
                         ✅ បានបើកសិទ្ធិអូតូជូនម៉ាស៊ីនជោគជ័យ!
                     </div>
-                    <span id="autoAuthDurationTag" class="badge" style="background:#10b981; color:#fff; font-weight:800; padding:4px 10px;"></span>
+                    <span id="autoAuthDurationTag" class="badge" style="background:#10b981; color:#fff; font-weight:800; padding:4px 10px; border-radius:6px;"></span>
                 </div>
                 <p style="font-size:0.85rem; color:#e2e8f0; margin:10px 0 14px; line-height:1.5;">
                     👉 <b>ឥឡូវនេះ៖</b> ប្រាប់ភ្ញៀវឱ្យចុចពាក្យថា <b>«ផ្ទុកឡើងវិញ (Refresh)»</b> នៅលើផ្ទាំងកម្មវិធីរបស់គាត់ នោះកម្មវិធីនឹងដំណើរការភ្លាមដោយស្វ័យប្រវត្តិ!
@@ -648,88 +871,120 @@
                     <div style="font-weight:800; color:#38bdf8; font-size:1.05rem;">
                         ✨ បានបង្កើត License Key ជោគជ័យ!
                     </div>
-                    <span id="keyGenDurationTag" class="badge" style="background:#2563eb; color:#fff; font-weight:800; padding:4px 10px;"></span>
+                    <span id="keyGenDurationTag" class="badge" style="background:#2563eb; color:#fff; font-weight:800; padding:4px 10px; border-radius:6px;"></span>
                 </div>
                 <div id="keyGenDisplay" class="result-key-text">LIFE-0000-0000-0000</div>
                 <div class="result-actions">
                     <button type="button" class="btn btn-primary" onclick="copyResultKeyOnly()" style="flex:1; height:42px; font-size:0.85rem; background:#2563eb;">
-                        <span>📋</span> <span id="btnCopyKeyOnlyText">ចម្លង License Key</span>
+                        <span>📋</span> <span>ចម្លង License Key</span>
                     </button>
                     <button type="button" class="btn btn-secondary" onclick="copyTelegramKeyTemplate()" style="flex:1.2; height:42px; font-size:0.85rem;">
-                        <span>💬</span> <span id="btnCopyKeyTelegramText">ចម្លងសារ Telegram សម្រាប់ផ្ញើ</span>
+                        <span>💬</span> <span>ចម្លងសារ Telegram សម្រាប់ផ្ញើ</span>
                     </button>
-                </div>
-            </div>
-
-            <!-- Recent Generated Keys History -->
-            <div class="history-box">
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <span style="font-size:0.86rem; font-weight:700; color:#cbd5e1;">📋 ប្រវត្តិ License Key ដែលបានបង្កើតកន្លងមក</span>
-                    <button type="button" class="btn btn-secondary btn-sm" onclick="loadHistory()" style="font-size:0.72rem; padding:2px 8px;">🔄 ផ្ទុកឡើងវិញ</button>
-                </div>
-                <div class="history-list" id="historyList">
-                    <div style="text-align:center; color:var(--text-sub); padding:10px; font-size:0.78rem;">មិនទាន់មានប្រវត្តិបង្កើតឡើយ</div>
                 </div>
             </div>
         </div>
 
-        <!-- TAB 2: Anti-Crack Device Tracker -->
+        <!-- ============================================== -->
+        <!-- TAB 2: ACTIVE MACHINES & LICENSE MANAGER -->
+        <!-- ============================================== -->
         <div id="tabTracker" class="tab-panel">
             <div class="panel-heading">
                 <div>
-                    <h2 class="panel-title">🛡️ បញ្ជីតាមដានម៉ាស៊ីនពន្លាហ្វាល & Telegram (Anti-Hack / Anti-Leak Tracker)</h2>
-                    <p class="panel-desc">រាល់កុំព្យូទ័រណាដែលបានពន្លាហ្វាល ឬបើកកម្មវិធី នឹងបង្ហាញ Telegram និងលេខម៉ាស៊ីននៅទីនេះ ទោះមិនទាន់ទិញ Key ក៏ដោយ!</p>
+                    <h2 class="panel-title">💻 តារាងគ្រប់គ្រងម៉ាស៊ីន &amp; ឡាយសិន (Machines &amp; Licenses Manager)</h2>
+                    <p class="panel-desc">តាមដានម៉ាស៊ីនកំពុង Online/Offline, មើលថ្ងៃសរុប &amp; ថ្ងៃនៅសល់, កែប្រែឈ្មោះ, បន្ថែម/បន្ថយថ្ងៃ, ផ្ទេរ License ឬដកហូតភ្លាមៗ</p>
                 </div>
                 <div style="display:flex; gap:8px;">
-                    <button type="button" class="btn btn-secondary btn-sm" onclick="loadTrackedDevices()" style="height:34px; padding:0 12px; font-size:0.78rem;">
-                        <span>🔄</span> <span>ផ្ទុកឡើងវិញ (Refresh)</span>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="loadTrackedDevices()" style="height:36px; padding:0 14px; font-weight:700;">
+                        <span>🔄</span> <span>ផ្ទុកទិន្នន័យឡើងវិញ</span>
                     </button>
                 </div>
             </div>
 
-            <!-- Tracker Search Bar -->
-            <div style="display:flex; gap:10px; align-items:center; margin-bottom:12px;">
-                <input type="text" id="trackerSearchInput" class="custom-input" placeholder="🔍 ស្វែងរកតាមឈ្មោះ Telegram ឬលេខម៉ាស៊ីន..." style="height:38px; font-size:0.85rem; font-family:inherit;" oninput="filterTrackerList(this.value)">
-                <div style="font-size:0.8rem; color:var(--text-sub); white-space:nowrap;">
-                    សរុប: <b id="trackerTotalCountText" style="color:#38bdf8;">0</b> ម៉ាស៊ីន
+            <!-- Stats Overview Cards -->
+            <div class="metrics-row">
+                <div class="metric-card blue">
+                    <div class="metric-icon">🖥️</div>
+                    <div>
+                        <div class="metric-val" id="metricTotalDevices">0</div>
+                        <div class="metric-label">ម៉ាស៊ីនសរុប (Total)</div>
+                    </div>
+                </div>
+                <div class="metric-card green">
+                    <div class="metric-icon">🟢</div>
+                    <div>
+                        <div class="metric-val" id="metricOnlineDevices">0</div>
+                        <div class="metric-label">កំពុង Online (Active Now)</div>
+                    </div>
+                </div>
+                <div class="metric-card purple">
+                    <div class="metric-icon">✅</div>
+                    <div>
+                        <div class="metric-val" id="metricActiveLicenses">0</div>
+                        <div class="metric-label">មាន License សកម្ម</div>
+                    </div>
+                </div>
+                <div class="metric-card amber">
+                    <div class="metric-icon">⚠️</div>
+                    <div>
+                        <div class="metric-val" id="metricExpiredRevoked">0</div>
+                        <div class="metric-label">ផុតកំណត់ / ដកហូត</div>
+                    </div>
                 </div>
             </div>
 
-            <!-- Table of Tracked Machines -->
+            <!-- Search and Filter Bar -->
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:12px;">
+                <div style="display:flex; gap:8px; align-items:center; flex:1; min-width:280px;">
+                    <input type="text" id="trackerSearchInput" class="custom-input" placeholder="🔍 ស្វែងរកតាមឈ្មោះភ្ញៀវ, Telegram, ឬ Device ID..." style="height:40px; font-size:0.86rem;" oninput="applyFilter()">
+                </div>
+                <div style="display:flex; gap:6px;">
+                    <button type="button" class="filter-pill active" data-filter="all" onclick="setFilter('all', this)">ទាំងអស់</button>
+                    <button type="button" class="filter-pill" data-filter="online" onclick="setFilter('online', this)">🟢 Online</button>
+                    <button type="button" class="filter-pill" data-filter="active" onclick="setFilter('active', this)">⏳ មាន License</button>
+                    <button type="button" class="filter-pill" data-filter="expired" onclick="setFilter('expired', this)">🔴 ផុតកំណត់/ដកហូត</button>
+                </div>
+            </div>
+
+            <!-- Machines Table -->
             <div class="tracker-table-wrapper">
                 <table class="tracker-table">
                     <thead>
                         <tr>
-                            <th>👤 ឈ្មោះ Telegram</th>
-                            <th>💻 Device ID (លេខម៉ាស៊ីន)</th>
-                            <th>🖥️ កុំព្យូទ័រ / User</th>
-                            <th>🕒 ពេលបើកចុងក្រោយ</th>
-                            <th>🏷️ ស្ថានភាព</th>
-                            <th style="text-align:right;">⚡ សកម្មភាពរហ័ស (Quick Actions)</th>
+                            <th>👤 ឈ្មោះភ្ញៀវ / សម្គាល់</th>
+                            <th>💻 លេខម៉ាស៊ីន (Device ID)</th>
+                            <th>📶 ស្ថានភាព Online</th>
+                            <th>⏳ ចំនួនថ្ងៃ &amp; ថ្ងៃនៅសល់</th>
+                            <th style="text-align:right;">⚡ សកម្មភាពគ្រប់គ្រង (Admin Actions)</th>
                         </tr>
                     </thead>
                     <tbody id="trackerTableBody">
                         <tr>
-                            <td colspan="6" style="text-align:center; color:var(--text-sub); padding:24px;">កំពុងទាញយកទិន្នន័យ...</td>
+                            <td colspan="5" style="text-align:center; color:var(--text-sub); padding:28px;">កំពុងទាញយកទិន្នន័យ...</td>
                         </tr>
                     </tbody>
                 </table>
             </div>
 
-            <!-- Section 2: Incoming Payment Requests -->
+            <!-- Payment Notifications Section -->
             <div style="margin-top:28px; padding-top:20px; border-top:1px solid rgba(255,255,255,0.08);">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
                     <div>
-                        <h3 style="font-size:1.05rem; font-weight:800; color:#34d399; display:flex; align-items:center; gap:8px;">
+                        <h3 style="font-size:1.02rem; font-weight:800; color:#34d399; display:flex; align-items:center; gap:8px;">
                             <span>💰</span> <span>សារជូនដំណឹងការបង់ប្រាក់ពីភ្ញៀវ (Payment Notifications)</span>
                         </h3>
                         <p style="font-size:0.75rem; color:var(--text-sub); margin-top:2px;">
-                            រាល់ពេលភ្ញៀវស្កេនបាញ់លុយរួចហើយចុច Notify វានឹងបង្ហាញនៅទីនេះ ដើម្បីឱ្យ Admin បើកសិទ្ធិជូនគាត់
+                            បង្ហាញតែការបង់ប្រាក់ដែលបានផ្ទៀងផ្ទាត់ទទួលស្គាល់ដោយ Bot Telegram ឬការទិញស្វ័យប្រវត្តិតែប៉ុណ្ណោះ
                         </p>
                     </div>
-                    <button type="button" class="btn btn-secondary btn-sm" onclick="loadPayments()" style="font-size:0.72rem; padding:2px 8px;">
-                        🔄 ផ្ទុកឡើងវិញ
-                    </button>
+                    <div style="display:flex; gap:8px;">
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="loadPayments()">
+                            🔄 ផ្ទុកឡើងវិញ
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="clearPaymentsList()" style="background:rgba(239,68,68,0.18); border-color:#ef4444; color:#fca5a5;">
+                            🧹 សំអាតបញ្ជី
+                        </button>
+                    </div>
                 </div>
 
                 <div class="tracker-table-wrapper">
@@ -754,7 +1009,56 @@
             </div>
         </div>
 
-        <!-- TAB 3: Telegram Bot Alerts Config -->
+        <!-- ============================================== -->
+        <!-- TAB 3: ANTI-CRACK & MAPS TRACKER -->
+        <!-- ============================================== -->
+        <div id="tabCrackTracker" class="tab-panel">
+            <div class="panel-heading">
+                <div>
+                    <h2 class="panel-title" style="color:#f87171;">🚨 តាមដានអ្នកព្យាយាម Hack / Crack កម្មវិធី (Anti-Crack &amp; Maps Tracker)</h2>
+                    <p class="panel-desc">ចាប់ Device ID, Telegram, កុំព្យូទ័រ, IP, ទីក្រុង និងមានប៊ូតុងចុចមើលទីតាំងលើផែនទី Google Maps ជាក់លាក់</p>
+                </div>
+                <div style="display:flex; gap:8px;">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="loadCrackSuspects()">
+                        🔄 ផ្ទុកឡើងវិញ
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="clearCrackHistory()" style="background:rgba(239,68,68,0.18); border-color:#ef4444; color:#fca5a5;">
+                        🧹 សំអាតប្រវត្តិ Hack
+                    </button>
+                </div>
+            </div>
+
+            <div style="background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.25); border-radius:12px; padding:14px; margin-bottom:18px; font-size:0.82rem; line-height:1.6; color:#fca5a5;">
+                🛡️ <b>ប្រព័ន្ធ Cyber Security ស្វ័យប្រវត្ត ២៤/៧:</b><br>
+                • ម៉ាស៊ីនណាដែលវាយ License Key ខុសលើសពី <b>4 ដង</b> នឹងត្រូវបញ្ជូនទីតាំង Google Maps, IP, និងគណនី Telegram មកកាន់ Admin ភ្លាមៗ<br>
+                • ដល់លើកទី <b>5</b> ប្រព័ន្ធនឹងចាក់សោរ (Auto-Lock) ម៉ាស៊ីននោះភ្លាម មិនឱ្យបន្តវាយ Brute-Force បានឡើយ!
+            </div>
+
+            <div class="tracker-table-wrapper">
+                <table class="tracker-table">
+                    <thead>
+                        <tr>
+                            <th>👤 Telegram / កុំព្យូទ័រ</th>
+                            <th>💻 Device ID ជនសង្ស័យ</th>
+                            <th>❌ ដងវាយខុស</th>
+                            <th>🔑 កូដដែលគេសាកល្បង</th>
+                            <th>🗺️ ទីតាំង &amp; Google Maps</th>
+                            <th>🕒 ម៉ោងព្យាយាមចុងក្រោយ</th>
+                            <th style="text-align:right;">⚡ ចំណាត់ការ</th>
+                        </tr>
+                    </thead>
+                    <tbody id="crackSuspectsTableBody">
+                        <tr>
+                            <td colspan="7" style="text-align:center; color:var(--text-sub); padding:28px;">មិនមានអ្នកព្យាយាម Hack/Crack ឡើយ (ប្រព័ន្ធសុវត្ថិភាពល្អ ១០០%)</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ============================================== -->
+        <!-- TAB 4: TELEGRAM BOT CONFIG -->
+        <!-- ============================================== -->
         <div id="tabTelegram" class="tab-panel">
             <div class="panel-heading">
                 <div>
@@ -804,15 +1108,118 @@
         </div>
     </div>
 
+    <!-- ============================================== -->
+    <!-- INTERACTIVE MODALS FOR MACHINE MANAGEMENT -->
+    <!-- ============================================== -->
+
+    <!-- 1. Edit Customer Name Modal -->
+    <div id="modalEditName" class="admin-modal-overlay">
+        <div class="admin-modal-card">
+            <div class="admin-modal-header">
+                <h3 class="admin-modal-title">✏️ កែប្រែឈ្មោះសម្គាល់ភ្ញៀវ</h3>
+                <button type="button" class="admin-modal-close" onclick="closeModal('modalEditName')">&times;</button>
+            </div>
+            <div class="admin-modal-body">
+                <p style="margin-bottom:10px;">លេខម៉ាស៊ីន: <code id="editNameDeviceId" style="color:#38bdf8; font-weight:700;"></code></p>
+                <input type="text" id="editNameInput" class="custom-input" placeholder="វាយឈ្មោះភ្ញៀវ (ឧ. បង សុខ, ភ្ញៀវ VIP)..." style="width:100%;">
+            </div>
+            <div class="admin-modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('modalEditName')">បោះបង់</button>
+                <button type="button" class="btn btn-primary" onclick="submitEditName()">💾 រក្សាទុកឈ្មោះ</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. Adjust Days Modal (+/-) -->
+    <div id="modalAdjustDays" class="admin-modal-overlay">
+        <div class="admin-modal-card">
+            <div class="admin-modal-header">
+                <h3 class="admin-modal-title" id="adjustDaysTitle">⏱️ កែសម្រួលថ្ងៃប្រើប្រាស់</h3>
+                <button type="button" class="admin-modal-close" onclick="closeModal('modalAdjustDays')">&times;</button>
+            </div>
+            <div class="admin-modal-body">
+                <p style="margin-bottom:6px;">ម៉ាស៊ីន: <code id="adjustDaysDeviceId" style="color:#38bdf8; font-weight:700;"></code></p>
+                <p style="margin-bottom:14px; font-size:0.8rem; color:#94a3b8;" id="adjustDaysCurrentInfo"></p>
+                
+                <div style="display:flex; gap:8px; margin-bottom:14px;">
+                    <button type="button" class="filter-pill active" id="btnModeAddDays" onclick="setAdjustMode('add')">➕ បន្ថែមថ្ងៃ (+ Days)</button>
+                    <button type="button" class="filter-pill" id="btnModeSubDays" onclick="setAdjustMode('sub')">➖ បន្ថយថ្ងៃ (- Days)</button>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" id="adjustDaysInputLabel">ចំនួនថ្ងៃត្រូវបន្ថែម:</label>
+                    <div style="display:flex; gap:8px; align-items:center;">
+                        <input type="number" id="adjustDaysCountInput" class="custom-input" min="1" max="9999" value="7" style="font-weight:700; font-size:1.1rem; width:120px;">
+                        <span style="font-size:0.9rem; font-weight:700; color:#cbd5e1;">ថ្ងៃ (Days)</span>
+                    </div>
+                </div>
+
+                <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="setQuickAdjust(1)">1 ថ្ងៃ</button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="setQuickAdjust(7)">7 ថ្ងៃ</button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="setQuickAdjust(15)">15 ថ្ងៃ</button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="setQuickAdjust(30)">30 ថ្ងៃ</button>
+                </div>
+            </div>
+            <div class="admin-modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('modalAdjustDays')">បោះបង់</button>
+                <button type="button" class="btn btn-primary" id="btnSubmitAdjustDays" onclick="submitAdjustDays()">យល់ព្រម</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Transfer License Modal -->
+    <div id="modalTransfer" class="admin-modal-overlay">
+        <div class="admin-modal-card">
+            <div class="admin-modal-header">
+                <h3 class="admin-modal-title" style="color:#38bdf8;">🔄 ផ្ទេរ License ទៅម៉ាស៊ីនថ្មី</h3>
+                <button type="button" class="admin-modal-close" onclick="closeModal('modalTransfer')">&times;</button>
+            </div>
+            <div class="admin-modal-body">
+                <div style="background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); border-radius:10px; padding:12px; margin-bottom:14px; font-size:0.8rem; color:#fca5a5; line-height:1.5;">
+                    ⚠️ <b>ការបញ្ជាក់៖</b> ពេលផ្ទេរជោគជ័យ ម៉ាស៊ីនចាស់ (ទី 1) នឹងត្រូវ<b>ដកហូតថ្ងៃចេញទាំងអស់ភ្លាមៗ</b> មិនអាចលេងបានទៀតទេ ដើម្បីការពារកុំឱ្យភ្ញៀវប្រើបានទាំងពីរម៉ាស៊ីន!
+                </div>
+
+                <p style="margin-bottom:6px;">ម៉ាស៊ីនចាស់ (ទី 1): <code id="transferFromDeviceId" style="color:#f87171; font-weight:700;"></code></p>
+                <p style="margin-bottom:14px; font-size:0.85rem; color:#34d399; font-weight:700;" id="transferRemainingDaysInfo">
+                    ថ្ងៃនៅសល់ត្រូវផ្ទេរ: ...
+                </p>
+
+                <div class="form-group">
+                    <label class="form-label">💻 លេខម៉ាស៊ីនថ្មី (Device ID ទី 2 របស់ភ្ញៀវ):</label>
+                    <input type="text" id="transferToDeviceIdInput" class="custom-input" placeholder="ឧ. HG-XXXX-XXXX-XXXX" style="width:100%; font-family:'JetBrains Mono', monospace; font-weight:700;">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">👤 ឈ្មោះសម្គាល់ម៉ាស៊ីនថ្មី (ស្រេចចិត្ត):</label>
+                    <input type="text" id="transferNewNameInput" class="custom-input" placeholder="ឧ. បង សុខ (ម៉ាស៊ីនថ្មី)..." style="width:100%;">
+                </div>
+            </div>
+            <div class="admin-modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('modalTransfer')">បោះបង់</button>
+                <button type="button" class="btn btn-primary" onclick="submitTransferLicense()" style="background:linear-gradient(135deg, #3b82f6, #1d4ed8);">
+                    🔄 ផ្ទេរ License ឥឡូវនេះ
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast Notifications Container -->
     <div class="toast-container" id="toastContainer"></div>
 
     <script>
         const SECRET_SALT = 'HONGGUO_VIP_KEYGEN_SECRET_SALT_2026_@AGY';
-        let _selectedDays = 0;
+        let _selectedDays = 30; // Default 30 days
         let _currentGeneratedKey = null;
-        let _currentAuthorizedData = null;
-        let _cachedTrackedDevices = [];
+        let _cachedDevices = [];
+        let _currentFilter = 'all';
+
+        // State for Modals
+        let _activeModalDeviceId = null;
+        let _adjustMode = 'add'; // 'add' or 'sub'
+
+        // Auto-refresh interval for tracker
+        let _trackerTimer = null;
 
         // Tab Switching
         function switchTab(tabId, btn) {
@@ -824,70 +1231,73 @@
 
             if (tabId === 'tabTracker') {
                 loadTrackedDevices();
-            } else if (tabId === 'tabTelegram') {
-                loadTelegramConfig();
+                loadPayments();
+                startTrackerAutoRefresh();
+            } else {
+                stopTrackerAutoRefresh();
+                if (tabId === 'tabCrackTracker') {
+                    loadCrackSuspects();
+                } else if (tabId === 'tabTelegram') {
+                    loadTelegramConfig();
+                }
             }
         }
 
-        // Duration Selection
-        function selectDuration(el, days) {
-            document.querySelectorAll('.duration-card').forEach(c => c.classList.remove('active'));
-            el.classList.add('active');
-            _selectedDays = days;
-            const customInp = document.getElementById('customDaysInput');
-            if (customInp) customInp.value = '';
+        function startTrackerAutoRefresh() {
+            stopTrackerAutoRefresh();
+            _trackerTimer = setInterval(() => {
+                loadTrackedDevices(true);
+            }, 10000); // Live poll every 10s
         }
 
-        function onCustomDaysInput(val) {
-            const num = parseInt(val, 10);
+        function stopTrackerAutoRefresh() {
+            if (_trackerTimer) {
+                clearInterval(_trackerTimer);
+                _trackerTimer = null;
+            }
+        }
+
+        // ==============================================
+        // TAB 1: KEYGEN & AUTO-AUTHORIZE
+        // ==============================================
+        function selectDuration(el, days) {
+            document.querySelectorAll('#durationGridSingle .duration-card').forEach(c => c.classList.remove('active'));
+            el.classList.add('active');
+            _selectedDays = days;
+            const inp = document.getElementById('customDaysInput');
+            if (inp) inp.value = '';
+        }
+
+        function onCustomDaysInput() {
+            const inp = document.getElementById('customDaysInput');
+            const num = parseInt(inp ? inp.value : '0', 10);
             if (!isNaN(num) && num > 0) {
-                document.querySelectorAll('.duration-card').forEach(c => c.classList.remove('active'));
+                document.querySelectorAll('#durationGridSingle .duration-card').forEach(c => c.classList.remove('active'));
                 _selectedDays = num;
             }
         }
 
         async function pasteAdminDeviceId() {
             try {
-                let text = '';
-                if (window.electronAPI && typeof window.electronAPI.readClipboard === 'function') {
-                    text = await window.electronAPI.readClipboard();
-                } else if (navigator.clipboard && navigator.clipboard.readText) {
-                    text = await navigator.clipboard.readText();
-                }
+                const text = await navigator.clipboard.readText();
+                const clean = (text || '').trim().toUpperCase();
                 const inp = document.getElementById('adminDeviceId');
-                if (inp && text) {
-                    inp.value = text.trim().toUpperCase();
-                    inp.focus();
-                    showToast('📋 បាន Paste Device ID!', '✅');
+                if (inp) {
+                    inp.value = clean;
+                    showToast('📋 បានបិទភ្ជាប់ Device ID រួចរាល់!', '✅');
                 }
-            } catch (e) {
-                showToast('សូមចុច Ctrl + V ដើម្បី Paste', '💡');
+            } catch (err) {
+                showToast('សូមចុច Ctrl + V ដើម្បី Paste ដោយផ្ទាល់', '💡');
             }
         }
 
-        // Web Crypto Client-Side HMAC Generation (Fallback when offline)
-        async function generateKeyClientSide(deviceId, days) {
-            const cleanId = String(deviceId || '').trim().toUpperCase();
-            const prefix = days > 0 ? `D${String(days).padStart(3, '0')}` : 'LIFE';
-            const enc = new TextEncoder();
-            const keyData = enc.encode(`${SECRET_SALT}:${prefix}`);
-            const key = await crypto.subtle.importKey('raw', keyData, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
-            const sig = await crypto.subtle.sign('HMAC', key, enc.encode(cleanId));
-            const hashArray = Array.from(new Uint8Array(sig));
-            const hex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
-            return `${prefix}-${hex.substring(0, 4)}-${hex.substring(4, 8)}-${hex.substring(8, 12)}`;
-        }
-
-        // Action 1: Auto Authorize Device
         async function executeAutoAuthorize() {
-            const devInp = document.getElementById('adminDeviceId');
-            const tgInp = document.getElementById('adminTelegramUser');
-            const deviceId = devInp ? devInp.value.trim().toUpperCase() : '';
-            const tgUser = tgInp ? tgInp.value.trim() : '';
+            const devId = (document.getElementById('adminDeviceId').value || '').trim().toUpperCase();
+            const custName = (document.getElementById('adminCustomerName').value || '').trim();
+            const tgUser = (document.getElementById('adminTelegramUser').value || '').trim();
 
-            if (!deviceId) {
-                showToast('សូមបញ្ចូល Device ID របស់ភ្ញៀវជាមុនសិន!', '⚠️');
-                if (devInp) devInp.focus();
+            if (!devId) {
+                showToast('⚠️ សូមបញ្ចូលលេខសម្គាល់ម៉ាស៊ីន (Device ID) ជាមុនសិន!', '❌');
                 return;
             }
 
@@ -896,58 +1306,47 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        deviceId: deviceId,
+                        deviceId: devId,
                         days: _selectedDays,
-                        telegramUser: tgUser
+                        telegramUser: tgUser,
+                        customName: custName
                     })
                 });
-
                 const data = await res.json();
                 if (data.success) {
-                    _currentAuthorizedData = data;
-                    renderAutoAuthResult(data);
-                    loadHistory();
-                    loadTrackedDevices();
-                    showToast('🎉 បានបើកសិទ្ធិអូតូជូនម៉ាស៊ីនជោគជ័យ!', '✅');
+                    // Also save custom name if entered
+                    if (custName) {
+                        await fetch('/api/license/admin/set-name', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ deviceId: devId, customName: custName })
+                        });
+                    }
+
+                    const card = document.getElementById('autoAuthResultCard');
+                    const keyCard = document.getElementById('keyGenResultCard');
+                    const tag = document.getElementById('autoAuthDurationTag');
+
+                    if (keyCard) keyCard.style.display = 'none';
+                    if (card) card.style.display = 'block';
+                    if (tag) tag.innerText = data.label || `${_selectedDays} ថ្ងៃ`;
+
+                    showToast(`🎉 បានបើកសិទ្ធិអូតូជូន ${devId} រួចរាល់!`, '✅');
+                    card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                 } else {
-                    showToast('❌ ' + (data.error || 'បរាជ័យក្នុងការបើកសិទ្ធិ'), '⚠️');
+                    showToast('❌ ' + (data.error || 'បរាជ័យ'), '⚠️');
                 }
-            } catch (err) {
-                // Offline fallback
-                const key = await generateKeyClientSide(deviceId, _selectedDays);
-                const label = _selectedDays > 0 ? `${_selectedDays} ថ្ងៃ` : 'Lifetime VIP';
-                _currentAuthorizedData = { deviceId, days: _selectedDays, label, key };
-                renderAutoAuthResult(_currentAuthorizedData);
-                showToast('✅ បានបង្កើតការអនុញ្ញាត (Offline Mode)', '✅');
+            } catch (e) {
+                showToast('Error: ' + e.message, '❌');
             }
         }
 
-        function renderAutoAuthResult(data) {
-            const card = document.getElementById('autoAuthResultCard');
-            const keyCard = document.getElementById('keyGenResultCard');
-            const tag = document.getElementById('autoAuthDurationTag');
-
-            if (keyCard) keyCard.style.display = 'none';
-            if (card) card.style.display = 'block';
-            if (tag) tag.innerText = data.label || (_selectedDays > 0 ? `${_selectedDays} ថ្ងៃ` : 'Lifetime VIP');
-            card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        }
-
-        async function copyAutoAuthTelegramMessage() {
-            if (!_currentAuthorizedData) return;
-            const msg = `🎉 សួស្តី! ម៉ាស៊ីនរបស់អ្នកត្រូវបាន Admin បើកសិទ្ធិដំណើរការកម្មវិធីរួចរាល់ហើយ!\n\n💻 Device ID: ${_currentAuthorizedData.deviceId}\n⏱️ សុពលភាព: ${_currentAuthorizedData.label}\n\n👉 ឥឡូវនេះ សូមចុចពាក្យថា «ផ្ទុកឡើងវិញ (Refresh / Check License)» នៅលើផ្ទាំងកម្មវិធីរបស់អ្នក នោះវានឹងដើរភ្លាម! សូមអរគុណ! 🙏✨`;
-            await copyText(msg);
-            showToast('💬 បានចម្លងសារ! សូមផ្ញើទៅកាន់ Telegram របស់ភ្ញៀវ', '✅');
-        }
-
-        // Action 2: Generate Key for manual entry
         async function executeGenerateKey() {
-            const devInp = document.getElementById('adminDeviceId');
-            const deviceId = devInp ? devInp.value.trim().toUpperCase() : '';
+            const devId = (document.getElementById('adminDeviceId').value || '').trim().toUpperCase();
+            const custName = (document.getElementById('adminCustomerName').value || '').trim();
 
-            if (!deviceId) {
-                showToast('សូមបញ្ចូល Device ID របស់ភ្ញៀវជាមុនសិន!', '⚠️');
-                if (devInp) devInp.focus();
+            if (!devId) {
+                showToast('⚠️ សូមបញ្ចូលលេខសម្គាល់ម៉ាស៊ីន (Device ID) ជាមុនសិន!', '❌');
                 return;
             }
 
@@ -956,41 +1355,46 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        deviceId: deviceId,
-                        days: _selectedDays
+                        deviceId: devId,
+                        days: _selectedDays,
+                        unit: 'days'
                     })
                 });
-
                 const data = await res.json();
                 if (data.success) {
-                    _currentGeneratedKey = data;
-                    renderKeyGenResult(data);
-                    loadHistory();
-                    showToast('🎉 បានបង្កើត License Key ជោគជ័យ!', '✅');
+                    if (custName) {
+                        await fetch('/api/license/admin/set-name', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ deviceId: devId, customName: custName })
+                        });
+                    }
+
+                    _currentGeneratedKey = {
+                        key: data.key,
+                        device_id: devId,
+                        label: data.label,
+                        days: data.days
+                    };
+
+                    const card = document.getElementById('keyGenResultCard');
+                    const autoCard = document.getElementById('autoAuthResultCard');
+                    const keyEl = document.getElementById('keyGenDisplay');
+                    const tag = document.getElementById('keyGenDurationTag');
+
+                    if (autoCard) autoCard.style.display = 'none';
+                    if (card) card.style.display = 'block';
+                    if (keyEl) keyEl.innerText = data.key;
+                    if (tag) tag.innerText = data.label;
+
+                    showToast('✨ បានបង្កើត License Key ជោគជ័យ!', '✅');
+                    card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                 } else {
-                    showToast('❌ ' + (data.error || 'បរាជ័យក្នុងការបង្កើត'), '⚠️');
+                    showToast('❌ ' + (data.error || 'បរាជ័យ'), '⚠️');
                 }
-            } catch (err) {
-                // Offline fallback
-                const key = await generateKeyClientSide(deviceId, _selectedDays);
-                const label = _selectedDays > 0 ? `${_selectedDays} ថ្ងៃ` : 'Lifetime VIP';
-                _currentGeneratedKey = { device_id: deviceId, days: _selectedDays, label, key };
-                renderKeyGenResult(_currentGeneratedKey);
-                showToast('🎉 បានបង្កើត License Key (Offline Mode)!', '✅');
+            } catch (e) {
+                showToast('Error: ' + e.message, '❌');
             }
-        }
-
-        function renderKeyGenResult(data) {
-            const card = document.getElementById('keyGenResultCard');
-            const authCard = document.getElementById('autoAuthResultCard');
-            const keyEl = document.getElementById('keyGenDisplay');
-            const tag = document.getElementById('keyGenDurationTag');
-
-            if (authCard) authCard.style.display = 'none';
-            if (card) card.style.display = 'block';
-            if (keyEl) keyEl.innerText = data.key;
-            if (tag) tag.innerText = data.label || (_selectedDays > 0 ? `${_selectedDays} ថ្ងៃ` : 'Lifetime VIP');
-            card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
 
         async function copyResultKeyOnly() {
@@ -1001,109 +1405,202 @@
 
         async function copyTelegramKeyTemplate() {
             if (!_currentGeneratedKey) return;
-            const msg = `🎉 សួស្តី! នេះជា License Key កម្មវិធី PS DOWNLOAD របស់អ្នក៖\n\n🔑 License Key: ${_currentGeneratedKey.key}\n💻 សម្រាប់ម៉ាស៊ីន: ${_currentGeneratedKey.device_id}\n⏱️ សុពលភាព: ${_currentGeneratedKey.label}\n\n👉 សូមចម្លង Key ខាងលើនេះ រួច Paste ចូលក្នុងផ្ទាំងកម្មវិធីដើម្បីបើកដំណើរការ! សូមអរគុណ! 🙏`;
+            const msg = `🎉 សួស្តី! នេះជា License Key កម្មវិធី PS DOWNLOAD របស់អ្នក៖\n\n` +
+                        `🔑 License Key: ${_currentGeneratedKey.key}\n` +
+                        `💻 សម្រាប់ម៉ាស៊ីន: ${_currentGeneratedKey.device_id}\n` +
+                        `⏱️ សុពលភាព: ${_currentGeneratedKey.label}\n\n` +
+                        `👉 សូមចម្លង Key ខាងលើនេះ រួច Paste ចូលក្នុងផ្ទាំងកម្មវិធីដើម្បីបើកដំណើរការ! សូមអរគុណ! 🙏`;
             await copyText(msg);
             showToast('💬 បានចម្លងសារ Telegram រួចរាល់!', '✅');
         }
 
-        // Tracked Devices Management
-        async function loadTrackedDevices() {
-            const tbody = document.getElementById('trackerTableBody');
-            const badge = document.getElementById('trackerCountBadge');
-            const countText = document.getElementById('trackerTotalCountText');
+        async function copyAutoAuthTelegramMessage() {
+            const devId = (document.getElementById('adminDeviceId').value || '').trim().toUpperCase();
+            const tag = document.getElementById('autoAuthDurationTag');
+            const dur = tag ? tag.innerText : `${_selectedDays} ថ្ងៃ`;
+            const msg = `🎉 សួស្តី! ម៉ាស៊ីនរបស់អ្នក (${devId}) ត្រូវបានបើកសិទ្ធិប្រើប្រាស់ (${dur}) រួចរាល់ហើយ!\n\n` +
+                        `👉 ឥឡូវនេះ សូមបើកកម្មវិធី PS DOWNLOAD រួចចុចពាក្យថា «ផ្ទុកឡើងវិញ (Refresh)» នោះកម្មវិធីនឹងដំណើរការភ្លាមដោយស្វ័យប្រវត្តិ! សូមរីករាយជាមួយការទស្សនា! 🙏✨`;
+            await copyText(msg);
+            showToast('💬 បានចម្លងសារ Telegram ប្រាប់ភ្ញៀវរួចរាល់!', '✅');
+        }
 
+        // ==============================================
+        // TAB 2: ACTIVE MACHINES & LICENSE MANAGER
+        // ==============================================
+        async function loadTrackedDevices(isSilent = false) {
+            const tbody = document.getElementById('trackerTableBody');
             try {
                 const res = await fetch('/api/license/admin/tracked');
                 const data = await res.json();
-
                 if (data.success && data.devices) {
-                    _cachedTrackedDevices = data.devices;
-                    if (badge) badge.innerText = _cachedTrackedDevices.length;
-                    if (countText) countText.innerText = _cachedTrackedDevices.length;
-                    renderTrackedDevicesTable(_cachedTrackedDevices);
-                } else {
-                    if (tbody) tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-sub); padding:24px;">មិនទាន់មានម៉ាស៊ីនណាបានបើកកម្មវិធីឡើយ</td></tr>`;
+                    _cachedDevices = data.devices;
+                    updateMetrics(_cachedDevices);
+                    renderDevicesTable(_cachedDevices);
+                } else if (!isSilent && tbody) {
+                    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text-sub); padding:28px;">មិនទាន់មានម៉ាស៊ីនណាបានបើកកម្មវិធីឡើយ</td></tr>`;
                 }
             } catch (e) {
-                if (tbody) tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-sub); padding:24px;">មិនអាចភ្ជាប់ទៅកាន់ Server បានឡើយ</td></tr>`;
+                if (!isSilent && tbody) {
+                    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text-sub); padding:28px;">មិនអាចភ្ជាប់ទៅកាន់ Server បានឡើយ</td></tr>`;
+                }
             }
         }
 
-        function renderTrackedDevicesTable(list) {
+        function updateMetrics(list) {
+            let total = list.length;
+            let online = 0;
+            let active = 0;
+            let expiredRevoked = 0;
+
+            for (const d of list) {
+                if (d.isOnline) online++;
+                if (d.isAuthorized && !d.isExpired && !d.isRevoked) active++;
+                if (d.isExpired || d.isRevoked) expiredRevoked++;
+            }
+
+            document.getElementById('metricTotalDevices').innerText = total;
+            document.getElementById('metricOnlineDevices').innerText = online;
+            document.getElementById('metricActiveLicenses').innerText = active;
+            document.getElementById('metricExpiredRevoked').innerText = expiredRevoked;
+
+            const badge = document.getElementById('trackerOnlineCountBadge');
+            if (badge) {
+                badge.innerText = online;
+                badge.style.display = online > 0 ? 'inline-block' : 'none';
+            }
+        }
+
+        function setFilter(filter, btn) {
+            _currentFilter = filter;
+            document.querySelectorAll('.filter-pill').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            applyFilter();
+        }
+
+        function applyFilter() {
+            const q = (document.getElementById('trackerSearchInput').value || '').trim().toLowerCase();
+            let filtered = _cachedDevices;
+
+            if (_currentFilter === 'online') {
+                filtered = filtered.filter(d => d.isOnline);
+            } else if (_currentFilter === 'active') {
+                filtered = filtered.filter(d => d.isAuthorized && !d.isExpired && !d.isRevoked);
+            } else if (_currentFilter === 'expired') {
+                filtered = filtered.filter(d => d.isExpired || d.isRevoked);
+            }
+
+            if (q) {
+                filtered = filtered.filter(d => 
+                    (d.deviceId && d.deviceId.toLowerCase().includes(q)) ||
+                    (d.customName && d.customName.toLowerCase().includes(q)) ||
+                    (d.telegramUser && d.telegramUser.toLowerCase().includes(q)) ||
+                    (d.computerName && d.computerName.toLowerCase().includes(q))
+                );
+            }
+
+            renderDevicesTable(filtered);
+        }
+
+        function renderDevicesTable(list) {
             const tbody = document.getElementById('trackerTableBody');
             if (!tbody) return;
 
             if (!list || list.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-sub); padding:24px;">មិនមានទិន្នន័យឡើយ</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text-sub); padding:28px;">មិនមានទិន្នន័យត្រូវគ្នានឹងការស្វែងរកឡើយ</td></tr>`;
                 return;
             }
 
             tbody.innerHTML = list.map(item => {
-                const isCrack = Boolean(item.crackSuspect || (item.failedAttempts && item.failedAttempts >= 4));
-                const isAct = item.status && item.status !== 'unactivated' && !isCrack;
-                
-                let statusHtml = '';
-                if (isCrack) {
-                    statusHtml = `<span class="status-badge" style="background:#dc2626; color:#fff; font-weight:800; box-shadow:0 0 10px rgba(220,38,38,0.5);">🚨 ព្យាយាម Crack (${item.failedAttempts} ដង)</span>`;
-                } else if (isAct) {
-                    statusHtml = `<span class="status-badge status-active">✅ ${escapeHtml(item.status)}</span>`;
+                const devId = escapeHtml(item.deviceId);
+                const nameDisplay = item.customName 
+                    ? `<span style="font-weight:700; color:#38bdf8;">${escapeHtml(item.customName)}</span>`
+                    : `<span style="color:#64748b; font-style:italic;">(មិនទាន់ដាក់ឈ្មោះ)</span>`;
+
+                const tgDisplay = item.telegramUser 
+                    ? `<div style="font-size:0.75rem; color:#94a3b8; margin-top:2px;">📱 ${escapeHtml(item.telegramUser)}</div>`
+                    : '';
+
+                // Online status indicator
+                const onlineHtml = item.isOnline
+                    ? `<span style="color:#34d399; font-weight:700; display:inline-flex; align-items:center;"><span class="pulse-dot"></span> Online</span>`
+                    : `<span style="color:#94a3b8; display:inline-flex; align-items:center;"><span class="pulse-dot offline"></span> Offline</span>`;
+
+                const lastSeenText = item.lastSeenAgo 
+                    ? `<div style="font-size:0.72rem; color:#64748b; margin-top:2px;">${item.lastSeenAgo}</div>`
+                    : '';
+
+                // License duration & remaining days
+                let durationBadge = '';
+                if (item.isRevoked || item.isExpired) {
+                    durationBadge = `<span class="badge-status badge-expired">🔴 ផុតកំណត់ហើយ (Expired)</span>`;
+                } else if (item.isLifetime) {
+                    durationBadge = `<span class="badge-status badge-active" style="border-color:#8b5cf6; color:#c084fc; background:rgba(139,92,246,0.15);">👑 ពេញមួយជីវិត (Lifetime)</span>`;
+                } else if (item.isAuthorized) {
+                    const days = item.remainingDays || 0;
+                    const hours = item.remainingHours || 0;
+                    durationBadge = `<span class="badge-status badge-active">⏳ នៅសល់ ${days} ថ្ងៃ ${hours} ម៉ោង</span>`;
                 } else {
-                    statusHtml = `<span class="status-badge status-unact">❌ មិនទាន់ Activate</span>`;
+                    durationBadge = `<span class="badge-status badge-unact">⚪ មិនទាន់ Activate</span>`;
                 }
 
-                const tgDisplay = item.telegramUser
-                    ? `<span class="user-pill" style="${isCrack ? 'color:#f87171; border-color:rgba(239,68,68,0.4); background:rgba(239,68,68,0.1);' : ''}">📱 ${escapeHtml(item.telegramUser)}</span>`
-                    : `<span style="color:#64748b; font-style:italic;">(មិនទាន់ដាក់)</span>`;
-
-                const timeStr = item.lastSeen ? new Date(item.lastSeen).toLocaleString('en-US', { hour12: true }) : '-';
-
-                // Location display
-                let locDisplay = '';
-                if (item.location) {
-                    const loc = item.location;
-                    locDisplay = `
-                        <div style="font-size:0.75rem; color:#e2e8f0; margin-top:4px;">
-                            📍 <b>${escapeHtml(loc.city || '')}${loc.city && loc.country ? ', ' : ''}${escapeHtml(loc.country || '')}</b>
-                        </div>
-                        <div style="font-size:0.7rem; color:#94a3b8;">
-                            IP: <code>${escapeHtml(loc.ip || '')}</code> ${loc.isp ? '• ' + escapeHtml(loc.isp) : ''}
-                        </div>
-                        ${loc.mapsUrl ? `<a href="${escapeHtml(loc.mapsUrl)}" target="_blank" style="font-size:0.7rem; color:#38bdf8; text-decoration:underline;">🗺️ ចុចមើលលើផែនទី Google Maps</a>` : ''}
-                    `;
-                }
-
-                const rowStyle = isCrack ? 'background: rgba(239, 68, 68, 0.08); border-left: 3px solid #ef4444;' : '';
+                const grantedText = item.daysGranted > 0 
+                    ? `<div style="font-size:0.75rem; color:#94a3b8; margin-top:3px;">ទទួលបាន: <b>${item.daysGranted} ថ្ងៃ</b></div>`
+                    : (item.isLifetime ? `<div style="font-size:0.75rem; color:#c084fc; margin-top:3px;">កញ្ចប់ VIP ពេញមួយជីវិត</div>` : '');
 
                 return `
-                    <tr style="${rowStyle}">
-                        <td>${tgDisplay}</td>
+                    <tr>
+                        <!-- 1. Customer Name / Tag -->
                         <td>
-                            <b style="font-family:'JetBrains Mono', monospace; color:#38bdf8; font-size:0.85rem;">${escapeHtml(item.deviceId)}</b>
-                            ${locDisplay}
+                            <div style="display:flex; align-items:center; gap:6px;">
+                                ${nameDisplay}
+                                <button type="button" class="btn-table-edit" onclick="openEditNameModal('${devId}', '${escapeHtml(item.customName || '')}')" title="កែឈ្មោះភ្ញៀវ">✏️</button>
+                            </div>
+                            ${tgDisplay}
                         </td>
+
+                        <!-- 2. Device ID & PC -->
                         <td>
-                            <div style="font-weight:600; color:#e2e8f0;">${escapeHtml(item.computerName || '-')}</div>
-                            <div style="font-size:0.72rem; color:#94a3b8;">User: ${escapeHtml(item.osUser || '-')}</div>
+                            <div style="display:flex; align-items:center; gap:6px;">
+                                <b style="font-family:'JetBrains Mono', monospace; color:#f8fafc; font-size:0.86rem;">${devId}</b>
+                                <button type="button" class="btn-table-edit" onclick="copyText('${devId}'); showToast('📋 បានចម្លង Device ID!', '✅');" title="ចម្លង Device ID">📋</button>
+                            </div>
+                            <div style="font-size:0.72rem; color:#94a3b8; margin-top:2px;">
+                                🖥️ ${escapeHtml(item.computerName || '-')}${item.osUser ? ' • ' + escapeHtml(item.osUser) : ''}
+                            </div>
                         </td>
+
+                        <!-- 3. Online Status -->
                         <td>
-                            <div style="color:#cbd5e1; font-size:0.78rem;">${timeStr}</div>
-                            <div style="font-size:0.7rem; color:#64748b;">បើក ${item.openCount || 1} ដង</div>
+                            ${onlineHtml}
+                            ${lastSeenText}
                         </td>
-                        <td>${statusHtml}</td>
+
+                        <!-- 4. Duration & Remaining Days -->
+                        <td>
+                            ${durationBadge}
+                            ${grantedText}
+                        </td>
+
+                        <!-- 5. Actions -->
                         <td style="text-align:right; white-space:nowrap;">
-                            ${isCrack ? `
-                            <button type="button" class="btn-table-sm" onclick="resetDeviceFailsAdmin('${escapeHtml(item.deviceId)}')" style="background:rgba(239,68,68,0.2); color:#fca5a5; border:1px solid #ef4444; margin-right:4px;" title="ដោះសោរ និងលុបប្រវត្តិវាយខុស">
-                                🔓 ដោះសោរ
+                            <!-- Add Days -->
+                            <button type="button" class="btn-table btn-table-add" onclick="openAdjustDaysModal('${devId}', 'add', ${item.remainingDays || 0})" title="បន្ថែមថ្ងៃ">
+                                ➕ បន្ថែមថ្ងៃ
                             </button>
-                            ` : ''}
-                            <button type="button" class="btn-table-sm btn-quick-auth" onclick="quickAuthorizeDevice('${escapeHtml(item.deviceId)}', 30, '${escapeHtml(item.telegramUser || '')}')" title="ផ្ដល់សិទ្ធិ ៣០ ថ្ងៃភ្លាមៗ">
-                                ⚡ ឱ្យ 30 ថ្ងៃ
+
+                            <!-- Sub Days -->
+                            <button type="button" class="btn-table btn-table-sub" onclick="openAdjustDaysModal('${devId}', 'sub', ${item.remainingDays || 0})" title="បន្ថយថ្ងៃ">
+                                ➖ បន្ថយថ្ងៃ
                             </button>
-                            <button type="button" class="btn-table-sm btn-quick-auth" onclick="quickAuthorizeDevice('${escapeHtml(item.deviceId)}', 0, '${escapeHtml(item.telegramUser || '')}')" style="border-color:#8b5cf6; color:#a78bfa; background:rgba(139,92,246,0.2);" title="ផ្ដល់សិទ្ធិ Lifetime VIP">
-                                🌟 Lifetime
+
+                            <!-- Transfer to New Machine -->
+                            <button type="button" class="btn-table btn-table-transfer" onclick="openTransferModal('${devId}', ${item.remainingDays || 0}, ${item.remainingHours || 0}, ${item.remainingMinutes || 0}, ${item.isLifetime ? 'true' : 'false'}, '${escapeHtml(item.customName || '')}')" title="ផ្ទេរ License ទៅម៉ាស៊ីនថ្មី">
+                                🔄 ផ្ទេរ License
                             </button>
-                            <button type="button" class="btn-table-sm btn-quick-fill" onclick="fillDeviceInKeygen('${escapeHtml(item.deviceId)}', '${escapeHtml(item.telegramUser || '')}')" title="យកលេខកូដនេះទៅបង្កើត Key">
-                                🔑 យកកូដ
+
+                            <!-- Disconnect / Expire License -->
+                            <button type="button" class="btn-table btn-table-revoke" onclick="confirmRevoke('${devId}')" title="កាត់ License ម៉ាស៊ីននេះឱ្យផុតកំណត់ (០ ថ្ងៃ) ភ្លាមៗ">
+                                🔌 ផ្ដាច់ (ផុតកំណត់)
                             </button>
                         </td>
                     </tr>
@@ -1111,34 +1608,33 @@
             }).join('');
         }
 
-        function filterTrackerList(query) {
-            const q = query.trim().toLowerCase();
-            if (!q) {
-                renderTrackedDevicesTable(_cachedTrackedDevices);
-                return;
-            }
-            const filtered = _cachedTrackedDevices.filter(d => 
-                (d.deviceId && d.deviceId.toLowerCase().includes(q)) ||
-                (d.telegramUser && d.telegramUser.toLowerCase().includes(q)) ||
-                (d.computerName && d.computerName.toLowerCase().includes(q))
-            );
-            renderTrackedDevicesTable(filtered);
+        // ==============================================
+        // MODALS & ACTIONS
+        // ==============================================
+
+        // 1. Edit Name Modal
+        function openEditNameModal(deviceId, currentName) {
+            _activeModalDeviceId = deviceId;
+            document.getElementById('editNameDeviceId').innerText = deviceId;
+            const inp = document.getElementById('editNameInput');
+            inp.value = currentName || '';
+            openModal('modalEditName');
+            setTimeout(() => inp.focus(), 150);
         }
 
-        async function quickAuthorizeDevice(deviceId, days, tgUser) {
+        async function submitEditName() {
+            if (!_activeModalDeviceId) return;
+            const name = (document.getElementById('editNameInput').value || '').trim();
             try {
-                const res = await fetch('/api/license/admin/authorize', {
+                const res = await fetch('/api/license/admin/set-name', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        deviceId: deviceId,
-                        days: days,
-                        telegramUser: tgUser
-                    })
+                    body: JSON.stringify({ deviceId: _activeModalDeviceId, customName: name })
                 });
                 const data = await res.json();
                 if (data.success) {
-                    showToast(`🎉 បានផ្ដល់សិទ្ធិ ${data.label} ជូន ${deviceId}!`, '✅');
+                    showToast('💾 បានរក្សាទុកឈ្មោះរួចរាល់!', '✅');
+                    closeModal('modalEditName');
                     loadTrackedDevices();
                 } else {
                     showToast('❌ ' + (data.error || 'បរាជ័យ'), '⚠️');
@@ -1148,63 +1644,195 @@
             }
         }
 
-        async function resetDeviceFailsAdmin(deviceId) {
+        // 2. Adjust Days Modal (+/-)
+        function openAdjustDaysModal(deviceId, mode, currentRemaining) {
+            _activeModalDeviceId = deviceId;
+            document.getElementById('adjustDaysDeviceId').innerText = deviceId;
+            document.getElementById('adjustDaysCurrentInfo').innerText = `ថ្ងៃនៅសល់បច្ចុប្បន្ន: ${currentRemaining} ថ្ងៃ`;
+            setAdjustMode(mode);
+            openModal('modalAdjustDays');
+        }
+
+        function setAdjustMode(mode) {
+            _adjustMode = mode;
+            const btnAdd = document.getElementById('btnModeAddDays');
+            const btnSub = document.getElementById('btnModeSubDays');
+            const title = document.getElementById('adjustDaysTitle');
+            const label = document.getElementById('adjustDaysInputLabel');
+            const submitBtn = document.getElementById('btnSubmitAdjustDays');
+
+            if (mode === 'add') {
+                btnAdd.classList.add('active');
+                btnSub.classList.remove('active');
+                title.innerText = '➕ បន្ថែមថ្ងៃប្រើប្រាស់ (+ Days)';
+                label.innerText = 'ចំនួនថ្ងៃត្រូវបន្ថែម:';
+                submitBtn.innerText = '➕ បន្ថែមថ្ងៃ';
+                submitBtn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+            } else {
+                btnSub.classList.add('active');
+                btnAdd.classList.remove('active');
+                title.innerText = '➖ បន្ថយថ្ងៃប្រើប្រាស់ (- Days)';
+                label.innerText = 'ចំនួនថ្ងៃត្រូវបន្ថយ/ដកចេញ:';
+                submitBtn.innerText = '➖ បន្ថយថ្ងៃ';
+                submitBtn.style.background = 'linear-gradient(135deg, #f59e0b, #d97706)';
+            }
+        }
+
+        function setQuickAdjust(days) {
+            const inp = document.getElementById('adjustDaysCountInput');
+            if (inp) inp.value = days;
+        }
+
+        async function submitAdjustDays() {
+            if (!_activeModalDeviceId) return;
+            const count = parseInt(document.getElementById('adjustDaysCountInput').value || '0', 10);
+            if (isNaN(count) || count <= 0) {
+                showToast('⚠️ សូមបញ្ចូលចំនួនថ្ងៃត្រឹមត្រូវ!', '❌');
+                return;
+            }
+
+            const change = _adjustMode === 'add' ? count : -count;
             try {
-                const res = await fetch('/api/license/admin/reset-fails', {
+                const res = await fetch('/api/license/admin/adjust-days', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ deviceId })
+                    body: JSON.stringify({
+                        deviceId: _activeModalDeviceId,
+                        daysChange: change
+                    })
                 });
                 const data = await res.json();
                 if (data.success) {
-                    showToast(`🔓 បានដោះសោរ និងលុបប្រវត្តិវាយខុសរបស់ ${deviceId}!`, '✅');
+                    showToast(`🎉 បាន${_adjustMode === 'add' ? 'បន្ថែម' : 'បន្ថយ'} ${count} ថ្ងៃជោគជ័យ! (នៅសល់ ${data.newDays} ថ្ងៃ)`, '✅');
+                    closeModal('modalAdjustDays');
                     loadTrackedDevices();
+                } else {
+                    showToast('❌ ' + (data.error || 'បរាជ័យ'), '⚠️');
                 }
             } catch (e) {
                 showToast('Error: ' + e.message, '❌');
             }
         }
 
-        function fillDeviceInKeygen(deviceId, tgUser) {
-            const devInp = document.getElementById('adminDeviceId');
-            const tgInp = document.getElementById('adminTelegramUser');
-            if (devInp) devInp.value = deviceId;
-            if (tgInp && tgUser) tgInp.value = tgUser;
-            switchTab('tabKeygen', document.querySelector('.admin-tab-btn'));
-            showToast(`📋 បានបញ្ចូល ${deviceId} ក្នុងផ្ទាំងបង្កើត Key!`, '💡');
+        // 3. Transfer License Modal
+        function openTransferModal(deviceId, remainingDays, remainingHours, remainingMinutes, isLifetime, currentName) {
+            _activeModalDeviceId = deviceId;
+            document.getElementById('transferFromDeviceId').innerText = deviceId;
+            const remInfo = document.getElementById('transferRemainingDaysInfo');
+            if (isLifetime) {
+                remInfo.innerText = 'កញ្ចប់ត្រូវផ្ទេរ: 👑 ពេញមួយជីវិត (Lifetime VIP)';
+            } else {
+                let timeStr = `${remainingDays} ថ្ងៃ`;
+                if (remainingHours > 0 || remainingMinutes > 0) {
+                    timeStr = `${remainingDays} ថ្ងៃ ${remainingHours} ម៉ោង ${remainingMinutes} នាទី`;
+                }
+                remInfo.innerText = `ថ្ងៃ & ម៉ោងនៅសល់ត្រូវផ្ទេរ: ⏳ ${timeStr} (រាប់ថយក្រោយតាមពេលវេលាពិត ២៤/៧)`;
+            }
+
+            const toInp = document.getElementById('transferToDeviceIdInput');
+            const nameInp = document.getElementById('transferNewNameInput');
+            toInp.value = '';
+            nameInp.value = currentName ? `${currentName} (ម៉ាស៊ីនថ្មី)` : '';
+
+            openModal('modalTransfer');
+            setTimeout(() => toInp.focus(), 150);
         }
 
-        // History
-        async function loadHistory() {
-            const listEl = document.getElementById('historyList');
-            if (!listEl) return;
+        async function submitTransferLicense() {
+            if (!_activeModalDeviceId) return;
+            const toDevId = (document.getElementById('transferToDeviceIdInput').value || '').trim().toUpperCase();
+            const newName = (document.getElementById('transferNewNameInput').value || '').trim();
+
+            if (!toDevId) {
+                showToast('⚠️ សូមបញ្ចូលលេខម៉ាស៊ីនថ្មី (Device ID ទី 2)!', '❌');
+                return;
+            }
+            if (toDevId === _activeModalDeviceId) {
+                showToast('⚠️ មិនអាចផ្ទេរទៅម៉ាស៊ីនដដែលបានទេ!', '❌');
+                return;
+            }
 
             try {
-                const res = await fetch('/api/license/admin/history');
+                const res = await fetch('/api/license/admin/transfer', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        fromDeviceId: _activeModalDeviceId,
+                        toDeviceId: toDevId,
+                        newCustomName: newName
+                    })
+                });
                 const data = await res.json();
-                if (data.success && data.history && data.history.length > 0) {
-                    listEl.innerHTML = data.history.map(item => `
-                        <div class="history-item">
-                            <div>
-                                <b style="color:#38bdf8; font-family:'JetBrains Mono', monospace;">${escapeHtml(item.deviceId)}</b>
-                                <span style="color:#94a3b8; margin:0 4px;">•</span>
-                                <span style="color:#34d399; font-weight:700;">${escapeHtml(item.label || (item.days ? item.days + ' ថ្ងៃ' : 'Lifetime'))}</span>
-                                <div style="font-family:'JetBrains Mono', monospace; color:#cbd5e1; font-size:0.82rem; margin-top:2px;">${escapeHtml(item.key)}</div>
-                            </div>
-                            <button type="button" class="btn btn-secondary btn-sm" onclick="copyText('${escapeHtml(item.key)}'); showToast('បានចម្លង Key!', '📋');" style="padding:4px 10px; font-size:0.75rem;">
-                                Copy
-                            </button>
-                        </div>
-                    `).join('');
+                if (data.success) {
+                    closeModal('modalTransfer');
+                    showToast(`🎉 បានផ្ទេរទៅ ${toDevId} (${data.transferredDays} ថ្ងៃ) រួចរាល់!`, '✅');
+                    
+                    // Show generated key for the new machine
+                    _currentGeneratedKey = {
+                        key: data.newKey,
+                        device_id: toDevId,
+                        label: `${data.transferredDays} ថ្ងៃ (ផ្ទេរពី ${_activeModalDeviceId})`,
+                        days: data.transferredDays
+                    };
+
+                    const keyCard = document.getElementById('keyGenResultCard');
+                    const keyEl = document.getElementById('keyGenDisplay');
+                    const tag = document.getElementById('keyGenDurationTag');
+                    if (keyCard && keyEl) {
+                        keyCard.style.display = 'block';
+                        keyEl.innerText = data.newKey;
+                        if (tag) tag.innerText = `${data.transferredDays} ថ្ងៃ`;
+                        switchTab('tabKeygen', document.querySelectorAll('.admin-tab-btn')[0]);
+                    }
+
+                    loadTrackedDevices();
                 } else {
-                    listEl.innerHTML = '<div style="text-align:center; color:var(--text-sub); padding:10px; font-size:0.78rem;">មិនទាន់មានប្រវត្តិបង្កើតឡើយ</div>';
+                    showToast('❌ ' + (data.error || 'បរាជ័យក្នុងការផ្ទេរ'), '⚠️');
                 }
             } catch (e) {
-                // Ignore
+                showToast('Error: ' + e.message, '❌');
             }
         }
 
-        // Payment Requests
+        // 4. Disconnect (Expire) License
+        async function confirmRevoke(deviceId) {
+            if (!confirm(`⚠️ តើអ្នកពិតជាចង់កាត់ License លើម៉ាស៊ីន ${deviceId} ឱ្យផុតកំណត់ (០ ថ្ងៃ) ភ្លាមៗមែនទេ?\n\n(ម៉ាស៊ីននេះនឹងក្លាយជា «ផុតកំណត់» ភ្លាមៗ ដោយនៅតែអាចបើកកម្មវិធីមើលរូបភាព និងបញ្ចូល Key ថ្មីបានធម្មតា)`)) {
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/license/admin/revoke', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ deviceId: deviceId })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast(`🔌 បានកាត់ License លើ ${deviceId} ឱ្យផុតកំណត់រួចរាល់!`, '✅');
+                    loadTrackedDevices();
+                } else {
+                    showToast('❌ ' + (data.error || 'បរាជ័យ'), '⚠️');
+                }
+            } catch (e) {
+                showToast('Error: ' + e.message, '❌');
+            }
+        }
+
+        // Modal Helpers
+        function openModal(id) {
+            const m = document.getElementById(id);
+            if (m) m.classList.add('active');
+        }
+
+        function closeModal(id) {
+            const m = document.getElementById(id);
+            if (m) m.classList.remove('active');
+            _activeModalDeviceId = null;
+        }
+
+        // ==============================================
+        // PAYMENT REQUESTS & TELEGRAM
+        // ==============================================
         async function loadPayments() {
             const tbody = document.getElementById('paymentsTableBody');
             if (!tbody) return;
@@ -1215,10 +1843,26 @@
                 if (data.success && data.payments && data.payments.length > 0) {
                     renderPaymentsTable(data.payments);
                 } else {
-                    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-sub); padding:16px;">មិនទាន់មានការបង់ប្រាក់ថ្មីឡើយ</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-sub); padding:16px;">មិនទាន់មានការបង់ប្រាក់ដែលបានផ្ទៀងផ្ទាត់ (Verified) ពី Bot ឬការទិញស្វ័យប្រវត្តិនៅឡើយទេ</td></tr>`;
                 }
             } catch (e) {
                 tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-sub); padding:16px;">មិនអាចទាញយកទិន្នន័យបានឡើយ</td></tr>`;
+            }
+        }
+
+        async function clearPaymentsList() {
+            if (!confirm('⚠️ តើអ្នកពិតជាចង់សំអាត (លុប) បញ្ជីសារបង់ប្រាក់ទាំងអស់នេះមែនទេ?')) return;
+            try {
+                const res = await fetch('/api/license/admin/clear-payments', { method: 'POST' });
+                const data = await res.json();
+                if (data.success) {
+                    showToast('🧹 បានសំអាតបញ្ជីសារបង់ប្រាក់ទាំងអស់រួចរាល់!', '✅');
+                    loadPayments();
+                } else {
+                    showToast('❌ ' + (data.error || 'បរាជ័យ'), '⚠️');
+                }
+            } catch (e) {
+                showToast('Error: ' + e.message, '❌');
             }
         }
 
@@ -1248,7 +1892,7 @@
                             <div style="font-size:0.75rem; color:#94a3b8;">${new Date(item.createdAt).toLocaleString('en-US', { hour12: true })}</div>
                         </td>
                         <td style="text-align:right;">
-                            <button type="button" class="btn-table-sm btn-quick-auth" onclick="quickAuthorizeDevice('${escapeHtml(item.deviceId)}', ${days}, '${escapeHtml(item.telegramUser || '')}')">
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="quickAuthorizeDevice('${escapeHtml(item.deviceId)}', ${days}, '${escapeHtml(item.telegramUser || '')}')">
                                 ⚡ បើកសិទ្ធិ ${days} ថ្ងៃ
                             </button>
                         </td>
@@ -1257,7 +1901,172 @@
             }).join('');
         }
 
-        // Telegram Settings
+        async function quickAuthorizeDevice(deviceId, days, tgUser) {
+            try {
+                const res = await fetch('/api/license/admin/authorize', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ deviceId: deviceId, days: days, telegramUser: tgUser })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast(`🎉 បានបើកសិទ្ធិ ${data.label} ជូន ${deviceId}!`, '✅');
+                    loadTrackedDevices();
+                    loadPayments();
+                } else {
+                    showToast('❌ ' + (data.error || 'បរាជ័យ'), '⚠️');
+                }
+            } catch (e) {
+                showToast('Error: ' + e.message, '❌');
+            }
+        }
+
+        // ==============================================
+        // ANTI-CRACK & MAPS TRACKER
+        // ==============================================
+        async function loadCrackSuspects() {
+            const tbody = document.getElementById('crackSuspectsTableBody');
+            if (!tbody) return;
+            try {
+                const res = await fetch('/api/license/admin/crack-suspects');
+                const data = await res.json();
+                if (data.success && data.suspects) {
+                    renderCrackSuspectsTable(data.suspects);
+                    const badge = document.getElementById('crackCountBadge');
+                    if (badge) {
+                        badge.innerText = data.suspects.length;
+                        badge.style.display = data.suspects.length > 0 ? 'inline-block' : 'none';
+                    }
+                } else {
+                    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--text-sub); padding:28px;">មិនមានអ្នកព្យាយាម Hack/Crack ឡើយ</td></tr>`;
+                }
+            } catch (e) {
+                tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--text-sub); padding:28px;">មិនអាចទាញយកទិន្នន័យបានឡើយ</td></tr>`;
+            }
+        }
+
+        function renderCrackSuspectsTable(list) {
+            const tbody = document.getElementById('crackSuspectsTableBody');
+            if (!tbody) return;
+
+            if (!list || list.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:#34d399; padding:28px; font-weight:700;">✅ មិនមានអ្នកព្យាយាម Hack/Crack ឡើយ (សុវត្ថិភាពល្អ ១០០%)</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = list.map(item => {
+                const devId = escapeHtml(item.deviceId);
+                const tg = item.telegramUser ? escapeHtml(item.telegramUser) : '';
+                const cleanTg = tg.replace(/^@/, '');
+                const tgLink = tg ? `<a href="https://t.me/${cleanTg}" target="_blank" rel="noopener noreferrer" style="color:#38bdf8; font-weight:700; text-decoration:none;">📱 @${cleanTg}</a>` : '<span style="color:#64748b;">(មិនស្គាល់)</span>';
+                const pcInfo = item.computerName ? `<div style="font-size:0.75rem; color:#94a3b8; margin-top:2px;">🖥️ ${escapeHtml(item.computerName)}</div>` : '';
+
+                // Location & Google Maps Link
+                let locDisplay = '<span style="color:#64748b;">មិនមានទីតាំង</span>';
+                if (item.mapsUrl || item.city || item.ip) {
+                    const place = [item.city, item.country].filter(Boolean).join(', ') || 'Cambodia';
+                    const ipDisplay = item.ip ? `<div style="font-size:0.72rem; color:#94a3b8; font-family:monospace;">IP: ${escapeHtml(item.ip)}${item.isp ? ' (' + escapeHtml(item.isp) + ')' : ''}</div>` : '';
+                    const mapBtn = item.mapsUrl ? `
+                        <div style="margin-top:5px;">
+                            <a href="${item.mapsUrl}" target="_blank" rel="noopener noreferrer" style="display:inline-flex; align-items:center; gap:5px; background:linear-gradient(135deg, #2563eb, #1d4ed8); color:#ffffff; text-decoration:none; padding:4px 10px; border-radius:6px; font-size:0.75rem; font-weight:700; box-shadow:0 2px 6px rgba(37,99,235,0.4);">
+                                <span>🗺️</span> <span>បើកមើលលើ Google Maps</span>
+                            </a>
+                        </div>
+                    ` : '';
+                    locDisplay = `
+                        <div>
+                            <span style="font-weight:700; color:#f8fafc;">📍 ${escapeHtml(place)}</span>
+                            ${ipDisplay}
+                            ${mapBtn}
+                        </div>
+                    `;
+                }
+
+                // Attempts keys
+                const attemptsList = item.attempts && item.attempts.length > 0
+                    ? `<div style="font-family:monospace; font-size:0.75rem; color:#fca5a5; max-width:200px; word-break:break-all;">${item.attempts.map(k => escapeHtml(k)).join('<br>')}</div>`
+                    : `<span style="color:#94a3b8; font-size:0.75rem;">${escapeHtml(item.lastFailedKey || '-')}</span>`;
+
+                // Lock badge
+                const lockBadge = item.isLocked
+                    ? `<div style="margin-top:4px;"><span class="badge-status badge-revoked" style="font-size:0.7rem;">🔒 ចាក់សោរ (Locked)</span></div>`
+                    : '';
+
+                const lastTime = item.lastFailedAt
+                    ? new Date(item.lastFailedAt).toLocaleString('en-US', { hour12: true })
+                    : '-';
+
+                return `
+                    <tr>
+                        <td>
+                            ${tgLink}
+                            ${pcInfo}
+                        </td>
+                        <td>
+                            <b style="font-family:'JetBrains Mono', monospace; color:#f87171; font-size:0.86rem;">${devId}</b>
+                            <button type="button" class="btn-table-edit" onclick="copyText('${devId}'); showToast('📋 បានចម្លង Device ID!', '✅');" title="ចម្លង Device ID">📋</button>
+                        </td>
+                        <td>
+                            <span class="badge-status badge-revoked" style="font-size:0.8rem; font-weight:800;">❌ ${item.failedCount} ដង</span>
+                            ${lockBadge}
+                        </td>
+                        <td>
+                            ${attemptsList}
+                        </td>
+                        <td>
+                            ${locDisplay}
+                        </td>
+                        <td>
+                            <div style="font-size:0.75rem; color:#94a3b8;">${lastTime}</div>
+                        </td>
+                        <td style="text-align:right; white-space:nowrap;">
+                            <button type="button" class="btn-table" style="background:rgba(16,185,129,0.15); border-color:rgba(16,185,129,0.4); color:#34d399;" onclick="resetFailedAttempts('${devId}')" title="ដោះសោរម៉ាស៊ីននេះ">
+                                🔓 ដោះសោរ
+                            </button>
+                            <button type="button" class="btn-table btn-table-revoke" onclick="confirmRevoke('${devId}')" title="ផ្ដាច់សិទ្ធិ License">
+                                🔌 ផ្ដាច់ License
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        async function resetFailedAttempts(deviceId) {
+            try {
+                const res = await fetch('/api/license/admin/reset-fails', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ deviceId })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast(`🔓 បានដោះសោរម៉ាស៊ីន ${deviceId} រួចរាល់!`, '✅');
+                    loadCrackSuspects();
+                } else {
+                    showToast('❌ ' + (data.error || 'បរាជ័យ'), '⚠️');
+                }
+            } catch (e) {
+                showToast('Error: ' + e.message, '❌');
+            }
+        }
+
+        async function clearCrackHistory() {
+            if (!confirm('⚠️ តើអ្នកពិតជាចង់សំអាតប្រវត្តិអ្នកព្យាយាម Hack / Crack ទាំងអស់មែនទេ?')) return;
+            try {
+                const res = await fetch('/api/license/admin/clear-crack-history', { method: 'POST' });
+                const data = await res.json();
+                if (data.success) {
+                    showToast('🧹 បានសំអាតប្រវត្តិ Hack រួចរាល់!', '✅');
+                    loadCrackSuspects();
+                } else {
+                    showToast('❌ ' + (data.error || 'បរាជ័យ'), '⚠️');
+                }
+            } catch (e) {
+                showToast('Error: ' + e.message, '❌');
+            }
+        }
+
         async function loadTelegramConfig() {
             try {
                 const res = await fetch('/api/license/admin/telegram-config');
@@ -1295,7 +2104,7 @@
                 if (data.success) {
                     showToast('💾 បានរក្សាទុកការកំណត់រួចរាល់!', '✅');
                 } else {
-                    showToast('❌ ' + (data.error || 'បរាជ័យក្នុងការរក្សាទុក'), '⚠️');
+                    showToast('❌ ' + (data.error || 'បរាជ័យ'), '⚠️');
                 }
             } catch (err) {
                 showToast('Error: ' + err.message, '❌');
@@ -1320,7 +2129,9 @@
             }
         }
 
-        // Utility Helpers
+        // ==============================================
+        // UTILITY HELPERS
+        // ==============================================
         async function copyText(str) {
             if (navigator.clipboard && navigator.clipboard.writeText) {
                 await navigator.clipboard.writeText(str);
@@ -1354,9 +2165,9 @@
         }
 
         document.addEventListener('DOMContentLoaded', () => {
-            loadHistory();
             loadTrackedDevices();
             loadPayments();
+            loadCrackSuspects();
         });
     </script>
 </body>
