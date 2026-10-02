@@ -1287,7 +1287,7 @@
             _trackerTimer = setInterval(() => {
                 const activeTab = document.querySelector('.admin-tab-btn.active');
                 if (activeTab && activeTab.innerText.includes('គ្រប់គ្រងម៉ាស៊ីន')) {
-                    loadTrackedDevices(true, true);
+                    loadTrackedDevices(true, false);
                 }
             }, 8000); // Live poll every 8 seconds for new machines & real-time status
         }
@@ -2240,7 +2240,7 @@
 
 
         document.addEventListener('DOMContentLoaded', () => {
-            loadTrackedDevices(false, true);
+            loadTrackedDevices(false, false);
             startTrackerAutoRefresh();
             loadPayments();
             loadCrackSuspects();

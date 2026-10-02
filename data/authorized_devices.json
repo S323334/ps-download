@@ -13,25 +13,27 @@
   },
   "HG-DBC0-79F8-FD0C": {
     "deviceId": "HG-DBC0-79F8-FD0C",
-    "key": "D001-6133-36BB-C599",
+    "key": "D030-B936-51A1-C1C5",
     "days": 30,
-    "label": "អាជ្ញាប័ណ្ណ 1 ថ្ងៃ",
-    "customName": "ADMIN01",
+    "hours": 0,
+    "label": "អាជ្ញាប័ណ្ណ 30 ថ្ងៃ",
+    "customName": "ADMIN",
     "telegramUser": "",
-    "authorizedAt": "2026-10-02T08:46:04.971Z",
-    "expiresAt": "2026-10-03T05:32:05.851Z",
+    "authorizedAt": "2026-09-29T10:43:41.434Z",
+    "expiresAt": "2026-10-29T10:43:41.432Z",
     "status": "active"
   },
   "HG-0D72-B707-5223": {
     "deviceId": "HG-0D72-B707-5223",
-    "key": "D007-3B71-9BC2-A82B",
-    "days": 7,
+    "key": "D006-2FE6-035A-56DA",
+    "days": 6,
     "hours": 0,
-    "label": "7 ថ្ងៃ",
+    "label": "6 ថ្ងៃ",
     "telegramUser": "",
-    "customName": "ភ្ញៀវ Telegram (HG-0D72)",
+    "customName": "NR-សម្រាយរឿង69",
     "authorizedAt": "2026-10-02T15:14:57.907Z",
-    "expiresAt": "2026-10-09T15:14:57.903Z",
-    "status": "active"
+    "expiresAt": "2026-10-08T15:14:57.903Z",
+    "status": "active",
+    "revoked": false
   }
 }

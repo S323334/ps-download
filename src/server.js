@@ -1806,7 +1806,8 @@ function startServer(port = PORT, host = HOST) {
                       customName: cd.customName,
                       key: cd.key,
                       status: cd.status,
-                      expiresAt: cd.expiresAt
+                      expiresAt: cd.expiresAt,
+                      skipAlert: true
                     });
                   }
                 }
@@ -1846,7 +1847,8 @@ function startServer(port = PORT, host = HOST) {
                       customName: cd.customName,
                       key: cd.key,
                       status: cd.status,
-                      expiresAt: cd.expiresAt
+                      expiresAt: cd.expiresAt,
+                      skipAlert: true
                     });
                     syncedCount++;
                   }

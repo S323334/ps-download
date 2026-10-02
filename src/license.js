@@ -1119,7 +1119,7 @@ const TELEGRAM_CONFIG_FILE = path.join(DATA_DIR, 'telegram_config.json');
  * Records or updates a client device whenever the app is launched.
  * Tracks Telegram username, Device ID, Computer Name, launch count, and first/last seen.
  */
-async function recordDeviceTracking({ deviceId, telegramUser = '', computerName = '', customName = '', key = '', status = '', expiresAt = null, remainingDays = null }) {
+async function recordDeviceTracking({ deviceId, telegramUser = '', computerName = '', customName = '', key = '', status = '', expiresAt = null, remainingDays = null, skipAlert = false }) {
   const cleanId = String(deviceId || getDeviceId()).trim().toUpperCase();
   const cleanTg = String(telegramUser || '').trim();
   const cleanName = String(customName || '').trim();
@@ -1239,7 +1239,13 @@ async function recordDeviceTracking({ deviceId, telegramUser = '', computerName 
   const lastAlertMs = existingDev && existingDev.lastAlertAt ? new Date(existingDev.lastAlertAt).getTime() : 0;
   const shouldSendAlert = isNewDevice || (nowMs - lastAlertMs > 1800000) || (cleanTg && !existingDev?.telegramUser);
 
-  if (shouldSendAlert) {
+  // Security & Spam Prevention Guard:
+  // 1. NEVER send alert if skipAlert is true (e.g. cloud sync or background tracker)
+  // 2. ONLY the local machine itself can send an alert for its own app launch!
+  const localDeviceId = getDeviceId();
+  const isSelfDevice = (cleanId === localDeviceId);
+
+  if (!skipAlert && isSelfDevice && shouldSendAlert) {
     if (existingDev) existingDev.lastAlertAt = now;
     else if (list[0]) list[0].lastAlertAt = now;
     try {
