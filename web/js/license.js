@@ -459,24 +459,78 @@ async function reportDevicePing(deviceId, tgUser) {
         const expiresAt = lic.expires_at || null;
         const remainingDays = lic.remaining_days !== undefined ? lic.remaining_days : null;
 
-        await fetch('/api/license/track', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                deviceId: deviceId,
-                telegramUser: tgUser || localStorage.getItem('client_tg_user') || '',
-                customName: customName,
-                computerName: window.location.hostname || 'Client-PC',
-                key: key,
-                status: status,
-                expiresAt: expiresAt,
-                remainingDays: remainingDays
-            })
-        });
+        try {
+            const trackResp = await fetch('/api/license/track', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    deviceId: deviceId,
+                    telegramUser: tgUser || localStorage.getItem('client_tg_user') || '',
+                    customName: customName,
+                    computerName: '',
+                    key: key,
+                    status: status,
+                    expiresAt: expiresAt,
+                    remainingDays: remainingDays
+                })
+            });
+            if (trackResp.ok) {
+                const trackData = await trackResp.json();
+                if (trackData && trackData.customName && trackData.customName !== customName) {
+                    localStorage.setItem('client_custom_name', trackData.customName);
+                    if (_currentLicenseData) {
+                        _currentLicenseData.custom_name = trackData.customName;
+                    }
+                    updateHeaderLicenseBadge(_currentLicenseData);
+                }
+            }
+        } catch (_) {}
+
+        // 2. Real-Time Cloud Heartbeat: Ping 24/7 Render Cloud Server
+        // Automatically updates Online status and syncs Admin's latest customName immediately!
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 3500);
+            const cloudResp = await fetch('https://ps-download-bot-irhw.onrender.com/api/license/heartbeat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                signal: controller.signal,
+                body: JSON.stringify({
+                    deviceId: deviceId,
+                    telegramUser: tgUser || localStorage.getItem('client_tg_user') || '',
+                    customName: customName,
+                    computerName: '',
+                    key: key,
+                    status: status,
+                    appVersion: '3.2.2'
+                })
+            });
+            clearTimeout(timeoutId);
+            if (cloudResp.ok) {
+                const cloudData = await cloudResp.json();
+                if (cloudData && cloudData.customName && cloudData.customName !== customName) {
+                    console.log('[License] 🔄 Admin updated name to:', cloudData.customName);
+                    localStorage.setItem('client_custom_name', cloudData.customName);
+                    if (_currentLicenseData) {
+                        _currentLicenseData.custom_name = cloudData.customName;
+                    }
+                    updateHeaderLicenseBadge(_currentLicenseData);
+                }
+            }
+        } catch (_) {}
     } catch (e) {
         // Silent
     }
 }
+
+// Periodic heartbeat ping every 20s for live tracking & instant name updates
+setInterval(() => {
+    try {
+        if (_currentLicenseData && _currentLicenseData.device_id) {
+            reportDevicePing(_currentLicenseData.device_id);
+        }
+    } catch (_) {}
+}, 20000);
 
 function onClientTelegramChange(val) {
     const clean = val.trim();

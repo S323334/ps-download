@@ -14,8 +14,11 @@ const {
   registerPendingCheckout,
   fulfillPayWayPayment,
   recordUnclaimedPayment,
-  getUnclaimedPayments
+  getUnclaimedPayments,
+  setDeviceCustomName
 } = require('./license.js');
+
+const _ACTIVE_CLOUD_DEVICES = new Map(); // deviceId -> live active device info
 
 const PORT = parseInt(process.env.PORT || '3000', 10);
 
@@ -130,6 +133,88 @@ const server = http.createServer(async (req, res) => {
       });
     }
     return sendJson(res, 200, { authorized: false, message: 'មិនទាន់មានការអនុញ្ញាតពី Admin ឡើយ' });
+  }
+
+  // Real-Time Heartbeat from Active Customer Machines (Cloud Online Ping & Name Sync)
+  if (url.pathname === '/api/license/heartbeat' && req.method === 'POST') {
+    const body = await parseJsonBody(req);
+    const cleanId = String(body.deviceId || '').trim().toUpperCase();
+    if (cleanId) {
+      const authMap = typeof getAuthorizedDevicesMap === 'function' ? getAuthorizedDevicesMap() : {};
+      const auth = authMap[cleanId] || {};
+      const now = Date.now();
+      const existing = _ACTIVE_CLOUD_DEVICES.get(cleanId) || {};
+      const resolvedName = auth.customName || existing.customName || body.customName || body.telegramUser || '';
+
+      _ACTIVE_CLOUD_DEVICES.set(cleanId, {
+        deviceId: cleanId,
+        telegramUser: body.telegramUser || existing.telegramUser || auth.telegramUser || '',
+        customName: resolvedName,
+        computerName: body.computerName || existing.computerName || '',
+        key: auth.key || body.key || existing.key || '',
+        status: auth.status || body.status || 'active',
+        expiresAt: auth.expiresAt || body.expiresAt || null,
+        lastSeen: now,
+        firstSeen: existing.firstSeen || now,
+        appVersion: body.appVersion || '3.2.2',
+        isOnline: true
+      });
+
+      return sendJson(res, 200, {
+        success: true,
+        customName: resolvedName,
+        revoked: Boolean(auth.revoked || auth.status === 'revoked')
+      });
+    }
+    return sendJson(res, 400, { success: false, error: 'Missing deviceId' });
+  }
+
+  // Admin Instant Customer Name Sync (from Desktop Admin Control Center)
+  if (url.pathname === '/api/license/set-name' && req.method === 'POST') {
+    const body = await parseJsonBody(req);
+    const cleanId = String(body.deviceId || '').trim().toUpperCase();
+    const cleanName = String(body.customName || '').trim();
+    if (cleanId) {
+      if (typeof setDeviceCustomName === 'function') {
+        try { setDeviceCustomName(cleanId, cleanName); } catch (_) {}
+      }
+      if (_ACTIVE_CLOUD_DEVICES.has(cleanId)) {
+        const dev = _ACTIVE_CLOUD_DEVICES.get(cleanId);
+        dev.customName = cleanName;
+      }
+      return sendJson(res, 200, { success: true, customName: cleanName });
+    }
+    return sendJson(res, 400, { success: false, error: 'Missing deviceId' });
+  }
+
+  // Admin Fetch All Tracked Machines from Cloud
+  if (url.pathname === '/api/license/tracked-cloud' && req.method === 'GET') {
+    const now = Date.now();
+    const list = [];
+    const authMap = typeof getAuthorizedDevicesMap === 'function' ? getAuthorizedDevicesMap() : {};
+
+    for (const [id, dev] of _ACTIVE_CLOUD_DEVICES.entries()) {
+      dev.isOnline = (now - dev.lastSeen) < 180000; // Online if pinged within last 3 minutes
+      list.push(dev);
+    }
+
+    for (const [id, auth] of Object.entries(authMap)) {
+      if (!_ACTIVE_CLOUD_DEVICES.has(id)) {
+        list.push({
+          deviceId: id,
+          telegramUser: auth.telegramUser || '',
+          customName: auth.customName || auth.telegramUser || '',
+          computerName: 'Authorized PC',
+          key: auth.key || '',
+          status: auth.status || 'active',
+          expiresAt: auth.expiresAt || null,
+          lastSeen: auth.authorizedAt ? new Date(auth.authorizedAt).getTime() : 0,
+          isOnline: false
+        });
+      }
+    }
+
+    return sendJson(res, 200, { success: true, devices: list });
   }
 
   // Register pending checkout intent from client

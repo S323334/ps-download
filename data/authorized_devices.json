@@ -4,12 +4,34 @@
     "key": "D007-7BDE-34DE-41B5",
     "days": 7,
     "hours": 0,
-    "label": "7 ថ្ងៃ (១ សប្តាហ៍)",
+    "label": "7 ថ្ងៃ",
     "telegramUser": "CHANTHA",
     "customName": "CHANTHA (Thailand)",
-    "authorizedAt": "2026-10-01T10:46:33.340Z",
-    "expiresAt": "2026-10-08T16:33:00.000Z",
-    "status": "active",
-    "revoked": false
+    "authorizedAt": "2026-10-02T14:24:30.358Z",
+    "expiresAt": "2026-10-09T14:24:30.332Z",
+    "status": "active"
+  },
+  "HG-DBC0-79F8-FD0C": {
+    "deviceId": "HG-DBC0-79F8-FD0C",
+    "key": "D001-6133-36BB-C599",
+    "days": 30,
+    "label": "អាជ្ញាប័ណ្ណ 1 ថ្ងៃ",
+    "customName": "ADMIN01",
+    "telegramUser": "",
+    "authorizedAt": "2026-10-02T08:46:04.971Z",
+    "expiresAt": "2026-10-03T05:32:05.851Z",
+    "status": "active"
+  },
+  "HG-0D72-B707-5223": {
+    "deviceId": "HG-0D72-B707-5223",
+    "key": "D007-3B71-9BC2-A82B",
+    "days": 7,
+    "hours": 0,
+    "label": "7 ថ្ងៃ",
+    "telegramUser": "",
+    "customName": "ភ្ញៀវ Telegram (HG-0D72)",
+    "authorizedAt": "2026-10-02T15:14:57.907Z",
+    "expiresAt": "2026-10-09T15:14:57.903Z",
+    "status": "active"
   }
 }

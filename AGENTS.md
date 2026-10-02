@@ -49,3 +49,11 @@
 - **ដំណើរការលើ Core i3**: កម្មវិធីស៊ី RAM ត្រឹម ~500 MB និង CPU ត្រឹម 3% - 5% ដំណើរការបានរលូន ១០០% លើកុំព្យូទ័រ Core i3 (RAM 4GB/8GB) ដោយសារប្រើបច្ចេកវិទ្យា Direct Stream Copy មិនស៊ីកម្លាំង CPU ក្នុងការ Re-encode វីដេអូឡើយ។
 - **MVFFM Network Architecture**: ត្រូវរក្សាការប្រើប្រាស់ `family: 4` (IPv4) និង Keep-Alive Agent ក្នុង `src/mvffm_downloader.js` ជានិច្ច ដើម្បីការពារបញ្ហា Windows IPv6 stall ដែលបង្កជា Error 408 (Request Timeout)។
 
+---
+
+## 7. Next Update Roadmap (កិច្ចការត្រូវធ្វើពេល Update លើកក្រោយ)
+- **លុបប្រអប់ Debug Info ក្នុង Settings (`web/index.html`)**:
+  - នៅពេលឡើង Version ថ្មីបន្ទាប់ (ឧ. `v3.2.3`) ត្រូវលុបប្រអប់អក្សរ ៣ ជួរនៅបាតក្រោមនៃផ្ទាំង Settings (`• Application: PS DOWNLOAD V3`, `• Data Source: https://hongguoduanju.com/ (SSR Scraper)`, `• Video Stream: Direct unencrypted MP4 CDN...`) ចេញឱ្យស្អាត។
+  - **គោលបំណង**: ការពារកុំឱ្យទម្លាយឈ្មោះ Website (`hongguoduanju.com`) និងបច្ចេកទេសទាញយក (`SSR Scraper`) ទៅកាន់ភ្ញៀវ ឬអ្នកដទៃ ដើម្បីរក្សាការសម្ងាត់ និងភាព Professional របស់កម្មវិធី។
+
+

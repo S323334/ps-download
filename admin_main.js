@@ -71,10 +71,10 @@ function createAdminWindow() {
       : path.join(__dirname, 'icon.ico'));
 
   adminWindow = new BrowserWindow({
-    width: 1120,
-    height: 900,
-    minWidth: 880,
-    minHeight: 650,
+    width: 1440,
+    height: 920,
+    minWidth: 1024,
+    minHeight: 700,
     backgroundColor: '#07090e',
     title: '🔑 PS DOWNLOAD - ADMIN LICENSE & KEY GENERATOR',
     icon: iconPath,

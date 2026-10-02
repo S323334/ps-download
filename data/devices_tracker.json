@@ -1,0 +1,53 @@
+[
+  {
+    "deviceId": "HG-0D72-B707-5223",
+    "telegramUser": "",
+    "customName": "ភ្ញៀវ Telegram (HG-0D72)",
+    "computerName": "Authorized PC",
+    "osUser": "",
+    "firstSeen": "2026-10-02T15:14:58.256Z",
+    "lastSeen": "2026-10-02T15:14:58.256Z",
+    "openCount": 1,
+    "status": "7 ថ្ងៃ",
+    "key": "D007-3B71-9BC2-A82B"
+  },
+  {
+    "deviceId": "HG-D801-31FE-A516",
+    "telegramUser": "",
+    "customName": "CHANTHA (Thailand)",
+    "computerName": "Authorized PC",
+    "osUser": "",
+    "firstSeen": "2026-10-02T14:24:30.821Z",
+    "lastSeen": "2026-10-02T14:24:30.821Z",
+    "openCount": 1,
+    "status": "7 ថ្ងៃ",
+    "key": "D007-7BDE-34DE-41B5"
+  },
+  {
+    "deviceId": "HG-DBC0-79F8-FD0C",
+    "telegramUser": "@Thpisal33",
+    "computerName": "127.0.0.1",
+    "osUser": "TH33",
+    "firstSeen": "2026-09-29T09:27:38.382Z",
+    "lastSeen": "2026-10-02T08:46:15.564Z",
+    "openCount": 367,
+    "status": "unactivated",
+    "failedAttempts": 0,
+    "crackSuspect": false,
+    "lastFailedKey": "D007-7E4C-4141-29A5",
+    "location": {
+      "ip": "45.119.135.79",
+      "country": "Cambodia",
+      "city": "Phnom Penh",
+      "regionName": "Phnom Penh",
+      "isp": "VIETTEL (CAMBODIA) PTE., LTD",
+      "lat": 11.5583,
+      "lon": 104.9121,
+      "mapsUrl": "https://maps.google.com/?q=11.5583,104.9121"
+    },
+    "lastPaymentPlan": "១ សប្តាហ៍ (.50)",
+    "lastPaymentAmount": "1.50",
+    "customName": "ADMIN01",
+    "key": "D001-6133-36BB-C599"
+  }
+]

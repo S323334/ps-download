@@ -1784,36 +1784,38 @@ function startServer(port = PORT, host = HOST) {
       // 28g. Admin Get Tracked Devices: GET /api/license/admin/tracked
       if (pathname === '/api/license/admin/tracked' && req.method === 'GET') {
         const shouldSyncCloud = parsedUrl.searchParams.get('sync') === 'true';
-        let devices = getTrackedDevicesWithLicenseInfo();
 
-        if (shouldSyncCloud && devices.length > 0) {
+        if (shouldSyncCloud) {
           try {
-            const checkPromises = devices.map(async (d) => {
-              try {
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 1800);
-                const resp = await fetch(`https://ps-download-bot-irhw.onrender.com/api/license/check?deviceId=${encodeURIComponent(d.deviceId)}`, {
-                  signal: controller.signal
-                });
-                clearTimeout(timeoutId);
-                if (resp.ok) {
-                  const cloudData = await resp.json();
-                  if (cloudData && cloudData.authorized && cloudData.key) {
-                    authorizeDevice({
-                      deviceId: d.deviceId,
-                      days: cloudData.days || 30,
-                      customName: cloudData.customName || d.customName || '',
-                      customLabel: cloudData.label
+            // 1. Fetch live active devices from 24/7 Render Cloud
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 2500);
+            const cloudTrackedRes = await fetch('https://ps-download-bot-irhw.onrender.com/api/license/tracked-cloud', {
+              signal: controller.signal
+            });
+            clearTimeout(timeoutId);
+            if (cloudTrackedRes.ok) {
+              const ctData = await cloudTrackedRes.json();
+              if (ctData && Array.isArray(ctData.devices)) {
+                for (const cd of ctData.devices) {
+                  if (cd.deviceId) {
+                    await recordDeviceTracking({
+                      deviceId: cd.deviceId,
+                      telegramUser: cd.telegramUser,
+                      computerName: cd.computerName,
+                      customName: cd.customName,
+                      key: cd.key,
+                      status: cd.status,
+                      expiresAt: cd.expiresAt
                     });
                   }
                 }
-              } catch (_) {}
-            });
-            await Promise.allSettled(checkPromises);
-            devices = getTrackedDevicesWithLicenseInfo();
+              }
+            }
           } catch (_) {}
         }
 
+        const devices = getTrackedDevicesWithLicenseInfo();
         return sendJson(res, 200, {
           success: true,
           devices: devices
@@ -1824,6 +1826,36 @@ function startServer(port = PORT, host = HOST) {
       if (pathname === '/api/license/admin/sync-cloud' && req.method === 'POST') {
         let syncedCount = 0;
         try {
+          // 1. Fetch all active machines tracked by Cloud Server
+          try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 3500);
+            const cloudTrackedRes = await fetch('https://ps-download-bot-irhw.onrender.com/api/license/tracked-cloud', {
+              signal: controller.signal
+            });
+            clearTimeout(timeoutId);
+            if (cloudTrackedRes.ok) {
+              const ctData = await cloudTrackedRes.json();
+              if (ctData && Array.isArray(ctData.devices)) {
+                for (const cd of ctData.devices) {
+                  if (cd.deviceId) {
+                    await recordDeviceTracking({
+                      deviceId: cd.deviceId,
+                      telegramUser: cd.telegramUser,
+                      computerName: cd.computerName,
+                      customName: cd.customName,
+                      key: cd.key,
+                      status: cd.status,
+                      expiresAt: cd.expiresAt
+                    });
+                    syncedCount++;
+                  }
+                }
+              }
+            }
+          } catch (_) {}
+
+          // 2. Also check license status for local devices
           const devices = getTrackedDevicesWithLicenseInfo();
           const checkPromises = devices.map(async (d) => {
             try {
@@ -1861,6 +1893,20 @@ function startServer(port = PORT, host = HOST) {
       if (pathname === '/api/license/admin/set-name' && req.method === 'POST') {
         const body = await parseJsonBody(req);
         const result = setDeviceCustomName(body.deviceId, body.customName);
+
+        // Instantly sync updated name to 24/7 Render Cloud Server
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 3500);
+          fetch('https://ps-download-bot-irhw.onrender.com/api/license/set-name', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            signal: controller.signal,
+            body: JSON.stringify({ deviceId: body.deviceId, customName: body.customName })
+          }).catch(() => {});
+          clearTimeout(timeoutId);
+        } catch (_) {}
+
         return sendJson(res, 200, result);
       }
 

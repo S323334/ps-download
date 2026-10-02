@@ -37,6 +37,10 @@
             display: flex;
             flex-direction: column;
             overflow-x: hidden;
+            padding: 0 !important;
+            padding-left: 0 !important;
+            margin: 0 !important;
+            width: 100%;
             background-image: 
                 radial-gradient(circle at 15% 15%, rgba(59, 130, 246, 0.12) 0%, transparent 40%),
                 radial-gradient(circle at 85% 85%, rgba(139, 92, 246, 0.1) 0%, transparent 40%),
@@ -45,13 +49,14 @@
         }
 
         .admin-wrapper {
-            max-width: 1580px;
-            width: 96%;
+            max-width: 1400px;
+            width: 100%;
             margin: 0 auto;
-            padding: 16px 20px;
+            padding: 16px 24px 32px 24px;
             display: flex;
             flex-direction: column;
             gap: 16px;
+            box-sizing: border-box;
         }
 
         /* Top Header */
@@ -191,60 +196,56 @@
             margin-top: 4px;
         }
 
-        /* Metrics Row */
-        .metrics-row {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 14px;
-            margin-bottom: 20px;
+        /* Sleek Compact Metrics Bar (Replaces bulky cards) */
+        .metrics-bar {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 10px;
+            margin-bottom: 14px;
+            flex-wrap: wrap;
         }
 
-        .metric-card {
-            background: rgba(255, 255, 255, 0.03);
+        .metric-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 14px;
+            border-radius: 9px;
+            background: rgba(255, 255, 255, 0.04);
             border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 14px;
-            padding: 14px 18px;
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            transition: transform 0.2s, border-color 0.2s;
+            font-size: 0.81rem;
+            color: #cbd5e1;
+            transition: all 0.2s;
         }
 
-        .metric-card:hover {
-            transform: translateY(-2px);
-            border-color: rgba(255, 255, 255, 0.2);
+        .metric-pill:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.16);
         }
 
-        .metric-icon {
-            width: 44px;
-            height: 44px;
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.3rem;
-            background: rgba(255, 255, 255, 0.05);
-        }
+        .metric-pill.blue { border-left: 3.5px solid #3b82f6; }
+        .metric-pill.green { border-left: 3.5px solid #10b981; }
+        .metric-pill.purple { border-left: 3.5px solid #8b5cf6; }
+        .metric-pill.amber { border-left: 3.5px solid #f59e0b; }
 
-        .metric-card.blue .metric-icon { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
-        .metric-card.green .metric-icon { background: rgba(16, 185, 129, 0.15); color: #34d399; }
-        .metric-card.purple .metric-icon { background: rgba(139, 92, 246, 0.15); color: #c084fc; }
-        .metric-card.amber .metric-icon { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
-
-        .metric-val {
-            font-size: 1.45rem;
-            font-weight: 800;
-            color: #ffffff;
-            line-height: 1.2;
-            font-family: 'JetBrains Mono', monospace;
-        }
-
-        .metric-label {
-            font-size: 0.74rem;
-            color: var(--text-sub);
+        .metric-pill .m-label {
             font-weight: 600;
-            margin-top: 2px;
+            color: #94a3b8;
+            font-size: 0.78rem;
         }
+
+        .metric-pill .m-val {
+            font-size: 1.05rem;
+            font-weight: 800;
+            font-family: 'JetBrains Mono', monospace;
+            color: #ffffff;
+        }
+
+        .metric-pill.blue .m-val { color: #60a5fa; }
+        .metric-pill.green .m-val { color: #34d399; }
+        .metric-pill.purple .m-val { color: #c084fc; }
+        .metric-pill.amber .m-val { color: #fbbf24; }
 
         /* Forms */
         .form-group {
@@ -455,17 +456,19 @@
             gap: 10px;
         }
 
-        /* Table Styling */
+        /* Table Styling - 100% Responsive, NO Horizontal Scroll */
         .tracker-table-wrapper {
-            overflow-x: auto;
+            overflow-x: hidden;
+            width: 100%;
             border: 1px solid rgba(255, 255, 255, 0.08);
             border-radius: 12px;
             background: rgba(0, 0, 0, 0.25);
-            margin-top: 14px;
+            margin-top: 10px;
         }
 
         .tracker-table {
             width: 100%;
+            table-layout: fixed;
             border-collapse: collapse;
             font-size: 0.81rem;
         }
@@ -474,19 +477,23 @@
             background: rgba(255, 255, 255, 0.04);
             color: #cbd5e1;
             font-weight: 700;
-            padding: 9px 12px;
-            font-size: 0.78rem;
+            padding: 9px 10px;
+            font-size: 0.77rem;
             text-align: left;
             border-bottom: 1px solid rgba(255, 255, 255, 0.08);
             white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .tracker-table td {
-            padding: 8px 12px;
+            padding: 8px 10px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.04);
             color: #e2e8f0;
             vertical-align: middle;
-            font-size: 0.81rem;
+            font-size: 0.80rem;
+            overflow: hidden;
+            word-break: break-word;
         }
 
         .tracker-table tr:hover td {
@@ -942,35 +949,27 @@
                 </div>
             </div>
 
-            <!-- Stats Overview Cards -->
-            <div class="metrics-row">
-                <div class="metric-card blue">
-                    <div class="metric-icon">🖥️</div>
-                    <div>
-                        <div class="metric-val" id="metricTotalDevices">0</div>
-                        <div class="metric-label">ម៉ាស៊ីនសរុប (Total)</div>
-                    </div>
+            <!-- Sleek Compact Metrics Status Bar -->
+            <div class="metrics-bar">
+                <div class="metric-pill blue">
+                    <span>🖥️</span>
+                    <span class="m-label">ម៉ាស៊ីនសរុប:</span>
+                    <span class="m-val" id="metricTotalDevices">0</span>
                 </div>
-                <div class="metric-card green">
-                    <div class="metric-icon">🟢</div>
-                    <div>
-                        <div class="metric-val" id="metricOnlineDevices">0</div>
-                        <div class="metric-label">កំពុង Online (Active Now)</div>
-                    </div>
+                <div class="metric-pill green">
+                    <span class="pulse-dot"></span>
+                    <span class="m-label">កំពុង Online:</span>
+                    <span class="m-val" id="metricOnlineDevices">0</span>
                 </div>
-                <div class="metric-card purple">
-                    <div class="metric-icon">✅</div>
-                    <div>
-                        <div class="metric-val" id="metricActiveLicenses">0</div>
-                        <div class="metric-label">មាន License សកម្ម</div>
-                    </div>
+                <div class="metric-pill purple">
+                    <span>✅</span>
+                    <span class="m-label">មាន License:</span>
+                    <span class="m-val" id="metricActiveLicenses">0</span>
                 </div>
-                <div class="metric-card amber">
-                    <div class="metric-icon">⚠️</div>
-                    <div>
-                        <div class="metric-val" id="metricExpiredRevoked">0</div>
-                        <div class="metric-label">ផុតកំណត់ / ដកហូត</div>
-                    </div>
+                <div class="metric-pill amber">
+                    <span>⚠️</span>
+                    <span class="m-label">ផុតកំណត់/ដកហូត:</span>
+                    <span class="m-val" id="metricExpiredRevoked">0</span>
                 </div>
             </div>
 
@@ -987,22 +986,20 @@
                 </div>
             </div>
 
-            <!-- Machines Table -->
+            <!-- Machines Table (100% Fit, Zero Horizontal Scroll) -->
             <div class="tracker-table-wrapper">
                 <table class="tracker-table">
                     <thead>
                         <tr>
-                            <th style="min-width: 170px;">👤 ឈ្មោះភ្ញៀវ (Customer)</th>
-                            <th style="min-width: 150px;">💻 លេខម៉ាស៊ីន (Device ID)</th>
-                            <th style="min-width: 185px;">🔑 License Key</th>
-                            <th style="min-width: 110px;">📶 Online</th>
-                            <th style="min-width: 175px;">⏳ សុពលភាព &amp; ពេលនៅសល់</th>
-                            <th style="text-align:right; min-width: 230px;">⚡ សកម្មភាពគ្រប់គ្រង</th>
+                            <th style="width: 32%;">👤 អតិថិជន &amp; ម៉ាស៊ីន (Customer &amp; Device)</th>
+                            <th style="width: 25%;">🔑 License Key &amp; កញ្ចប់</th>
+                            <th style="width: 21%;">📶 ស្ថានភាព &amp; សុពលភាព</th>
+                            <th style="width: 22%; text-align: right;">⚡ សកម្មភាពគ្រប់គ្រង</th>
                         </tr>
                     </thead>
                     <tbody id="trackerTableBody">
                         <tr>
-                            <td colspan="6" style="text-align:center; color:var(--text-sub); padding:28px;">កំពុងទាញយកទិន្នន័យ...</td>
+                            <td colspan="4" style="text-align:center; color:var(--text-sub); padding:28px;">កំពុងទាញយកទិន្នន័យ...</td>
                         </tr>
                     </tbody>
                 </table>
@@ -1288,8 +1285,11 @@
         function startTrackerAutoRefresh() {
             stopTrackerAutoRefresh();
             _trackerTimer = setInterval(() => {
-                loadTrackedDevices(true);
-            }, 10000); // Live poll every 10s
+                const activeTab = document.querySelector('.admin-tab-btn.active');
+                if (activeTab && activeTab.innerText.includes('គ្រប់គ្រងម៉ាស៊ីន')) {
+                    loadTrackedDevices(true, true);
+                }
+            }, 8000); // Live poll every 8 seconds for new machines & real-time status
         }
 
         function stopTrackerAutoRefresh() {
@@ -1480,11 +1480,11 @@
                     updateMetrics(_cachedDevices);
                     applyFilter();
                 } else if (!isSilent && tbody) {
-                    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-sub); padding:28px;">មិនទាន់មានម៉ាស៊ីនណាបានបើកកម្មវិធីឡើយ</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--text-sub); padding:28px;">មិនទាន់មានម៉ាស៊ីនណាបានបើកកម្មវិធីឡើយ</td></tr>`;
                 }
             } catch (e) {
                 if (!isSilent && tbody) {
-                    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-sub); padding:28px;">មិនអាចភ្ជាប់ទៅកាន់ Server បានឡើយ</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--text-sub); padding:28px;">មិនអាចភ្ជាប់ទៅកាន់ Server បានឡើយ</td></tr>`;
                 }
             }
         }
@@ -1576,7 +1576,7 @@
             if (!tbody) return;
 
             if (!list || list.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-sub); padding:28px;">មិនមានទិន្នន័យត្រូវគ្នានឹងការស្វែងរកឡើយ</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--text-sub); padding:28px;">មិនមានទិន្នន័យត្រូវគ្នានឹងការស្វែងរកឡើយ</td></tr>`;
                 return;
             }
 
@@ -1587,86 +1587,95 @@
 
                 let subText = '';
                 if (item.telegramUser && item.telegramUser !== item.customName) {
-                    subText += `<div style="font-size:0.71rem; color:#94a3b8; margin-top:2px;">📱 ${escapeHtml(item.telegramUser)}</div>`;
+                    subText += `<div style="font-size:0.71rem; color:#94a3b8; margin-top:1px;">📱 ${escapeHtml(item.telegramUser)}</div>`;
                 }
                 if (item.computerName) {
-                    subText += `<div style="font-size:0.70rem; color:#64748b; margin-top:1px;">🖥️ ${escapeHtml(item.computerName)}${item.osUser ? ' • ' + escapeHtml(item.osUser) : ''}</div>`;
+                    subText += `<div style="font-size:0.69rem; color:#64748b; margin-top:1px;">🖥️ ${escapeHtml(item.computerName)}${item.osUser ? ' • ' + escapeHtml(item.osUser) : ''}</div>`;
                 }
 
                 // Online status indicator
                 const onlineHtml = item.isOnline
-                    ? `<span style="color:#34d399; font-weight:700; font-size:0.76rem; display:inline-flex; align-items:center;"><span class="pulse-dot"></span> Online</span>`
-                    : `<span style="color:#94a3b8; font-size:0.76rem; display:inline-flex; align-items:center;"><span class="pulse-dot offline"></span> Offline</span>`;
+                    ? `<span style="color:#34d399; font-weight:700; font-size:0.75rem; display:inline-flex; align-items:center;"><span class="pulse-dot"></span> Online</span>`
+                    : `<span style="color:#94a3b8; font-size:0.75rem; display:inline-flex; align-items:center;"><span class="pulse-dot offline"></span> Offline</span>`;
 
                 const lastSeenText = item.lastSeenAgo 
-                    ? `<div style="font-size:0.69rem; color:#64748b; margin-top:2px;">${item.lastSeenAgo}</div>`
+                    ? `<span style="font-size:0.68rem; color:#64748b; margin-left:4px;">(${item.lastSeenAgo})</span>`
                     : '';
 
                 // Key display
                 const keyHtml = item.key 
-                    ? `<span class="key-badge"><code>${escapeHtml(item.key)}</code> <button type="button" class="btn-table-copy" onclick="copyText('${escapeHtml(item.key)}'); showToast('📋 បានចម្លង License Key!', '✅');" title="ចម្លង Key">📋</button></span>`
-                    : `<span class="badge-status badge-unact">⚪ មិនទាន់មាន Key</span>`;
+                    ? `<span class="key-badge" style="padding:2px 6px; font-size:0.76rem;"><code>${escapeHtml(item.key)}</code> <button type="button" class="btn-table-copy" onclick="copyText('${escapeHtml(item.key)}'); showToast('📋 បានចម្លង License Key!', '✅');" title="ចម្លង Key">📋</button></span>`
+                    : `<span class="badge-status badge-unact" style="font-size:0.70rem;">⚪ គ្មាន Key</span>`;
 
                 // Duration badge
                 let durationBadge = '';
                 if (item.isRevoked || item.isExpired) {
-                    durationBadge = `<span class="badge-status badge-expired">🔴 ផុតកំណត់</span>`;
+                    durationBadge = `<span class="badge-status badge-expired" style="font-size:0.70rem;">🔴 ផុតកំណត់</span>`;
                 } else if (item.isLifetime) {
-                    durationBadge = `<span class="badge-status badge-active" style="border-color:#8b5cf6; color:#c084fc; background:rgba(139,92,246,0.15);">👑 ពេញមួយជីវិត</span>`;
+                    durationBadge = `<span class="badge-status badge-active" style="border-color:#8b5cf6; color:#c084fc; background:rgba(139,92,246,0.15); font-size:0.70rem;">👑 ពេញមួយជីវិត</span>`;
                 } else if (item.isAuthorized) {
                     const days = item.remainingDays || 0;
                     const hours = item.remainingHours || 0;
-                    durationBadge = `<span class="badge-status badge-active">⏳ នៅសល់ ${days}ថ្ងៃ ${hours}ម៉ោង</span>`;
+                    const mins = item.remainingMinutes || 0;
+                    let remStr = '';
+                    if (days > 0) {
+                        remStr = `${days} ថ្ងៃ ${hours} ម៉ោង`;
+                    } else if (hours > 0) {
+                        remStr = `${hours} ម៉ោង ${mins} នាទី`;
+                    } else if (mins > 0) {
+                        remStr = `${mins} នាទី`;
+                    } else {
+                        remStr = `តិចជាង ១ នាទី`;
+                    }
+                    durationBadge = `<span class="badge-status badge-active" style="font-size:0.70rem;">⏳ នៅសល់ ${remStr}</span>`;
                 } else {
-                    durationBadge = `<span class="badge-status badge-unact">⚪ មិនទាន់ Activate</span>`;
+                    durationBadge = `<span class="badge-status badge-unact" style="font-size:0.70rem;">⚪ មិនទាន់ Activate</span>`;
                 }
 
-                const grantedText = item.daysGranted > 0 
-                    ? `<div style="font-size:0.70rem; color:#94a3b8; margin-top:2px;">កញ្ចប់: <b>${item.daysGranted} ថ្ងៃ</b></div>`
-                    : (item.isLifetime ? `<div style="font-size:0.70rem; color:#c084fc; margin-top:2px;">VIP ពេញមួយជីវិត</div>` : '');
+                let grantedText = '';
+                if (item.label && (item.label.includes('ម៉ោង') || item.label.includes('ថ្ងៃ') || item.label.includes('ឆ្នាំ'))) {
+                    grantedText = `<div style="font-size:0.69rem; color:#94a3b8; margin-top:2px;">កញ្ចប់: <b>${escapeHtml(item.label)}</b></div>`;
+                } else if (item.daysGranted > 0) {
+                    grantedText = `<div style="font-size:0.69rem; color:#94a3b8; margin-top:2px;">កញ្ចប់: <b>${item.daysGranted} ថ្ងៃ</b></div>`;
+                } else if (item.isLifetime) {
+                    grantedText = `<div style="font-size:0.69rem; color:#c084fc; margin-top:2px;">VIP ពេញមួយជីវិត</div>`;
+                }
 
                 return `
                     <tr>
-                        <!-- 1. Customer Name -->
-                        <td>
-                            <div style="display:flex; align-items:center; gap:5px;">
+                        <!-- 1. Customer Name & Device ID -->
+                        <td style="overflow:hidden;">
+                            <div style="display:flex; align-items:center; gap:5px; margin-bottom:2px;">
                                 ${nameDisplay}
                                 <button type="button" class="btn-table-edit" onclick="openEditNameModal('${devId}', '${escapeHtml(item.customName || '')}')" title="កែឈ្មោះសម្គាល់ភ្ញៀវ">✏️</button>
+                            </div>
+                            <div style="display:flex; align-items:center; gap:5px; margin-bottom:1px;">
+                                <code style="font-family:'JetBrains Mono', monospace; color:#94a3b8; font-size:0.75rem; font-weight:700;">${devId}</code>
+                                <button type="button" class="btn-table-edit" style="font-size:0.68rem; padding:1px 3px;" onclick="copyText('${devId}'); showToast('📋 បានចម្លង Device ID!', '✅');" title="ចម្លង Device ID">📋</button>
                             </div>
                             ${subText}
                         </td>
 
-                        <!-- 2. Device ID -->
-                        <td>
-                            <div style="display:flex; align-items:center; gap:5px;">
-                                <code style="font-family:'JetBrains Mono', monospace; color:#f8fafc; font-size:0.80rem; font-weight:700;">${devId}</code>
-                                <button type="button" class="btn-table-edit" onclick="copyText('${devId}'); showToast('📋 បានចម្លង Device ID!', '✅');" title="ចម្លង Device ID">📋</button>
-                            </div>
-                        </td>
-
-                        <!-- 3. License Key -->
-                        <td>
+                        <!-- 2. License Key -->
+                        <td style="overflow:hidden;">
                             ${keyHtml}
-                        </td>
-
-                        <!-- 4. Online Status -->
-                        <td>
-                            ${onlineHtml}
-                            ${lastSeenText}
-                        </td>
-
-                        <!-- 5. Duration & Remaining -->
-                        <td>
-                            ${durationBadge}
                             ${grantedText}
                         </td>
 
-                        <!-- 6. Compact Actions -->
-                        <td style="text-align:right; white-space:nowrap;">
-                            <button type="button" class="btn-table btn-table-add" onclick="openAdjustDaysModal('${devId}', 'add', ${item.remainingDays || 0})" title="បន្ថែមថ្ងៃប្រើប្រាស់">+ ថ្ងៃ</button>
-                            <button type="button" class="btn-table btn-table-sub" onclick="openAdjustDaysModal('${devId}', 'sub', ${item.remainingDays || 0})" title="បន្ថយថ្ងៃប្រើប្រាស់">- ថ្ងៃ</button>
-                            <button type="button" class="btn-table btn-table-transfer" onclick="openTransferModal('${devId}', ${item.remainingDays || 0}, ${item.remainingHours || 0}, ${item.remainingMinutes || 0}, ${item.isLifetime ? 'true' : 'false'}, '${escapeHtml(item.customName || '')}')" title="ផ្ទេរ License ទៅម៉ាស៊ីនថ្មី">🔄 ផ្ទេរ</button>
-                            <button type="button" class="btn-table btn-table-revoke" onclick="confirmRevoke('${devId}')" title="កាត់ License ម៉ាស៊ីននេះឱ្យផុតកំណត់ភ្លាមៗ">🔌 ផ្ដាច់</button>
+                        <!-- 3. Status & Duration -->
+                        <td style="overflow:hidden;">
+                            <div style="margin-bottom:3px;">${onlineHtml} ${lastSeenText}</div>
+                            <div>${durationBadge}</div>
+                        </td>
+
+                        <!-- 4. Compact Actions -->
+                        <td style="text-align:right;">
+                            <div style="display:inline-flex; gap:3px; justify-content:flex-end; flex-wrap:wrap;">
+                                <button type="button" class="btn-table btn-table-add" onclick="openAdjustDaysModal('${devId}', 'add', ${item.remainingDays || 0})" title="បន្ថែមថ្ងៃប្រើប្រាស់">+ ថ្ងៃ</button>
+                                <button type="button" class="btn-table btn-table-sub" onclick="openAdjustDaysModal('${devId}', 'sub', ${item.remainingDays || 0})" title="បន្ថយថ្ងៃប្រើប្រាស់">- ថ្ងៃ</button>
+                                <button type="button" class="btn-table btn-table-transfer" onclick="openTransferModal('${devId}', ${item.remainingDays || 0}, ${item.remainingHours || 0}, ${item.remainingMinutes || 0}, ${item.isLifetime ? 'true' : 'false'}, '${escapeHtml(item.customName || '')}')" title="ផ្ទេរ License ទៅម៉ាស៊ីនថ្មី">🔄 ផ្ទេរ</button>
+                                <button type="button" class="btn-table btn-table-revoke" onclick="confirmRevoke('${devId}')" title="កាត់ License ម៉ាស៊ីននេះឱ្យផុតកំណត់ភ្លាមៗ">🔌 ផ្ដាច់</button>
+                            </div>
                         </td>
                     </tr>
                 `;
@@ -2228,6 +2237,7 @@
             if (!str) return '';
             return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
         }
+
 
         document.addEventListener('DOMContentLoaded', () => {
             loadTrackedDevices(false, true);

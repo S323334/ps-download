@@ -1199,19 +1199,80 @@ async function recordDeviceTracking({ deviceId, telegramUser = '', computerName 
     } catch (e) {}
   }
 
-  // Send Telegram Notification to Admin on new device or activation request
-  if (isNewDevice || cleanTg) {
-    const tgMsg = `🚨 <b>ម៉ាស៊ីនបានបើកកម្មវិធី (Device Tracker Alert)</b>\n\n` +
-      `💻 <b>Device ID:</b> <code>${cleanId}</code>\n` +
-      `👤 <b>Customer / Telegram:</b> <b>${cleanName || cleanTg || '<i>(មិនទាន់បញ្ចូល)</i>'}</b>\n` +
-      `🖥️ <b>Computer:</b> ${host} (${user})\n` +
-      `🕒 <b>Time:</b> ${new Date().toLocaleString('en-US', { timeZone: 'Asia/Phnom_Penh' })}\n` +
-      `🛡️ <b>Status:</b> ${isNewDevice ? 'ម៉ាស៊ីនថ្មី (New Device)' : 'ដំណើរការឡើងវិញ'}`;
-    
+  const authMap = typeof getAuthorizedDevicesMap === 'function' ? getAuthorizedDevicesMap() : {};
+  const auth = authMap[cleanId] || null;
+  const resolvedCustomerName = (auth && auth.customName) || cleanName || (auth && auth.telegramUser) || cleanTg || '';
+  const resolvedTg = (auth && auth.telegramUser) || cleanTg || '';
+
+  const nowMs = Date.now();
+  let hasActiveLicense = false;
+  let licenseStatusHtml = '';
+
+  if (auth && (auth.key || auth.status === 'active') && !auth.revoked && auth.status !== 'expired') {
+    if (auth.days === 0 || (auth.label && String(auth.label).includes('Lifetime'))) {
+      hasActiveLicense = true;
+      licenseStatusHtml = '👑 VIP ពេញមួយជីវិត (Lifetime VIP)';
+    } else if (auth.expiresAt) {
+      const expMs = new Date(auth.expiresAt).getTime();
+      const diffMs = expMs - nowMs;
+      if (diffMs > 0) {
+        hasActiveLicense = true;
+        const d = Math.floor(diffMs / 86400000);
+        const h = Math.floor((diffMs % 86400000) / 3600000);
+        const m = Math.floor((diffMs % 3600000) / 60000);
+        if (d > 0) {
+          licenseStatusHtml = `🟢 ភ្ញៀវ VIP (នៅសល់ ${d} ថ្ងៃ ${h} ម៉ោង)`;
+        } else if (h > 0) {
+          licenseStatusHtml = `🟢 ភ្ញៀវ VIP (នៅសល់ ${h} ម៉ោង ${m} នាទី)`;
+        } else {
+          licenseStatusHtml = `🟢 ភ្ញៀវ VIP (នៅសល់ ${m} នាទី)`;
+        }
+      }
+    } else {
+      hasActiveLicense = true;
+      licenseStatusHtml = `🟢 ភ្ញៀវ VIP (${auth.label || 'Active'})`;
+    }
+  }
+
+  // Throttle alerts: Send alert on new device or when app is newly opened (at most once every 30 minutes)
+  const existingDev = existingIdx >= 0 ? list[existingIdx] : null;
+  const lastAlertMs = existingDev && existingDev.lastAlertAt ? new Date(existingDev.lastAlertAt).getTime() : 0;
+  const shouldSendAlert = isNewDevice || (nowMs - lastAlertMs > 1800000) || (cleanTg && !existingDev?.telegramUser);
+
+  if (shouldSendAlert) {
+    if (existingDev) existingDev.lastAlertAt = now;
+    else if (list[0]) list[0].lastAlertAt = now;
+    try {
+      fs.writeFileSync(DEVICES_TRACKER_FILE, JSON.stringify(list, null, 2), 'utf-8');
+    } catch (_) {}
+
+    const realComputer = (computerName && computerName !== '127.0.0.1' && computerName !== 'localhost') ? computerName : (os.hostname() || 'Client-PC');
+    const computerDisplay = user ? `${realComputer} (${user})` : realComputer;
+    let tgMsg = '';
+
+    if (hasActiveLicense) {
+      // 🔷 VIP Customer: Blue VIP icon, Customer Name from Admin Key, Real Computer Name
+      tgMsg = `🔷 <b>ម៉ាស៊ីនបានបើកដំណើរការ (ភ្ញៀវ VIP)</b>\n\n` +
+        `💻 <b>Device ID:</b> <code>${cleanId}</code>\n` +
+        `👤 <b>Customer / Telegram:</b> <b>${resolvedCustomerName || resolvedTg || 'ភ្ញៀវ VIP'}</b>\n` +
+        `🖥️ <b>Computer:</b> ${computerDisplay}\n` +
+        `🕒 <b>Time:</b> ${new Date().toLocaleString('en-US', { timeZone: 'Asia/Phnom_Penh' })}\n` +
+        `🛡️ <b>Status:</b> <b>${licenseStatusHtml}</b>`;
+    } else {
+      // 🚨 New Device / No License: Red alert
+      tgMsg = `🚨 <b>ម៉ាស៊ីនបានបើកកម្មវិធី (Device Tracker Alert)</b>\n\n` +
+        `💻 <b>Device ID:</b> <code>${cleanId}</code>\n` +
+        `👤 <b>Customer / Telegram:</b> <b>${resolvedCustomerName || resolvedTg || '<i>(មិនទាន់បញ្ចូល)</i>'}</b>\n` +
+        `🖥️ <b>Computer:</b> ${computerDisplay}\n` +
+        `🕒 <b>Time:</b> ${new Date().toLocaleString('en-US', { timeZone: 'Asia/Phnom_Penh' })}\n` +
+        `🛡️ <b>Status:</b> <b>🔴 ម៉ាស៊ីនថ្មី (មិនទាន់មាន License)</b>`;
+    }
+
     sendTelegramAlert(tgMsg).catch(() => {});
   }
 
-  return { success: true, deviceId: cleanId, isNew: isNewDevice };
+  const currentCustomName = (authMap[cleanId] && authMap[cleanId].customName) || cleanName || '';
+  return { success: true, deviceId: cleanId, isNew: isNewDevice, customName: currentCustomName };
 }
 
 /**
@@ -1452,12 +1513,20 @@ function getTrackedDevicesWithLicenseInfo() {
       if (diffMin <= 5 && diffMin >= 0) {
         isOnline = true;
       }
-      if (diffMin < 1) lastSeenAgo = 'អម្បាញ់មិញ (Just now)';
-      else if (diffMin < 60) lastSeenAgo = `${diffMin} នាទីមុន`;
-      else {
+      if (diffMin < 1) {
+        lastSeenAgo = 'អម្បាញ់មិញ (Just now)';
+      } else if (diffMin < 60) {
+        lastSeenAgo = `បិទ ${diffMin} នាទីមុន`;
+      } else {
         const diffHours = Math.floor(diffMin / 60);
-        if (diffHours < 24) lastSeenAgo = `${diffHours} ម៉ោងមុន`;
-        else lastSeenAgo = `${Math.floor(diffHours / 24)} ថ្ងៃមុន`;
+        const remMin = diffMin % 60;
+        if (diffHours < 24) {
+          lastSeenAgo = remMin > 0 ? `បិទ ${diffHours} ម៉ោង ${remMin} នាទីមុន` : `បិទ ${diffHours} ម៉ោងមុន`;
+        } else {
+          const diffDays = Math.floor(diffHours / 24);
+          const remHours = diffHours % 24;
+          lastSeenAgo = remHours > 0 ? `បិទ ${diffDays} ថ្ងៃ ${remHours} ម៉ោងមុន` : `បិទ ${diffDays} ថ្ងៃមុន`;
+        }
       }
     }
 
