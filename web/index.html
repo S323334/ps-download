@@ -108,14 +108,44 @@
                     </button>
                 </div>
             </div>
+
+            <!-- Section 3: Download Folder Selector (ថតផ្ទុកវីដេអូទាញយក) -->
+            <div class="sidebar-section" id="sidebarFolderSection" style="margin-top:2px;">
+                <div class="sidebar-section-title" style="display:flex; justify-content:space-between; align-items:center;">
+                    <span id="sidebarFolderTitle">ថតផ្ទុកវីដេអូ (FOLDER)</span>
+                    <button type="button" class="btn-sidebar-folder-mini-open" onclick="openCurrentDownloadFolder()" title="បើកមើលក្នុង Computer (Open Folder in Explorer)">
+                        <span>📂</span> <span id="sidebarFolderOpenText">បើក</span>
+                    </button>
+                </div>
+                <div class="sidebar-folder-card" onclick="changeDownloadFolderPrompt()" title="ចុចដើម្បីប្តូរទីតាំង Folder ទាញយក (Click to change folder)">
+                    <div class="sidebar-folder-icon-box">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none">
+                            <path d="M3 7V17C3 18.1046 3.89543 19 5 19H19C20.1046 19 21 18.1046 21 17V9C21 7.89543 20.1046 7 19 7H12L10 5H5C3.89543 5 3 5.89543 3 7Z" fill="url(#sidebarFolderGrad)" stroke="#38bdf8" stroke-width="1.2"/>
+                            <defs>
+                                <linearGradient id="sidebarFolderGrad" x1="3" y1="5" x2="21" y2="19" gradientUnits="userSpaceOnUse">
+                                    <stop stop-color="#0284c7" stop-opacity="0.8"/>
+                                    <stop offset="1" stop-color="#38bdf8" stop-opacity="0.95"/>
+                                </linearGradient>
+                            </defs>
+                        </svg>
+                    </div>
+                    <div class="sidebar-folder-details">
+                        <div class="sidebar-folder-path" id="sidebarFolderDisplay" title="កំពុងផ្ទុកទីតាំង Folder...">កំពុងផ្ទុក...</div>
+                        <div class="sidebar-folder-sub" id="sidebarFolderChangeHint">ចុចដើម្បីរើស Folder ថ្មី</div>
+                    </div>
+                    <div class="sidebar-folder-action-pill">
+                        <span id="sidebarFolderActionLabel">រើស</span> 📁
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Sidebar Footer (Pinned to bottom) -->
         <div class="sidebar-footer">
             <!-- License Status Pill with Live Days/Hours/Minutes Countdown -->
             <button type="button" class="btn btn-license-badge unactivated" id="btnHeaderLicenseStatus" onclick="openLicenseActivationModal(true)" title="ស្ថានភាព License (ចុចដើម្បី Activate)">
-                <span id="headerLicenseIcon">🔐</span>
-                <span id="headerLicenseText">គ្មាន License</span>
+                <span id="headerLicenseIcon" style="display:none;"></span>
+                <span id="headerLicenseText" style="width:100%; display:block;">គ្មាន License</span>
             </button>
 
             <div class="sidebar-bottom-actions">
@@ -124,7 +154,7 @@
                     <span>ការកំណត់</span>
                     <span id="settingsUpdateDot" style="display:none;" class="header-update-dot"></span>
                 </button>
-                <span class="sidebar-version-tag">v3.2.1</span>
+                <span class="sidebar-version-tag">v3.2.2</span>
             </div>
         </div>
     </header>
@@ -513,9 +543,11 @@
                         <div class="mv-tags-row" id="mvCardTags"></div>
                         <p class="mv-drama-desc" id="mvCardDesc">Synopsis</p>
                         
-                        <!-- Sources / Lines (FLV 1, FLV 2, etc.) -->
-                        <div style="font-size:0.8rem; font-weight:700; color:#fda4af; margin-bottom:6px;">ជ្រើសរើសខ្សែ / ប្រភព (Server Source):</div>
-                        <div class="mv-sources-bar" id="mvSourcesBar"></div>
+                        <!-- Sources / Lines (Server Source) -->
+                        <div id="mvSourcesContainer" style="display:none; margin-bottom:8px;">
+                            <div style="font-size:0.8rem; font-weight:700; color:#fda4af; margin-bottom:6px;">ជ្រើសរើសខ្សែ / ប្រភព (Server Source):</div>
+                            <div class="mv-sources-bar" id="mvSourcesBar"></div>
+                        </div>
 
                         <!-- Episodes Header -->
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; margin-top:8px; flex-wrap:wrap; gap:6px;">
@@ -645,13 +677,16 @@
             <!-- Batch Download & Multi-Select Toolbar -->
             <div class="starred-batch-toolbar" id="starredBatchToolbar">
                 <div class="starred-batch-left">
-                    <label class="starred-select-all-label">
-                        <input type="checkbox" id="starredSelectAllCb" onchange="toggleSelectAllStarred(this.checked)">
-                        <span id="starredSelectAllText">គ្រីសទាំងអស់ (Select All)</span>
+                    <div class="starred-select-all-wrap" id="starredSelectAllWrapper" onclick="handleStarredSelectAllClick(event)" title="ចុចដើម្បីគ្រីស ឬដោះគ្រីសទាំងអស់">
+                        <input type="checkbox" id="starredSelectAllCb" tabindex="-1">
+                        <span id="starredSelectAllText" class="starred-select-all-text">គ្រីសទាំងអស់ (Select All)</span>
                         <span class="starred-selected-badge" id="starredSelectedBadge">(0/0)</span>
-                    </label>
+                    </div>
                 </div>
                 <div class="starred-batch-right">
+                    <button type="button" class="btn btn-starred-scan" id="btnStarredBatchScan" onclick="scanAllVisibleStarredQualities()" title="ស្កេនពិនិត្យកម្រិតគុណភាព និង Frame Rate គ្រប់រឿងក្នុង PIN">
+                        <span class="scan-icon">🔍</span> <span id="starredScanBtnLabel">ស្កេនគុណភាព & FPS</span>
+                    </button>
                     <button type="button" class="btn btn-starred-download" id="btnStarredBatchDl" onclick="downloadSelectedStarredDramas()">
                         <span>📥</span> <span id="starredDlBtnLabel">ទាញយកដែលបានរើស</span> <span id="starredDlBtnCount">(0)</span>
                     </button>
@@ -1413,7 +1448,7 @@
                             </div>
                         </div>
                         <span class="badge" id="settingsCurrentVersionBadge" style="background:rgba(59,130,246,0.16); border:1px solid rgba(59,130,246,0.4); color:#93c5fd; padding:3px 10px; font-size:0.78rem; font-weight:700;">
-                            v3.2.1
+                            v3.2.2
                         </span>
                     </div>
 
@@ -1424,7 +1459,7 @@
                                 <span id="updateStatusIcon" style="font-size:1.15rem;">✅</span>
                                 <div>
                                     <div id="updateStatusText" style="color:#cbd5e1; font-weight:600;">
-                                        កម្មវិធីរបស់អ្នកជាកំណែចុងក្រោយបំផុតហើយ (v3.2.1)
+                                        កម្មវិធីរបស់អ្នកជាកំណែចុងក្រោយបំផុតហើយ (v3.2.2)
                                     </div>
                                     <div id="updateStatusSubtext" style="font-size:0.73rem; color:var(--text-dim); display:none; margin-top:2px;"></div>
                                 </div>

@@ -49,7 +49,10 @@ function loadFallbackCatalog() {
   return null;
 }
 
-function fetchText(url, headers = {}, timeoutMs = 4500, maxRedirects = 3) {
+const _httpsAgent = new https.Agent({ keepAlive: true, timeout: 15000 });
+const _httpAgent = new http.Agent({ keepAlive: true, timeout: 15000 });
+
+function fetchText(url, headers = {}, timeoutMs = 8000, maxRedirects = 3) {
   return new Promise((resolve, reject) => {
     if (maxRedirects < 0) return resolve({ status: 508, body: '' });
 
@@ -60,14 +63,16 @@ function fetchText(url, headers = {}, timeoutMs = 4500, maxRedirects = 3) {
     };
 
     let client = https;
+    let agent = _httpsAgent;
     try {
       const parsed = new URL(url);
       client = parsed.protocol === 'http:' ? http : https;
+      agent = parsed.protocol === 'http:' ? _httpAgent : _httpsAgent;
     } catch (e) {
       return reject(e);
     }
 
-    const req = client.get(url, { headers: { ...defaultHeaders, ...headers }, timeout: timeoutMs }, (res) => {
+    const req = client.get(url, { headers: { ...defaultHeaders, ...headers }, timeout: timeoutMs, family: 4, agent }, (res) => {
       if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
         let redirectUrl = res.headers.location;
         if (!redirectUrl.startsWith('http')) {
@@ -97,6 +102,7 @@ class MvffmDownloader {
     this.nonce = 'ace3890dff';
     this.nonceFetchedAt = 0;
     this._recsCache = new Map();
+    this._detailCache = new Map();
   }
 
   getMvffmOutputDir() {
@@ -285,8 +291,21 @@ class MvffmDownloader {
       throw new Error('រកមិនឃើញ ID រឿង ឬតំណភ្ជាប់មិនត្រឹមត្រូវ (Cannot find valid MVFFM drama ID or link)');
     }
 
+    // Check in-memory cache
+    if (this._detailCache && this._detailCache.has(String(dramaId))) {
+      const cached = this._detailCache.get(String(dramaId));
+      if (Date.now() - cached.ts < 30 * 60 * 1000) {
+        return cached.data;
+      }
+    }
+
     const dramaUrl = `https://www.mvffm.net/drama/${dramaId}/`;
-    const res = await fetchText(dramaUrl);
+    let res = await fetchText(dramaUrl, {}, 8000);
+    // Auto-retry once if timed out
+    if ((res.status === 408 || !res.body) && res.status !== 404) {
+      console.warn(`[MVFFM] First attempt for ${dramaId} timed out, retrying...`);
+      res = await fetchText(dramaUrl, {}, 12000);
+    }
     if (res.status !== 200 || !res.body) {
       throw new Error(`បរាជ័យក្នុងការបើករឿង ID: ${dramaId} (HTTP ${res.status})`);
     }
@@ -334,12 +353,26 @@ class MvffmDownloader {
       try {
         const rawVideoUrls = JSON.parse(vueMatch[1]);
         rawVideoUrls.forEach((srcList, sIdx) => {
-          const sName = tableNames[sIdx] || `ខ្សែទី ${sIdx + 1} (Source ${sIdx + 1})`;
-          const epList = srcList.map((ep, eIdx) => ({
-            episode: eIdx + 1,
-            label: ep.name ? (ep.name === '全' ? '全集 (Full Movie)' : `第${ep.name}集`) : `第${eIdx + 1}集`,
-            url: ep.url
-          }));
+          let sName = tableNames[sIdx] || `Server ${sIdx + 1}`;
+          if (sName.match(/FLV\s*(\d+)/i)) {
+            const m = sName.match(/FLV\s*(\d+)/i);
+            sName = `Server ${m[1]}`;
+          }
+          const epList = srcList.map((ep, eIdx) => {
+            const raw = String(ep.name || '').trim();
+            let label = `ភាគ ${eIdx + 1}`;
+            if (raw === '全' || raw === '全集' || raw.includes('全集') || /full/i.test(raw)) {
+              label = '🎬 រឿងពេញ (Full Movie)';
+            } else if (raw) {
+              const numM = raw.match(/\d+/);
+              label = numM ? `ភាគ ${numM[0]}` : raw;
+            }
+            return {
+              episode: eIdx + 1,
+              label: label,
+              url: ep.url
+            };
+          });
           sources.push({
             id: sIdx,
             name: sName,
@@ -358,9 +391,9 @@ class MvffmDownloader {
       if (singleUrlMatch) {
         sources.push({
           id: 0,
-          name: 'FLV 1',
+          name: 'Server 1',
           count: 1,
-          episodes: [{ episode: 1, label: '全集 (Full Movie)', url: singleUrlMatch[1] }]
+          episodes: [{ episode: 1, label: '🎬 រឿងពេញ (Full Movie)', url: singleUrlMatch[1] }]
         });
       }
     }
@@ -375,7 +408,7 @@ class MvffmDownloader {
 
     allEpisodes = bestSource ? bestSource.episodes : [];
 
-    return {
+    const detailResult = {
       id: String(dramaId),
       title,
       cover,
@@ -386,12 +419,18 @@ class MvffmDownloader {
       total_episodes: allEpisodes.length,
       episodes: allEpisodes
     };
+
+    if (this._detailCache) {
+      this._detailCache.set(String(dramaId), { ts: Date.now(), data: detailResult });
+    }
+
+    return detailResult;
   }
 
   /**
    * Start batch downloading episodes of an MVFFM drama
    */
-  async startDownload({ drama_id, title, episodes = [], customDir = null, range = 'all', download_mode = 'separate' }) {
+  async startDownload({ drama_id, title, episodes = [], customDir = null, range = 'all', download_mode = 'separate', quality = 'original', fps = null, target_height = null }) {
     if (!episodes || episodes.length === 0) {
       throw new Error('គ្មានភាគសម្រាប់ទាញយកទេ (No episodes selected to download)');
     }
@@ -419,7 +458,10 @@ class MvffmDownloader {
       error_message: '',
       created_at: Date.now(),
       episodes: episodes,
-      download_mode: download_mode || 'separate'
+      download_mode: download_mode || 'separate',
+      quality: quality || 'original',
+      fps: fps ? parseInt(fps, 10) : null,
+      target_height: target_height ? parseInt(target_height, 10) : (quality && parseInt(quality, 10) ? parseInt(quality, 10) : null)
     };
 
     // Save metadata file in drama folder for persistent library & memory tracking
@@ -472,6 +514,8 @@ class MvffmDownloader {
           outPath,
           ffmpegPath,
           taskId: task.task_id,
+          targetHeight: task.target_height,
+          fps: task.fps,
           onProgress: (speed) => {
             task.speed_str = speed || '';
           }
@@ -492,6 +536,7 @@ class MvffmDownloader {
           dramaDir: task.drama_dir,
           seriesTitle: task.title,
           mode: task.download_mode,
+          episodes: task.episodes,
           onLog: (msg) => console.log(`[MVFFM] ${msg}`)
         });
       }
@@ -504,17 +549,44 @@ class MvffmDownloader {
     }
   }
 
-  _downloadEpisodeM3u8({ m3u8Url, outPath, ffmpegPath, taskId, onProgress }) {
+  _downloadEpisodeM3u8({ m3u8Url, outPath, ffmpegPath, taskId, onProgress, targetHeight, fps }) {
     return new Promise((resolve, reject) => {
       const tempPath = outPath + '.tmp';
-      const args = [
-        '-y',
-        '-headers', 'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64)\r\nReferer: https://www.mvffm.net/\r\n',
-        '-i', m3u8Url,
-        '-c', 'copy',
-        '-bsf:a', 'aac_adtstoasc',
-        tempPath
-      ];
+      
+      const filterArgs = [];
+      if (targetHeight && targetHeight < 1080) {
+        // Automatically scales short edge (landscape height or portrait width) to targetHeight
+        filterArgs.push(`scale='if(gt(iw,ih),-2,${targetHeight})':'if(gt(iw,ih),${targetHeight},-2)'`);
+      }
+      if (fps && [24, 30, 60].includes(Number(fps))) {
+        filterArgs.push(`fps=${fps}`);
+      }
+
+      let args;
+      if (filterArgs.length > 0) {
+        args = [
+          '-y',
+          '-headers', 'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64)\r\nReferer: https://www.mvffm.net/\r\n',
+          '-i', m3u8Url,
+          '-vf', filterArgs.join(','),
+          '-c:v', 'libx264',
+          '-threads', '2',
+          '-preset', 'ultrafast',
+          '-crf', '26',
+          '-c:a', 'aac',
+          '-b:a', '96k',
+          tempPath
+        ];
+      } else {
+        args = [
+          '-y',
+          '-headers', 'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64)\r\nReferer: https://www.mvffm.net/\r\n',
+          '-i', m3u8Url,
+          '-c', 'copy',
+          '-bsf:a', 'aac_adtstoasc',
+          tempPath
+        ];
+      }
 
       const child = spawn(ffmpegPath, args, { stdio: ['ignore', 'pipe', 'pipe'] });
       this.activeProcesses.set(taskId, child);

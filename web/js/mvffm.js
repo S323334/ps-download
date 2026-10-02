@@ -74,6 +74,7 @@ async function loadMvffmRecommendations(type = 'hot') {
         _mvRenderLimit = 60;
         renderMvffmCards(_allMvItems.slice(0, _mvRenderLimit));
         _mvRecsLoaded = true;
+        window._mvRecsLoaded = true;
     } catch (err) {
         const safeErr = (typeof escapeHtml === 'function') ? escapeHtml(err.message) : err.message;
         if (grid) grid.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:30px; color:#ef4444;">⚠️ បរាជ័យក្នុងការទាញយក: ${safeErr}</div>`;
@@ -292,11 +293,23 @@ function renderMvffmDetail(drama) {
         }
     }
 
-    if (descEl) descEl.textContent = drama.desc || 'MVFFM 精品短劇';
+    if (descEl) {
+        let desc = (drama.desc || '').trim();
+        if (!desc || /^(MVFFM\s*精品短[剧劇]|精品短[剧劇]|短[剧劇])$/i.test(desc)) {
+            desc = currentLang === 'zh' ? 'MVFFM 热门短剧' : (currentLang === 'en' ? 'MVFFM Short Drama' : 'រឿងភាគខ្លីពិសេស MVFFM');
+        }
+        descEl.textContent = desc;
+    }
 
     if (tagsEl) {
         const isStarred = (typeof isDramaStarred === 'function') && isDramaStarred(drama.id, 'mvffm');
-        const tags = drama.tags || [];
+        // Filter out redundant scraper keywords: 短剧, 精品短剧, HLS, HD, HLS HD, 2024年, 2025年, 2026年, etc.
+        const tags = (drama.tags || []).filter(t => {
+            if (!t) return false;
+            const str = String(t).trim();
+            if (/^(短剧|精品短剧|短劇|精品短劇|hls\s*hd|hls|hd|\d{4}年?)$/i.test(str)) return false;
+            return true;
+        });
         tagsEl.innerHTML = `
             <button type="button" class="btn btn-secondary btn-sm" onclick="toggleMvffmCardStar('${drama.id}', '${escapeHtml(drama.title)}', '${escapeHtml(drama.cover)}', '')" style="color:#fbbf24; border-color:rgba(251,191,36,0.4); padding:2px 10px; font-size:0.75rem; border-radius:6px; cursor:pointer;">
                 ${isStarred ? '★ បានដាក់ផ្កាយ' : '☆ ដាក់ផ្កាយ'}
@@ -307,18 +320,25 @@ function renderMvffmDetail(drama) {
         `;
     }
 
-    // Render Sources
+    // Render Sources cleanly (hide if 1 or 0 source, clean Chinese scraper names)
     const sources = drama.sources || [];
-    if (sourcesBar) {
+    const sourcesContainer = document.getElementById('mvSourcesContainer');
+    if (sourcesContainer && sourcesBar) {
         if (sources.length > 1) {
-            sourcesBar.style.display = 'flex';
-            sourcesBar.innerHTML = sources.map((s, idx) => `
-                <button class="mv-source-btn ${idx === currentMvSourceIndex ? 'active' : ''}" onclick="switchMvSource(${idx})">
-                    ${escapeHtml(s.name)} (${s.count} ភាគ)
-                </button>
-            `).join('');
+            sourcesContainer.style.display = 'block';
+            const serverIcons = ['🚀', '⚡', '🌐', '📡', '✨'];
+            const epUnit = currentLang === 'zh' ? '集' : (currentLang === 'en' ? 'EP' : 'ភាគ');
+            sourcesBar.innerHTML = sources.map((s, idx) => {
+                const icon = serverIcons[idx % serverIcons.length];
+                const cleanName = `${icon} Server ${idx + 1}`;
+                return `
+                    <button class="mv-source-btn ${idx === currentMvSourceIndex ? 'active' : ''}" onclick="switchMvSource(${idx})" title="${escapeHtml(s.name || cleanName)}">
+                        ${cleanName} <span style="font-size:0.75rem; opacity:0.85;">(${s.count} ${epUnit})</span>
+                    </button>
+                `;
+            }).join('');
         } else {
-            sourcesBar.style.display = 'none';
+            sourcesContainer.style.display = 'none';
         }
     }
 
@@ -343,6 +363,21 @@ function switchMvSource(srcIdx) {
     renderCurrentMvEpisodes();
 }
 
+function formatMvEpisodeLabel(rawLabel, idx) {
+    if (!rawLabel) {
+        return currentLang === 'zh' ? `第${idx + 1}集` : (currentLang === 'en' ? `EP ${idx + 1}` : `ភាគ ${idx + 1}`);
+    }
+    const s = String(rawLabel).trim();
+    if (s === '全集' || s === '全' || s.includes('全集') || /full\s*movie/i.test(s)) {
+        return currentLang === 'zh' ? '🎬 全集 (Full Movie)' : (currentLang === 'en' ? '🎬 Full Movie' : '🎬 រឿងពេញ (Full Movie)');
+    }
+    const numMatch = s.match(/(?:第)?\s*(\d+)\s*(?:集)?/);
+    if (numMatch) {
+        return currentLang === 'zh' ? `第${numMatch[1]}集` : (currentLang === 'en' ? `EP ${numMatch[1]}` : `ភាគ ${numMatch[1]}`);
+    }
+    return s;
+}
+
 function renderCurrentMvEpisodes() {
     if (!currentMvDrama) return;
     const sources = currentMvDrama.sources || [];
@@ -356,13 +391,25 @@ function renderCurrentMvEpisodes() {
     if (epCountEl) epCountEl.textContent = `${episodes.length} ${epUnit}`;
 
     if (epGrid) {
-        epGrid.innerHTML = episodes.map((ep, idx) => `
-            <div class="mv-ep-chip ${idx === 0 ? 'active' : ''}" id="mvEpChip_${idx}" onclick="playMvEpisode(${idx})">
-                ${escapeHtml(ep.label)}
-            </div>
-        `).join('');
+        // If single episode (Full Movie), expand nicely so the title isn't squished!
+        if (episodes.length === 1) {
+            epGrid.style.gridTemplateColumns = '1fr';
+        } else {
+            epGrid.style.gridTemplateColumns = 'repeat(auto-fill, minmax(68px, 1fr))';
+        }
+
+        epGrid.innerHTML = episodes.map((ep, idx) => {
+            const displayLabel = formatMvEpisodeLabel(ep.label, idx);
+            return `
+                <div class="mv-ep-chip ${idx === 0 ? 'active' : ''}" id="mvEpChip_${idx}" onclick="playMvEpisode(${idx})" title="${escapeHtml(displayLabel)}">
+                    ${escapeHtml(displayLabel)}
+                </div>
+            `;
+        }).join('');
     }
 
+    const rangeFrom = document.getElementById('mvRangeFrom');
+    if (rangeFrom) rangeFrom.value = 1;
     const rangeTo = document.getElementById('mvRangeTo');
     if (rangeTo) rangeTo.value = episodes.length;
 
@@ -615,6 +662,9 @@ async function clearFinishedMvffmTasks() {
 
 async function openMvffmFolder() {
     try {
+        if (typeof openCurrentDownloadFolder === 'function') {
+            return openCurrentDownloadFolder();
+        }
         await fetch('/api/mvffm/open_folder', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) });
     } catch (e) {}
 }

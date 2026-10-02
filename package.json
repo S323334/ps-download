@@ -1,7 +1,7 @@
 {
   "name": "ps-download",
   "productName": "PS DOWNLOAD",
-  "version": "3.2.1",
+  "version": "3.2.2",
   "description": "PS DOWNLOAD - All-in-One Short Drama & YouTube Downloader Desktop Application",
   "main": "main.js",
   "scripts": {

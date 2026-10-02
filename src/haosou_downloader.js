@@ -251,7 +251,7 @@ class HaoSouDownloader {
   /**
    * Start batch downloading episodes of a HaoSou drama
    */
-  async startDownload({ book_id, title, episodes = [], customDir = null, range = 'all', download_mode = 'separate' }) {
+  async startDownload({ book_id, title, episodes = [], customDir = null, range = 'all', download_mode = 'separate', quality = 'original', fps = null, target_height = null }) {
     if (!episodes || episodes.length === 0) {
       throw new Error('គ្មានភាគសម្រាប់ទាញយកទេ (No episodes selected to download)');
     }
@@ -279,7 +279,10 @@ class HaoSouDownloader {
       error_message: '',
       created_at: Date.now(),
       episodes: episodes,
-      download_mode: download_mode || 'separate'
+      download_mode: download_mode || 'separate',
+      quality: quality || 'original',
+      fps: fps ? parseInt(fps, 10) : null,
+      target_height: target_height ? parseInt(target_height, 10) : (quality && parseInt(quality, 10) ? parseInt(quality, 10) : null)
     };
 
     // Save metadata file in drama folder for persistent library & memory tracking
@@ -346,6 +349,7 @@ class HaoSouDownloader {
           dramaDir: task.drama_dir,
           seriesTitle: task.title,
           mode: task.download_mode,
+          episodes: task.episodes,
           onLog: (msg) => console.log(`[HaoSou] ${msg}`)
         });
       }
@@ -361,14 +365,41 @@ class HaoSouDownloader {
       if (!task || task.status === 'canceled') return resolve();
 
       const tmpOut = outPath + '.tmp.mp4';
-      const args = [
-        '-y',
-        '-headers', 'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36\r\nReferer: https://dj.1dfx.com/\r\n',
-        '-i', m3u8Url,
-        '-c', 'copy',
-        '-bsf:a', 'aac_adtstoasc',
-        tmpOut
-      ];
+
+      const filterArgs = [];
+      const targetHeight = task.target_height;
+      if (targetHeight && targetHeight < 1080) {
+        filterArgs.push(`scale='if(gt(iw,ih),-2,${targetHeight})':'if(gt(iw,ih),${targetHeight},-2)'`);
+      }
+      if (task.fps && [24, 30, 60].includes(Number(task.fps))) {
+        filterArgs.push(`fps=${task.fps}`);
+      }
+
+      let args;
+      if (filterArgs.length > 0) {
+        args = [
+          '-y',
+          '-headers', 'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36\r\nReferer: https://dj.1dfx.com/\r\n',
+          '-i', m3u8Url,
+          '-vf', filterArgs.join(','),
+          '-c:v', 'libx264',
+          '-threads', '2',
+          '-preset', 'ultrafast',
+          '-crf', '26',
+          '-c:a', 'aac',
+          '-b:a', '96k',
+          tmpOut
+        ];
+      } else {
+        args = [
+          '-y',
+          '-headers', 'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36\r\nReferer: https://dj.1dfx.com/\r\n',
+          '-i', m3u8Url,
+          '-c', 'copy',
+          '-bsf:a', 'aac_adtstoasc',
+          tmpOut
+        ];
+      }
 
       const proc = spawn(ffmpegPath, args);
       this.activeProcesses.set(taskId, proc);

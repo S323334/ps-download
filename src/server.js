@@ -35,6 +35,7 @@ const { haosouDownloader } = require('./haosou_downloader.js');
 const { mvffmDownloader } = require('./mvffm_downloader.js');
 const { downloadMemoryManager } = require('./download_memory_manager.js');
 const { checkForUpdates, applyUpdate } = require('./updater.js');
+const { probeDramaQuality, probeBatch } = require('./video_prober.js');
 const {
   getLicenseStatus,
   activateLicense,
@@ -269,32 +270,8 @@ function streamLocalFile(filePath, req, res) {
  * If HEVC (bytevc1), bvc2, or unknown codec, transcodes to standard H.264 ultrafast.
  */
 function ensureH264File(filePath) {
-  return new Promise((resolve) => {
-    if (!fs.existsSync(filePath)) return resolve(filePath);
-    exec(`ffprobe -v error -select_streams v:0 -show_entries stream=codec_name -of default=noprint_wrappers=1:nokey=1 "${filePath}"`, (err, stdout) => {
-      const codec = (stdout || '').trim().toLowerCase();
-      if (!err && codec === 'h264') {
-        return resolve(filePath);
-      }
-      const tmpOut = filePath.replace(/\.mp4$/i, '_h264.mp4');
-      const cmd = `ffmpeg -y -i "${filePath}" -c:v libx264 -preset ultrafast -crf 22 -c:a copy "${tmpOut}"`;
-      exec(cmd, (tErr) => {
-        if (!tErr && fs.existsSync(tmpOut) && fs.statSync(tmpOut).size > 10240) {
-          try {
-            fs.unlinkSync(filePath);
-            fs.renameSync(tmpOut, filePath);
-          } catch (e) {
-            console.warn('[Server] Error swapping H264 file:', e.message);
-          }
-          return resolve(filePath);
-        }
-        if (fs.existsSync(tmpOut)) {
-          try { fs.unlinkSync(tmpOut); } catch (e) {}
-        }
-        resolve(filePath);
-      });
-    });
-  });
+  // Direct zero-CPU passthrough: video streams (HEVC/H264) play smoothly with hardware acceleration
+  return Promise.resolve(filePath);
 }
 
 /**
@@ -623,6 +600,36 @@ function startServer(port = PORT, host = HOST) {
           return;
         } catch (err) {
           return sendError(res, 500, `Video playback error: ${err.message}`);
+        }
+      }
+
+      // 4b. Video Quality & FPS Probe: POST /api/video/probe or GET /api/video/probe
+      if (pathname === '/api/video/probe') {
+        if (!requireLicenseAuth(res)) return;
+        try {
+          let probeReq = {};
+          if (req.method === 'POST') {
+            probeReq = await parseJsonBody(req);
+          } else {
+            probeReq = {
+              id: query.id,
+              platform: query.platform || 'hongguo'
+            };
+          }
+
+          if (probeReq.items && Array.isArray(probeReq.items)) {
+            const results = await probeBatch(probeReq.items);
+            return sendJson(res, 200, { ok: true, data: results });
+          }
+
+          if (!probeReq.id) {
+            return sendError(res, 400, 'Missing id parameter');
+          }
+
+          const result = await probeDramaQuality(probeReq.id, probeReq.platform);
+          return sendJson(res, 200, result);
+        } catch (err) {
+          return sendError(res, 500, `Video probe error: ${err.message}`);
         }
       }
 
@@ -1557,7 +1564,10 @@ function startServer(port = PORT, host = HOST) {
             title: body.title,
             episodes: body.episodes || [],
             customDir: body.custom_dir,
-            download_mode: body.download_mode || 'separate'
+            download_mode: body.download_mode || 'separate',
+            quality: body.quality || 'original',
+            fps: body.fps || null,
+            target_height: body.target_height || null
           });
           return sendJson(res, 200, { ok: true, data: task });
         } catch (err) {
@@ -1666,7 +1676,10 @@ function startServer(port = PORT, host = HOST) {
             title: body.title,
             episodes: body.episodes || [],
             customDir: body.custom_dir,
-            download_mode: body.download_mode || 'separate'
+            download_mode: body.download_mode || 'separate',
+            quality: body.quality || 'original',
+            fps: body.fps || null,
+            target_height: body.target_height || null
           });
           return sendJson(res, 200, { ok: true, data: task });
         } catch (err) {
@@ -1740,7 +1753,12 @@ function startServer(port = PORT, host = HOST) {
         const result = await recordDeviceTracking({
           deviceId: body.deviceId,
           telegramUser: body.telegramUser,
-          computerName: body.computerName
+          computerName: body.computerName,
+          customName: body.customName,
+          key: body.key,
+          status: body.status,
+          expiresAt: body.expiresAt,
+          remainingDays: body.remainingDays
         });
         return sendJson(res, 200, result);
       }
@@ -1765,8 +1783,76 @@ function startServer(port = PORT, host = HOST) {
 
       // 28g. Admin Get Tracked Devices: GET /api/license/admin/tracked
       if (pathname === '/api/license/admin/tracked' && req.method === 'GET') {
+        const shouldSyncCloud = parsedUrl.searchParams.get('sync') === 'true';
+        let devices = getTrackedDevicesWithLicenseInfo();
+
+        if (shouldSyncCloud && devices.length > 0) {
+          try {
+            const checkPromises = devices.map(async (d) => {
+              try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 1800);
+                const resp = await fetch(`https://ps-download-bot-irhw.onrender.com/api/license/check?deviceId=${encodeURIComponent(d.deviceId)}`, {
+                  signal: controller.signal
+                });
+                clearTimeout(timeoutId);
+                if (resp.ok) {
+                  const cloudData = await resp.json();
+                  if (cloudData && cloudData.authorized && cloudData.key) {
+                    authorizeDevice({
+                      deviceId: d.deviceId,
+                      days: cloudData.days || 30,
+                      customName: cloudData.customName || d.customName || '',
+                      customLabel: cloudData.label
+                    });
+                  }
+                }
+              } catch (_) {}
+            });
+            await Promise.allSettled(checkPromises);
+            devices = getTrackedDevicesWithLicenseInfo();
+          } catch (_) {}
+        }
+
         return sendJson(res, 200, {
           success: true,
+          devices: devices
+        });
+      }
+
+      // 28g1. Admin Explicit Sync with Cloud: POST /api/license/admin/sync-cloud
+      if (pathname === '/api/license/admin/sync-cloud' && req.method === 'POST') {
+        let syncedCount = 0;
+        try {
+          const devices = getTrackedDevicesWithLicenseInfo();
+          const checkPromises = devices.map(async (d) => {
+            try {
+              const controller = new AbortController();
+              const timeoutId = setTimeout(() => controller.abort(), 2000);
+              const resp = await fetch(`https://ps-download-bot-irhw.onrender.com/api/license/check?deviceId=${encodeURIComponent(d.deviceId)}`, {
+                signal: controller.signal
+              });
+              clearTimeout(timeoutId);
+              if (resp.ok) {
+                const cloudData = await resp.json();
+                if (cloudData && cloudData.authorized && cloudData.key) {
+                  authorizeDevice({
+                    deviceId: d.deviceId,
+                    days: cloudData.days || 30,
+                    customName: cloudData.customName || d.customName || '',
+                    customLabel: cloudData.label
+                  });
+                  syncedCount++;
+                }
+              }
+            } catch (_) {}
+          });
+          await Promise.allSettled(checkPromises);
+        } catch (_) {}
+
+        return sendJson(res, 200, {
+          success: true,
+          syncedCount,
           devices: getTrackedDevicesWithLicenseInfo()
         });
       }

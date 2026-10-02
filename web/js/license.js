@@ -6,6 +6,16 @@
 
 let _currentLicenseData = null;
 let _licenseCountdownTimer = null;
+let _isClosingModalSuccess = false;
+
+function getLicenseSignature(data) {
+    if (!data) return '';
+    const key = String(data.key || data.license_key || '').trim().toUpperCase();
+    const exp = String(data.expiresAt || data.expires_at || '').trim();
+    const days = String(data.days !== undefined ? data.days : (data.remaining_days !== undefined ? data.remaining_days : '')).trim();
+    if (!key && !exp) return '';
+    return `${key}__${exp}__${days}`;
+}
 
 function isLicenseActive() {
     return !!(_currentLicenseData && _currentLicenseData.activated === true && !_currentLicenseData.expired);
@@ -91,47 +101,65 @@ function updateHeaderLicenseBadge(data) {
     const text = document.getElementById('headerLicenseText');
     if (!badge || !text) return;
 
+    if (icon) {
+        icon.style.display = 'none'; // Completely hide the left icon inside the red circle
+    }
+
     const info = computeLicenseTimeDetails(data);
     badge.className = 'btn btn-license-badge';
 
     let contentHtml = '';
     const safeEscape = typeof escapeHtml === 'function' ? escapeHtml : (s) => String(s || '');
+
     if (info.customerName && (info.status === 'active-pro' || info.status === 'expiring-soon' || info.status === 'lifetime')) {
-        const subText = info.status === 'lifetime' ? '👑 Lifetime VIP' : `⏳ ${safeEscape(info.timeOnlyStr || info.text)}`;
+        // EXACTLY 1 ICON: The 👤 on the name. The second line has NO duplicate icon!
+        const subText = info.status === 'lifetime' ? '👑 Lifetime VIP' : safeEscape(info.timeOnlyStr || info.text);
         contentHtml = `
-            <div style="display:flex; flex-direction:column; gap:1px; text-align:left; overflow:hidden; width:100%; line-height:1.28;">
-                <div style="font-weight:700; font-size:0.71rem; color:#f8fafc; white-space:nowrap; text-overflow:ellipsis; overflow:hidden;">👤 ${safeEscape(info.customerName)}</div>
+            <div style="display:flex; flex-direction:column; gap:2px; text-align:left; overflow:hidden; width:100%; line-height:1.28;">
+                <div style="font-weight:700; font-size:0.72rem; color:#f8fafc; white-space:nowrap; text-overflow:ellipsis; overflow:hidden;">👤 ${safeEscape(info.customerName)}</div>
+                <div style="font-size:0.67rem; color:inherit; font-weight:600; white-space:nowrap; overflow:hidden;">${subText}</div>
+            </div>
+        `;
+    } else if (info.customerName && (info.status === 'expired' || info.status === 'unactivated')) {
+        const subText = info.status === 'expired' ? 'License ផុតកំណត់ (ទិញថ្មី)' : 'ទិញ License (VIP)';
+        contentHtml = `
+            <div style="display:flex; flex-direction:column; gap:2px; text-align:left; overflow:hidden; width:100%; line-height:1.28;">
+                <div style="font-weight:700; font-size:0.72rem; color:#f8fafc; white-space:nowrap; text-overflow:ellipsis; overflow:hidden;">👤 ${safeEscape(info.customerName)}</div>
                 <div style="font-size:0.67rem; color:inherit; font-weight:600; white-space:nowrap; overflow:hidden;">${subText}</div>
             </div>
         `;
     } else {
-        contentHtml = `<span style="font-size:0.72rem; line-height:1.25;">${safeEscape(info.text)}</span>`;
+        // Without customerName: Keep exactly 1 clean icon
+        if (info.status === 'lifetime') {
+            contentHtml = `<span style="font-size:0.72rem; line-height:1.25;">👑 Lifetime VIP</span>`;
+        } else if (info.status === 'active-pro' || info.status === 'expiring-soon') {
+            contentHtml = `<span style="font-size:0.72rem; line-height:1.25;">⏳ ${safeEscape(info.timeOnlyStr || info.text)}</span>`;
+        } else if (info.status === 'expired') {
+            contentHtml = `<span style="font-size:0.70rem; color:#fca5a5;">⚠️ License ផុតកំណត់</span>`;
+        } else {
+            contentHtml = `<span style="font-size:0.70rem;">🔑 ទិញ License (VIP)</span>`;
+        }
     }
 
     if (info.status === 'lifetime') {
         badge.classList.add('lifetime-vip');
-        if (icon) icon.innerText = info.icon;
         text.innerHTML = contentHtml;
         badge.title = 'License សកម្មពេញមួយជីវិត (Lifetime VIP)';
     } else if (info.status === 'active-pro') {
         badge.classList.add('active-pro');
-        if (icon) icon.innerText = info.icon;
         text.innerHTML = contentHtml;
         badge.title = `License សកម្ម: ${info.text}${info.expiresAt ? ` (ផុតកំណត់: ${new Date(info.expiresAt).toLocaleString()})` : ''}`;
     } else if (info.status === 'expiring-soon') {
         badge.classList.add('expiring-soon');
-        if (icon) icon.innerText = info.icon;
         text.innerHTML = contentHtml;
         badge.title = `License ជិតផុតកំណត់: ${info.text}${info.expiresAt ? ` (ផុតកំណត់: ${new Date(info.expiresAt).toLocaleString()})` : ''}`;
     } else if (info.status === 'expired') {
         badge.classList.add('expired');
-        if (icon) icon.innerText = info.icon;
-        text.innerHTML = `<span style="font-size:0.70rem; color:#fca5a5;">${safeEscape(info.text)}</span>`;
+        text.innerHTML = contentHtml;
         badge.title = 'License របស់អ្នកបានផុតកំណត់ហើយ! ចុចដើម្បីទិញ ឬបញ្ចូល Key ថ្មី';
     } else {
         badge.classList.add('unactivated');
-        if (icon) icon.innerText = info.icon;
-        text.innerHTML = `<span style="font-size:0.70rem;">${safeEscape(info.text)}</span>`;
+        text.innerHTML = contentHtml;
         badge.title = 'កម្មវិធីមិនទាន់មាន License ឡើយ! ចុចដើម្បីទិញ ឬ Activate';
     }
 }
@@ -145,6 +173,44 @@ function startLicenseLiveCountdown() {
     }, 1000);
 }
 
+/**
+ * Shows the congratulations message in the alert box and waits before smoothly closing modal.
+ * Saves the signature so THIS license will NEVER celebrate or auto-close again!
+ */
+function triggerSuccessfulActivationClose(label = '', message = '', sig = '') {
+    if (_isClosingModalSuccess) return;
+    _isClosingModalSuccess = true;
+
+    stopPaymentAutoCheck();
+    stopModalFastSync();
+    stopGroupVerificationPolling();
+
+    if (sig) {
+        localStorage.setItem('celebrated_license_sig', sig);
+    }
+
+    const displayLabel = label || (_currentLicenseData && _currentLicenseData.label) || 'សកម្ម';
+    showToast('🎉 ' + (message || 'ម៉ាស៊ីនរបស់អ្នកត្រូវបានបើកសិទ្ធិដោយជោគជ័យ!'), '✅');
+    showLicenseAlert(`🎉 អបអរសាទរ! អាជ្ញាប័ណ្ណត្រូវបានបើកសិទ្ធិ: ${displayLabel}`, 'success');
+
+    const modal = document.getElementById('licenseActivationModal');
+    setTimeout(() => {
+        if (modal) {
+            modal.style.transition = 'opacity 0.4s ease';
+            modal.style.opacity = '0';
+            setTimeout(() => {
+                modal.style.display = 'none';
+                modal.style.opacity = '1';
+                modal.classList.remove('active');
+                _isClosingModalSuccess = false;
+            }, 400);
+        } else {
+            _isClosingModalSuccess = false;
+        }
+        checkAppLicenseStatus(true);
+    }, 1800);
+}
+
 let _modalFastSyncTimer = null;
 function startModalFastSync() {
     if (_modalFastSyncTimer) clearInterval(_modalFastSyncTimer);
@@ -154,18 +220,22 @@ function startModalFastSync() {
             stopModalFastSync();
             return;
         }
+        if (_isClosingModalSuccess) return;
         try {
             const res = await fetch('/api/license/check-auto');
             const data = await res.json();
             if (data && data.authorized) {
-                stopModalFastSync();
-                modal.style.display = 'none';
-                modal.classList.remove('active');
-                showToast('🎉 ' + (data.message || 'ម៉ាស៊ីនរបស់អ្នកត្រូវបាន Admin អនុញ្ញាតដោយជោគជ័យ!'), '✅');
-                checkAppLicenseStatus();
+                const currentSig = getLicenseSignature(data);
+                const lastCelebrated = localStorage.getItem('celebrated_license_sig') || '';
+
+                // Only celebrate & auto-close ONCE upon actual new purchase or new authorization!
+                if (currentSig && currentSig !== lastCelebrated) {
+                    localStorage.setItem('celebrated_license_sig', currentSig);
+                    triggerSuccessfulActivationClose(data.label || (data.days ? `${data.days} ថ្ងៃ` : 'សកម្ម'), data.message, currentSig);
+                }
             }
         } catch (_) {}
-    }, 3000);
+    }, 2500);
 }
 
 function stopModalFastSync() {
@@ -178,6 +248,7 @@ function stopModalFastSync() {
 function closeLicenseModalForBrowsing() {
     stopPaymentAutoCheck();
     stopModalFastSync();
+    stopGroupVerificationPolling();
     const modal = document.getElementById('licenseActivationModal');
     if (modal) {
         modal.style.transition = 'opacity 0.25s ease';
@@ -195,6 +266,15 @@ function closeLicenseModalForBrowsing() {
 function openLicenseActivationModal(force = false) {
     const modal = document.getElementById('licenseActivationModal');
     const notice = document.getElementById('licenseActionNoticeBanner');
+    const alertBox = document.getElementById('licenseAlertBox');
+
+    _isClosingModalSuccess = false;
+
+    if (alertBox && !checkNotifyPaidLock()) {
+        alertBox.style.display = 'none';
+        alertBox.innerHTML = '';
+    }
+
     if (notice && force) {
         notice.style.display = 'none';
     }
@@ -324,8 +404,14 @@ async function checkAppLicenseStatus() {
         startLicenseLiveCountdown();
 
         if (data.activated) {
-            // Already Activated: Hide activation modal
-            if (modal) {
+            // Seed current active license signature as already celebrated so opening the modal does not falsely trigger
+            const currentSig = getLicenseSignature(data);
+            if (currentSig && !localStorage.getItem('celebrated_license_sig')) {
+                localStorage.setItem('celebrated_license_sig', currentSig);
+            }
+
+            // Already Activated: Hide activation modal only if not actively opened by user
+            if (modal && !modal.classList.contains('active')) {
                 modal.style.display = 'none';
                 modal.classList.remove('active');
             }
@@ -339,7 +425,7 @@ async function checkAppLicenseStatus() {
         } else {
             // NOT Activated or Expired: Do NOT auto-open modal on startup!
             // Let the user browse posters and explore the app freely!
-            if (modal) {
+            if (modal && !modal.classList.contains('active')) {
                 modal.style.display = 'none';
                 modal.classList.remove('active');
             }
@@ -366,13 +452,25 @@ async function checkAppLicenseStatus() {
  */
 async function reportDevicePing(deviceId, tgUser) {
     try {
+        const lic = (typeof _currentLicenseData === 'object' && _currentLicenseData) ? _currentLicenseData : {};
+        const key = lic.key || localStorage.getItem('ps_license_key') || '';
+        const customName = lic.custom_name || localStorage.getItem('client_custom_name') || '';
+        const status = lic.status || (lic.valid ? 'active' : 'unactivated');
+        const expiresAt = lic.expires_at || null;
+        const remainingDays = lic.remaining_days !== undefined ? lic.remaining_days : null;
+
         await fetch('/api/license/track', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 deviceId: deviceId,
                 telegramUser: tgUser || localStorage.getItem('client_tg_user') || '',
-                computerName: window.location.hostname
+                customName: customName,
+                computerName: window.location.hostname || 'Client-PC',
+                key: key,
+                status: status,
+                expiresAt: expiresAt,
+                remainingDays: remainingDays
             })
         });
     } catch (e) {
@@ -413,20 +511,8 @@ async function refreshAndCheckAutoActivation() {
         const data = await res.json();
 
         if (data.authorized) {
-            showToast('🎉 ម៉ាស៊ីនរបស់អ្នកត្រូវបាន Admin អនុញ្ញាតដោយជោគជ័យ!', '✅');
-            showLicenseAlert(`🎉 អបអរសាទរ! អាជ្ញាប័ណ្ណរបស់អ្នកត្រូវបានបើកសិទ្ធិ: ${data.label || 'សកម្ម'}`, 'success');
-
-            setTimeout(() => {
-                if (modal) {
-                    modal.style.transition = 'opacity 0.4s ease';
-                    modal.style.opacity = '0';
-                    setTimeout(() => {
-                        modal.style.display = 'none';
-                        modal.style.opacity = '1';
-                    }, 400);
-                }
-                checkAppLicenseStatus();
-            }, 1000);
+            const sig = getLicenseSignature(data);
+            triggerSuccessfulActivationClose(data.label || 'សកម្ម', data.message || 'ម៉ាស៊ីនរបស់អ្នកត្រូវបាន Admin អនុញ្ញាតដោយជោគជ័យ!', sig);
         } else {
             showToast('⚠️ ប្រព័ន្ធកំពុងមានបញ្ហាសូមផ្ញើវិក័យប័ត្រឱ្យទៅអែតមីន @Thpisal33', '⚠️');
             showLicenseAlert(
@@ -556,20 +642,8 @@ async function submitLicenseActivation() {
         const result = await res.json();
 
         if (result.success) {
-            showLicenseAlert('🎉 ' + (result.message || 'បានបើកដំណើរការជោគជ័យ! សូមស្វាគមន៍!'), 'success');
-            showToast('🎉 បានបើកដំណើរការកម្មវិធីជោគជ័យ!', '✅');
-
-            setTimeout(() => {
-                if (modal) {
-                    modal.style.transition = 'opacity 0.4s ease';
-                    modal.style.opacity = '0';
-                    setTimeout(() => {
-                        modal.style.display = 'none';
-                        modal.style.opacity = '1';
-                    }, 400);
-                }
-                checkAppLicenseStatus();
-            }, 1000);
+            const sig = getLicenseSignature(result);
+            triggerSuccessfulActivationClose(result.label || 'សកម្ម', result.message || 'បានបើកដំណើរការជោគជ័យ! សូមស្វាគមន៍!', sig);
         } else {
             showLicenseAlert(result.error || '❌ License Key មិនត្រឹមត្រូវ សូមពិនិត្យមើលឡើងវិញ', 'error');
             if (result.isLocked) {
@@ -645,26 +719,18 @@ function startPaymentAutoCheck() {
     if (_paymentAutoCheckTimer) return;
     console.log('[License] 🔄 Started auto-activation polling every 2.5s...');
     _paymentAutoCheckTimer = setInterval(async () => {
+        if (_isClosingModalSuccess) return;
         try {
             const res = await fetch('/api/license/check-auto');
             const data = await res.json();
             if (data && data.authorized) {
-                stopPaymentAutoCheck();
-                showToast('🎉 អបអរសាទរ! ម៉ាស៊ីនរបស់អ្នកត្រូវបានបើកសិទ្ធិដោយស្វ័យប្រវត្តិ!', '✅');
-                showLicenseAlert(`🎉 អបអរសាទរ! អាជ្ញាប័ណ្ណត្រូវបានបើកសិទ្ធិ: ${data.label || 'សកម្ម'}`, 'success');
-                const modal = document.getElementById('licenseActivationModal') || document.getElementById('licenseModal');
-                setTimeout(() => {
-                    if (modal) {
-                        modal.style.transition = 'opacity 0.4s ease';
-                        modal.style.opacity = '0';
-                        setTimeout(() => {
-                            modal.style.display = 'none';
-                            modal.style.opacity = '1';
-                            modal.classList.remove('active');
-                        }, 400);
-                    }
-                    checkAppLicenseStatus();
-                }, 1200);
+                const currentSig = getLicenseSignature(data);
+                const lastCelebrated = localStorage.getItem('celebrated_license_sig') || '';
+
+                if (currentSig && currentSig !== lastCelebrated) {
+                    localStorage.setItem('celebrated_license_sig', currentSig);
+                    triggerSuccessfulActivationClose(data.label || (_currentPlan && _currentPlan.label) || (data.days ? `${data.days} ថ្ងៃ` : 'សកម្ម'), data.message, currentSig);
+                }
             }
         } catch (e) {}
     }, 2500);
@@ -843,17 +909,8 @@ function startGroupVerificationPolling(deviceId, amount) {
             const res = await fetch(`/api/license/check-payment-verification?deviceId=${encodeURIComponent(deviceId)}&amount=${encodeURIComponent(amount)}`);
             const data = await res.json();
             if (data && data.verified && data.autoActivated) {
-                stopGroupVerificationPolling();
-                stopPaymentAutoCheck();
-                showToast('🎉 ការបង់ប្រាក់ត្រូវបានផ្ទៀងផ្ទាត់ជោគជ័យ! កម្មវិធីត្រូវបានបើកសិទ្ធិភ្លាមៗ!', '✅');
-                
-                // Immediately close modal and return to drama view
-                const modal = document.getElementById('licenseActivationModal') || document.getElementById('licenseModal');
-                if (modal) {
-                    modal.style.display = 'none';
-                    modal.classList.remove('active');
-                }
-                await checkAppLicenseStatus();
+                const sig = getLicenseSignature(data);
+                triggerSuccessfulActivationClose(data.label || (_currentPlan && _currentPlan.label) || (data.days ? `${data.days} ថ្ងៃ` : 'សកម្ម'), 'ការបង់ប្រាក់ត្រូវបានផ្ទៀងផ្ទាត់ជោគជ័យ! កម្មវិធីត្រូវបានបើកសិទ្ធិ!', sig);
                 return;
             }
         } catch (e) {}
@@ -890,19 +947,10 @@ async function notifyPaymentSent() {
 
         const data = await res.json();
 
-        // 1. IF VERIFIED: UNLOCK IMMEDIATELY, CLOSE POPUP & ENTER DRAMA
+        // 1. IF VERIFIED: Show success alert banner, wait, and smoothly close modal
         if (data.verified && data.autoActivated) {
-            stopGroupVerificationPolling();
-            stopPaymentAutoCheck();
-            showToast('🎉 ការបង់ប្រាក់ត្រូវបានផ្ទៀងផ្ទាត់ជោគជ័យ! កម្មវិធីត្រូវបានបើកសិទ្ធិ!', '✅');
-            
-            // Close modal immediately and return to drama
-            const modal = document.getElementById('licenseActivationModal') || document.getElementById('licenseModal');
-            if (modal) {
-                modal.style.display = 'none';
-                modal.classList.remove('active');
-            }
-            await checkAppLicenseStatus();
+            const sig = getLicenseSignature(data);
+            triggerSuccessfulActivationClose(data.label || (_currentPlan && _currentPlan.label) || (data.days ? `${data.days} ថ្ងៃ` : 'សកម្ម'), 'ការបង់ប្រាក់ត្រូវបានផ្ទៀងផ្ទាត់ជោគជ័យ! កម្មវិធីត្រូវបានបើកសិទ្ធិ!', sig);
             return;
         }
 
@@ -919,9 +967,11 @@ async function notifyPaymentSent() {
     } finally {
         // Reset button after 1.5s so customer can click again without being locked out!
         setTimeout(() => {
-            if (btn) btn.disabled = false;
-            if (btnText) {
-                btnText.innerText = '🔄 ចុចផ្ទៀងផ្ទាត់ម្តងទៀត (Check Again)';
+            if (btn && !_isClosingModalSuccess) {
+                btn.disabled = false;
+                if (btnText) {
+                    btnText.innerText = '🔄 ចុចផ្ទៀងផ្ទាត់ម្តងទៀត (Check Again)';
+                }
             }
         }, 1500);
     }

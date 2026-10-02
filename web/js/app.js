@@ -21,34 +21,82 @@ let pollTimer = null;
         }
 
         // ==========================================
-        // DOWNLOAD FOLDER PICKER & PLAYER DOWNLOAD LOG
+        // DOWNLOAD FOLDER PICKER & SIDEBAR CONTROLS
         // ==========================================
+        let currentAppOutputDir = '';
+
+        async function openCurrentDownloadFolder() {
+            try {
+                const target = currentAppOutputDir || '';
+                if (window.electronAPI && typeof window.electronAPI.openFolder === 'function') {
+                    await window.electronAPI.openFolder(target);
+                    return;
+                }
+                await fetch('/dl/open_folder', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ path: target })
+                });
+            } catch (err) {
+                console.warn('Failed to open download folder:', err);
+                showToast('Folder error: ' + err.message, '⚠️');
+            }
+        }
+        window.openCurrentDownloadFolder = openCurrentDownloadFolder;
+
         async function changeDownloadFolderPrompt() {
             try {
                 showToast(currentLang === 'zh' ? '正在打开文件夹选择器...' : (currentLang === 'en' ? 'Opening folder picker...' : 'កំពុងបើកផ្ទាំងជ្រើសរើស Folder...'), '📁');
-                if (window.electronAPI && window.electronAPI.selectFolder) {
-                    const selected = await window.electronAPI.selectFolder();
-                    if (selected) {
-                        updateDownloadFolderUI(selected);
-                        showToast((currentLang === 'zh' ? '已成功修改下载目录为: ' : (currentLang === 'en' ? 'Download folder changed to: ' : 'បានប្តូរ Folder ទៅ: ')) + selected, '✅');
-                        return;
+                let selected = null;
+                if (window.electronAPI && typeof window.electronAPI.selectFolder === 'function') {
+                    selected = await window.electronAPI.selectFolder();
+                } else {
+                    const res = await fetch('/dl/browse_folder', { method: 'POST' });
+                    const data = await res.json();
+                    if (data.status === 'success' && data.path) {
+                        selected = data.path;
                     }
                 }
-                const res = await fetch('/dl/browse_folder', { method: 'POST' });
-                const data = await res.json();
-                if (data.status === 'success' && data.path) {
-                    updateDownloadFolderUI(data.path);
-                    showToast((currentLang === 'zh' ? '已成功修改下载目录为: ' : (currentLang === 'en' ? 'Download folder changed to: ' : 'បានប្តូរ Folder ទៅ: ')) + data.path, '✅');
+
+                if (selected) {
+                    updateDownloadFolderUI(selected);
+                    // Sync to Express backend settings
+                    await fetch('/dl/config', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ output_dir: selected })
+                    }).catch(() => {});
+                    showToast((currentLang === 'zh' ? '已成功修改下载目录为: ' : (currentLang === 'en' ? 'Download folder changed to: ' : 'បានប្តូរ Folder ទៅ: ')) + selected, '✅');
                 }
             } catch (err) {
                 showToast('Folder error: ' + err.message, '⚠️');
             }
         }
+        window.changeDownloadFolderPrompt = changeDownloadFolderPrompt;
 
         function updateDownloadFolderUI(folderPath) {
             if (!folderPath) return;
+            currentAppOutputDir = folderPath;
+            window._currentAppOutputDir = folderPath;
+
+            // 1. Sidebar Download Folder Display
+            const sidebarDisplay = document.getElementById('sidebarFolderDisplay');
+            if (sidebarDisplay) {
+                let displayStr = folderPath;
+                if (folderPath.length > 22) {
+                    const parts = folderPath.split(/[\\/]/);
+                    if (parts.length > 2) {
+                        displayStr = parts[0] + '\\...\\' + parts[parts.length - 1];
+                    } else {
+                        displayStr = '...' + folderPath.slice(-18);
+                    }
+                }
+                sidebarDisplay.textContent = displayStr;
+                sidebarDisplay.title = folderPath;
+            }
+
+            // 2. Stream Page Folder Button
             const streamFolderBtn = document.getElementById('streamFolderBtnText');
-            const pdlFolderText = document.getElementById('pdlFolderText');
             const shortPath = folderPath.length > 25 ? '...' + folderPath.slice(-22) : folderPath;
             if (streamFolderBtn) {
                 const prefix = currentLang === 'zh' ? '📁 目录: ' : (currentLang === 'en' ? '📁 Folder: ' : '📁 Folder: ');
@@ -56,11 +104,41 @@ let pollTimer = null;
                 streamFolderBtn.title = folderPath;
                 streamFolderBtn.dataset.hasCustomPath = 'true';
             }
+
+            // 3. Player Download Log Panel
+            const pdlFolderText = document.getElementById('pdlFolderText');
             if (pdlFolderText) {
                 pdlFolderText.innerText = `📁 ${shortPath}`;
                 pdlFolderText.title = folderPath;
             }
+
+            // 4. Settings Modal Input
+            const settingsOut = document.getElementById('settingsOutDir');
+            if (settingsOut && settingsOut.value !== folderPath) {
+                settingsOut.value = folderPath;
+            }
+
+            // 5. MVFFM Download Box Folder Display
+            const mvOut = document.getElementById('mvOutputDirDisplay');
+            if (mvOut) {
+                mvOut.textContent = folderPath;
+                mvOut.title = folderPath;
+            }
         }
+        window.updateDownloadFolderUI = updateDownloadFolderUI;
+
+        // Auto-fetch output_dir on startup to ensure sidebar displays it immediately
+        (async function initSidebarDownloadFolder() {
+            try {
+                const res = await fetch('/dl/config');
+                if (res.ok) {
+                    const cfg = await res.json();
+                    if (cfg && cfg.output_dir) {
+                        updateDownloadFolderUI(cfg.output_dir);
+                    }
+                }
+            } catch (_) {}
+        })();
 
         function togglePlayerDownloadLog() {
             const p = document.getElementById('playerDownloadLogPanel');
@@ -572,10 +650,20 @@ let pollTimer = null;
         }
         window.openDownloadsMemoryDrawer = openDownloadsMemoryDrawer;
 
-        function startDownloadPolling() {
-            if (pollTimer) clearInterval(pollTimer);
-            pollTimer = setInterval(pollDownloadStatus, 1500);
+        function scheduleNextPoll(delayMs) {
+            if (pollTimer) clearTimeout(pollTimer);
+            pollTimer = setTimeout(pollDownloadStatus, delayMs);
         }
+
+        function startDownloadPolling() {
+            scheduleNextPoll(1000);
+        }
+
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) {
+                scheduleNextPoll(400);
+            }
+        });
 
         async function pollDownloadStatus() {
             if (isPollingActive) return;
@@ -602,8 +690,11 @@ let pollTimer = null;
                 }
 
                 const hgRunning = Boolean(hgData && hgData.running);
+                const activeHgCount = (hgData && Array.isArray(hgData.series))
+                    ? hgData.series.filter(s => s.status === 'downloading' || s.status === 'merging').length
+                    : (hgRunning ? 1 : 0);
                 const activeYtTasks = ytTasks.filter(t => ['downloading', 'pending', 'merging'].includes(t.status));
-                const totalActive = (hgRunning ? 1 : 0) + activeYtTasks.length;
+                const totalActive = activeHgCount + activeYtTasks.length;
 
                 // 1. Header Active Download Badge
                 const dlBadge = document.getElementById('activeDlCount');
@@ -822,6 +913,8 @@ let pollTimer = null;
                 // Silent background poll
             } finally {
                 isPollingActive = false;
+                const nextDelay = document.hidden ? 8000 : (totalActive > 0 ? 1500 : 4500);
+                scheduleNextPoll(nextDelay);
             }
         }
 
@@ -2026,18 +2119,24 @@ let pollTimer = null;
 
         async function browseDownloadFolder() {
             try {
+                let selected = null;
                 if (window.electronAPI && window.electronAPI.selectFolder) {
-                    const selected = await window.electronAPI.selectFolder();
-                    if (selected) {
-                        document.getElementById('settingsOutDir').value = selected;
-                        showToast('បានជ្រើសរើស Folder ថ្មី!', '📁');
-                        return;
+                    selected = await window.electronAPI.selectFolder();
+                } else {
+                    const res = await fetch('/dl/browse_folder', { method: 'POST' });
+                    const data = await res.json();
+                    if (data.status === 'success' && data.path) {
+                        selected = data.path;
                     }
                 }
-                const res = await fetch('/dl/browse_folder', { method: 'POST' });
-                const data = await res.json();
-                if (data.status === 'success' && data.path) {
-                    document.getElementById('settingsOutDir').value = data.path;
+                if (selected) {
+                    document.getElementById('settingsOutDir').value = selected;
+                    updateDownloadFolderUI(selected);
+                    await fetch('/dl/config', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ output_dir: selected })
+                    }).catch(() => {});
                     showToast('បានជ្រើសរើស Folder ថ្មី!', '📁');
                 }
             } catch (e) {

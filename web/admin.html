@@ -45,13 +45,13 @@
         }
 
         .admin-wrapper {
-            max-width: 1320px;
-            width: 100%;
+            max-width: 1580px;
+            width: 96%;
             margin: 0 auto;
-            padding: 24px;
+            padding: 16px 20px;
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            gap: 16px;
         }
 
         /* Top Header */
@@ -62,8 +62,8 @@
             background: rgba(15, 23, 42, 0.75);
             backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 16px;
-            padding: 16px 24px;
+            border-radius: 14px;
+            padding: 12px 20px;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
         }
 
@@ -467,24 +467,26 @@
         .tracker-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 0.84rem;
+            font-size: 0.81rem;
         }
 
         .tracker-table th {
             background: rgba(255, 255, 255, 0.04);
             color: #cbd5e1;
             font-weight: 700;
-            padding: 12px 14px;
+            padding: 9px 12px;
+            font-size: 0.78rem;
             text-align: left;
             border-bottom: 1px solid rgba(255, 255, 255, 0.08);
             white-space: nowrap;
         }
 
         .tracker-table td {
-            padding: 12px 14px;
+            padding: 8px 12px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.04);
             color: #e2e8f0;
             vertical-align: middle;
+            font-size: 0.81rem;
         }
 
         .tracker-table tr:hover td {
@@ -494,13 +496,13 @@
         /* Badges & Status */
         .pulse-dot {
             display: inline-block;
-            width: 9px;
-            height: 9px;
+            width: 8px;
+            height: 8px;
             border-radius: 50%;
             background-color: #10b981;
             box-shadow: 0 0 8px #10b981;
             animation: pulse 1.8s infinite;
-            margin-right: 6px;
+            margin-right: 5px;
         }
 
         .pulse-dot.offline {
@@ -518,10 +520,11 @@
         .badge-status {
             display: inline-flex;
             align-items: center;
-            padding: 4px 10px;
+            padding: 3px 8px;
             border-radius: 20px;
-            font-size: 0.75rem;
+            font-size: 0.73rem;
             font-weight: 700;
+            white-space: nowrap;
         }
 
         .badge-active {
@@ -549,18 +552,50 @@
             border: 1px solid rgba(148, 163, 184, 0.25);
         }
 
-        /* Table Action Buttons */
+        /* License Key Badge in Table */
+        .key-badge {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.78rem;
+            font-weight: 700;
+            color: #38bdf8;
+            background: rgba(56, 189, 248, 0.08);
+            border: 1px solid rgba(56, 189, 248, 0.28);
+            border-radius: 6px;
+            padding: 3px 7px;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            white-space: nowrap;
+        }
+
+        .btn-table-copy {
+            background: transparent;
+            border: none;
+            color: #94a3b8;
+            cursor: pointer;
+            font-size: 0.75rem;
+            padding: 1px 3px;
+            border-radius: 4px;
+            transition: all 0.15s ease;
+        }
+        .btn-table-copy:hover {
+            color: #38bdf8;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Compact Table Action Buttons */
         .btn-table {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            gap: 4px;
-            padding: 5px 10px;
-            font-size: 0.74rem;
+            gap: 3px;
+            padding: 4px 7px;
+            font-size: 0.72rem;
             font-weight: 700;
             border-radius: 6px;
             border: 1px solid transparent;
             cursor: pointer;
+            white-space: nowrap;
             transition: all 0.18s ease;
         }
 
@@ -609,9 +644,9 @@
             border: none;
             color: #94a3b8;
             cursor: pointer;
-            padding: 2px 6px;
+            padding: 1px 4px;
             border-radius: 4px;
-            font-size: 0.8rem;
+            font-size: 0.78rem;
         }
         .btn-table-edit:hover {
             color: #38bdf8;
@@ -744,21 +779,27 @@
                     <p class="admin-brand-subtitle">ប្រព័ន្ធបង្កើត License Key, បើកសិទ្ធិអូតូ និងគ្រប់គ្រងម៉ាស៊ីន (Machine &amp; License Manager)</p>
                 </div>
             </div>
-            <div style="display:flex; align-items:center; gap:10px;">
-                <span style="font-size:0.8rem; font-weight:700; color:#34d399; background:rgba(16,185,129,0.15); border:1px solid rgba(16,185,129,0.3); padding:4px 12px; border-radius:20px;">
-                    🛡️ Admin Panel 24/7 (Isolated)
+            <div style="display:flex; align-items:center; gap:8px;">
+                <button type="button" class="btn btn-primary btn-sm" onclick="switchTab('tabKeygen', document.querySelectorAll('.admin-tab-btn')[1])" style="background:linear-gradient(135deg, #3b82f6, #2563eb); font-size:0.78rem; height:34px; padding:0 12px;">
+                    <span>⚡</span> <span>បង្កើត Key ថ្មី</span>
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="syncWithCloud()" id="btnSyncCloud" title="ធ្វើសមកាលកម្មទិន្នន័យពី Cloud Render" style="font-size:0.78rem; height:34px; padding:0 12px;">
+                    <span>☁️</span> <span>Sync Cloud</span>
+                </button>
+                <span style="font-size:0.74rem; font-weight:700; color:#34d399; background:rgba(16,185,129,0.15); border:1px solid rgba(16,185,129,0.3); padding:4px 10px; border-radius:20px;">
+                    🛡️ Admin 24/7 (Isolated)
                 </span>
             </div>
         </div>
 
         <!-- Navigation Tabs -->
         <div class="admin-tabs">
-            <button type="button" class="admin-tab-btn active" onclick="switchTab('tabKeygen', this)">
-                <span>⚡</span> <span>បើកសិទ្ធិ &amp; បង្កើត Key</span>
-            </button>
-            <button type="button" class="admin-tab-btn" onclick="switchTab('tabTracker', this)">
+            <button type="button" class="admin-tab-btn active" onclick="switchTab('tabTracker', this)">
                 <span>💻</span> <span>គ្រប់គ្រងម៉ាស៊ីន &amp; ឡាយសិន</span>
                 <span class="tab-badge green" id="trackerOnlineCountBadge">0</span>
+            </button>
+            <button type="button" class="admin-tab-btn" onclick="switchTab('tabKeygen', this)">
+                <span>⚡</span> <span>បើកសិទ្ធិ &amp; បង្កើត Key</span>
             </button>
             <button type="button" class="admin-tab-btn" onclick="switchTab('tabCrackTracker', this)">
                 <span>🚨</span> <span>តាមដានអ្នកលួច Crack (Anti-Crack &amp; Maps)</span>
@@ -772,7 +813,7 @@
         <!-- ============================================== -->
         <!-- TAB 1: KEYGEN & AUTO AUTHORIZE -->
         <!-- ============================================== -->
-        <div id="tabKeygen" class="tab-panel active">
+        <div id="tabKeygen" class="tab-panel">
             <div class="panel-heading">
                 <div>
                     <h2 class="panel-title">⚡ បើកសិទ្ធិ ឬបង្កើត License Key ជូនភ្ញៀវ</h2>
@@ -886,16 +927,16 @@
         </div>
 
         <!-- ============================================== -->
-        <!-- TAB 2: ACTIVE MACHINES & LICENSE MANAGER -->
+        <!-- TAB 1: ACTIVE MACHINES & LICENSE MANAGER -->
         <!-- ============================================== -->
-        <div id="tabTracker" class="tab-panel">
+        <div id="tabTracker" class="tab-panel active">
             <div class="panel-heading">
                 <div>
                     <h2 class="panel-title">💻 តារាងគ្រប់គ្រងម៉ាស៊ីន &amp; ឡាយសិន (Machines &amp; Licenses Manager)</h2>
-                    <p class="panel-desc">តាមដានម៉ាស៊ីនកំពុង Online/Offline, មើលថ្ងៃសរុប &amp; ថ្ងៃនៅសល់, កែប្រែឈ្មោះ, បន្ថែម/បន្ថយថ្ងៃ, ផ្ទេរ License ឬដកហូតភ្លាមៗ</p>
+                    <p class="panel-desc">តាមដានម៉ាស៊ីនកំពុង Online/Offline, មើលថ្ងៃសរុប &amp; ថ្ងៃនៅសល់, License Key, កែប្រែឈ្មោះ, បន្ថែម/បន្ថយថ្ងៃ, ផ្ទេរ ឬដកហូតភ្លាមៗ</p>
                 </div>
                 <div style="display:flex; gap:8px;">
-                    <button type="button" class="btn btn-secondary btn-sm" onclick="loadTrackedDevices()" style="height:36px; padding:0 14px; font-weight:700;">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="loadTrackedDevices(false, true)" style="height:36px; padding:0 14px; font-weight:700;">
                         <span>🔄</span> <span>ផ្ទុកទិន្នន័យឡើងវិញ</span>
                     </button>
                 </div>
@@ -936,7 +977,7 @@
             <!-- Search and Filter Bar -->
             <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:12px;">
                 <div style="display:flex; gap:8px; align-items:center; flex:1; min-width:280px;">
-                    <input type="text" id="trackerSearchInput" class="custom-input" placeholder="🔍 ស្វែងរកតាមឈ្មោះភ្ញៀវ, Telegram, ឬ Device ID..." style="height:40px; font-size:0.86rem;" oninput="applyFilter()">
+                    <input type="text" id="trackerSearchInput" class="custom-input" placeholder="🔍 ស្វែងរកតាមឈ្មោះភ្ញៀវ, Telegram, Device ID, ឬ License Key..." style="height:40px; font-size:0.86rem;" oninput="applyFilter()">
                 </div>
                 <div style="display:flex; gap:6px;">
                     <button type="button" class="filter-pill active" data-filter="all" onclick="setFilter('all', this)">ទាំងអស់</button>
@@ -951,16 +992,17 @@
                 <table class="tracker-table">
                     <thead>
                         <tr>
-                            <th>👤 ឈ្មោះភ្ញៀវ / សម្គាល់</th>
-                            <th>💻 លេខម៉ាស៊ីន (Device ID)</th>
-                            <th>📶 ស្ថានភាព Online</th>
-                            <th>⏳ ចំនួនថ្ងៃ &amp; ថ្ងៃនៅសល់</th>
-                            <th style="text-align:right;">⚡ សកម្មភាពគ្រប់គ្រង (Admin Actions)</th>
+                            <th style="min-width: 170px;">👤 ឈ្មោះភ្ញៀវ (Customer)</th>
+                            <th style="min-width: 150px;">💻 លេខម៉ាស៊ីន (Device ID)</th>
+                            <th style="min-width: 185px;">🔑 License Key</th>
+                            <th style="min-width: 110px;">📶 Online</th>
+                            <th style="min-width: 175px;">⏳ សុពលភាព &amp; ពេលនៅសល់</th>
+                            <th style="text-align:right; min-width: 230px;">⚡ សកម្មភាពគ្រប់គ្រង</th>
                         </tr>
                     </thead>
                     <tbody id="trackerTableBody">
                         <tr>
-                            <td colspan="5" style="text-align:center; color:var(--text-sub); padding:28px;">កំពុងទាញយកទិន្នន័យ...</td>
+                            <td colspan="6" style="text-align:center; color:var(--text-sub); padding:28px;">កំពុងទាញយកទិន្នន័យ...</td>
                         </tr>
                     </tbody>
                 </table>
@@ -1427,22 +1469,49 @@
         // ==============================================
         // TAB 2: ACTIVE MACHINES & LICENSE MANAGER
         // ==============================================
-        async function loadTrackedDevices(isSilent = false) {
+        async function loadTrackedDevices(isSilent = false, syncCloud = false) {
             const tbody = document.getElementById('trackerTableBody');
             try {
-                const res = await fetch('/api/license/admin/tracked');
+                const url = syncCloud ? '/api/license/admin/tracked?sync=true' : '/api/license/admin/tracked';
+                const res = await fetch(url);
                 const data = await res.json();
                 if (data.success && data.devices) {
                     _cachedDevices = data.devices;
                     updateMetrics(_cachedDevices);
-                    renderDevicesTable(_cachedDevices);
+                    applyFilter();
                 } else if (!isSilent && tbody) {
-                    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text-sub); padding:28px;">មិនទាន់មានម៉ាស៊ីនណាបានបើកកម្មវិធីឡើយ</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-sub); padding:28px;">មិនទាន់មានម៉ាស៊ីនណាបានបើកកម្មវិធីឡើយ</td></tr>`;
                 }
             } catch (e) {
                 if (!isSilent && tbody) {
-                    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text-sub); padding:28px;">មិនអាចភ្ជាប់ទៅកាន់ Server បានឡើយ</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-sub); padding:28px;">មិនអាចភ្ជាប់ទៅកាន់ Server បានឡើយ</td></tr>`;
                 }
+            }
+        }
+
+        async function syncWithCloud() {
+            const btn = document.getElementById('btnSyncCloud');
+            if (btn) btn.innerHTML = '<span>⏳</span> <span>Syncing...</span>';
+            showToast('⏳ កំពុងធ្វើសមកាលកម្មទិន្នន័យពី Cloud Render...', '☁️');
+            try {
+                const res = await fetch('/api/license/admin/sync-cloud', { method: 'POST' });
+                const data = await res.json();
+                if (data.success) {
+                    showToast(`🎉 បានធ្វើសមកាលកម្មជោគជ័យ! (Sync បាន ${data.syncedCount || 0} ម៉ាស៊ីន)`, '✅');
+                    if (data.devices) {
+                        _cachedDevices = data.devices;
+                        updateMetrics(_cachedDevices);
+                        applyFilter();
+                    } else {
+                        await loadTrackedDevices(false);
+                    }
+                } else {
+                    showToast('⚠️ Sync បរាជ័យ', '❌');
+                }
+            } catch (e) {
+                showToast('Sync Error: ' + e.message, '❌');
+            } finally {
+                if (btn) btn.innerHTML = '<span>☁️</span> <span>Sync Cloud</span>';
             }
         }
 
@@ -1494,7 +1563,8 @@
                     (d.deviceId && d.deviceId.toLowerCase().includes(q)) ||
                     (d.customName && d.customName.toLowerCase().includes(q)) ||
                     (d.telegramUser && d.telegramUser.toLowerCase().includes(q)) ||
-                    (d.computerName && d.computerName.toLowerCase().includes(q))
+                    (d.computerName && d.computerName.toLowerCase().includes(q)) ||
+                    (d.key && d.key.toLowerCase().includes(q))
                 );
             }
 
@@ -1506,102 +1576,97 @@
             if (!tbody) return;
 
             if (!list || list.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text-sub); padding:28px;">មិនមានទិន្នន័យត្រូវគ្នានឹងការស្វែងរកឡើយ</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-sub); padding:28px;">មិនមានទិន្នន័យត្រូវគ្នានឹងការស្វែងរកឡើយ</td></tr>`;
                 return;
             }
 
             tbody.innerHTML = list.map(item => {
                 const devId = escapeHtml(item.deviceId);
-                const nameDisplay = item.customName 
-                    ? `<span style="font-weight:700; color:#38bdf8;">${escapeHtml(item.customName)}</span>`
-                    : `<span style="color:#64748b; font-style:italic;">(មិនទាន់ដាក់ឈ្មោះ)</span>`;
+                const displayName = item.customName || item.telegramUser || 'ភ្ញៀវថ្មី';
+                const nameDisplay = `<span style="font-weight:700; color:#38bdf8; font-size:0.86rem;">${escapeHtml(displayName)}</span>`;
 
-                const tgDisplay = item.telegramUser 
-                    ? `<div style="font-size:0.75rem; color:#94a3b8; margin-top:2px;">📱 ${escapeHtml(item.telegramUser)}</div>`
-                    : '';
+                let subText = '';
+                if (item.telegramUser && item.telegramUser !== item.customName) {
+                    subText += `<div style="font-size:0.71rem; color:#94a3b8; margin-top:2px;">📱 ${escapeHtml(item.telegramUser)}</div>`;
+                }
+                if (item.computerName) {
+                    subText += `<div style="font-size:0.70rem; color:#64748b; margin-top:1px;">🖥️ ${escapeHtml(item.computerName)}${item.osUser ? ' • ' + escapeHtml(item.osUser) : ''}</div>`;
+                }
 
                 // Online status indicator
                 const onlineHtml = item.isOnline
-                    ? `<span style="color:#34d399; font-weight:700; display:inline-flex; align-items:center;"><span class="pulse-dot"></span> Online</span>`
-                    : `<span style="color:#94a3b8; display:inline-flex; align-items:center;"><span class="pulse-dot offline"></span> Offline</span>`;
+                    ? `<span style="color:#34d399; font-weight:700; font-size:0.76rem; display:inline-flex; align-items:center;"><span class="pulse-dot"></span> Online</span>`
+                    : `<span style="color:#94a3b8; font-size:0.76rem; display:inline-flex; align-items:center;"><span class="pulse-dot offline"></span> Offline</span>`;
 
                 const lastSeenText = item.lastSeenAgo 
-                    ? `<div style="font-size:0.72rem; color:#64748b; margin-top:2px;">${item.lastSeenAgo}</div>`
+                    ? `<div style="font-size:0.69rem; color:#64748b; margin-top:2px;">${item.lastSeenAgo}</div>`
                     : '';
 
-                // License duration & remaining days
+                // Key display
+                const keyHtml = item.key 
+                    ? `<span class="key-badge"><code>${escapeHtml(item.key)}</code> <button type="button" class="btn-table-copy" onclick="copyText('${escapeHtml(item.key)}'); showToast('📋 បានចម្លង License Key!', '✅');" title="ចម្លង Key">📋</button></span>`
+                    : `<span class="badge-status badge-unact">⚪ មិនទាន់មាន Key</span>`;
+
+                // Duration badge
                 let durationBadge = '';
                 if (item.isRevoked || item.isExpired) {
-                    durationBadge = `<span class="badge-status badge-expired">🔴 ផុតកំណត់ហើយ (Expired)</span>`;
+                    durationBadge = `<span class="badge-status badge-expired">🔴 ផុតកំណត់</span>`;
                 } else if (item.isLifetime) {
-                    durationBadge = `<span class="badge-status badge-active" style="border-color:#8b5cf6; color:#c084fc; background:rgba(139,92,246,0.15);">👑 ពេញមួយជីវិត (Lifetime)</span>`;
+                    durationBadge = `<span class="badge-status badge-active" style="border-color:#8b5cf6; color:#c084fc; background:rgba(139,92,246,0.15);">👑 ពេញមួយជីវិត</span>`;
                 } else if (item.isAuthorized) {
                     const days = item.remainingDays || 0;
                     const hours = item.remainingHours || 0;
-                    durationBadge = `<span class="badge-status badge-active">⏳ នៅសល់ ${days} ថ្ងៃ ${hours} ម៉ោង</span>`;
+                    durationBadge = `<span class="badge-status badge-active">⏳ នៅសល់ ${days}ថ្ងៃ ${hours}ម៉ោង</span>`;
                 } else {
                     durationBadge = `<span class="badge-status badge-unact">⚪ មិនទាន់ Activate</span>`;
                 }
 
                 const grantedText = item.daysGranted > 0 
-                    ? `<div style="font-size:0.75rem; color:#94a3b8; margin-top:3px;">ទទួលបាន: <b>${item.daysGranted} ថ្ងៃ</b></div>`
-                    : (item.isLifetime ? `<div style="font-size:0.75rem; color:#c084fc; margin-top:3px;">កញ្ចប់ VIP ពេញមួយជីវិត</div>` : '');
+                    ? `<div style="font-size:0.70rem; color:#94a3b8; margin-top:2px;">កញ្ចប់: <b>${item.daysGranted} ថ្ងៃ</b></div>`
+                    : (item.isLifetime ? `<div style="font-size:0.70rem; color:#c084fc; margin-top:2px;">VIP ពេញមួយជីវិត</div>` : '');
 
                 return `
                     <tr>
-                        <!-- 1. Customer Name / Tag -->
+                        <!-- 1. Customer Name -->
                         <td>
-                            <div style="display:flex; align-items:center; gap:6px;">
+                            <div style="display:flex; align-items:center; gap:5px;">
                                 ${nameDisplay}
-                                <button type="button" class="btn-table-edit" onclick="openEditNameModal('${devId}', '${escapeHtml(item.customName || '')}')" title="កែឈ្មោះភ្ញៀវ">✏️</button>
+                                <button type="button" class="btn-table-edit" onclick="openEditNameModal('${devId}', '${escapeHtml(item.customName || '')}')" title="កែឈ្មោះសម្គាល់ភ្ញៀវ">✏️</button>
                             </div>
-                            ${tgDisplay}
+                            ${subText}
                         </td>
 
-                        <!-- 2. Device ID & PC -->
+                        <!-- 2. Device ID -->
                         <td>
-                            <div style="display:flex; align-items:center; gap:6px;">
-                                <b style="font-family:'JetBrains Mono', monospace; color:#f8fafc; font-size:0.86rem;">${devId}</b>
+                            <div style="display:flex; align-items:center; gap:5px;">
+                                <code style="font-family:'JetBrains Mono', monospace; color:#f8fafc; font-size:0.80rem; font-weight:700;">${devId}</code>
                                 <button type="button" class="btn-table-edit" onclick="copyText('${devId}'); showToast('📋 បានចម្លង Device ID!', '✅');" title="ចម្លង Device ID">📋</button>
                             </div>
-                            <div style="font-size:0.72rem; color:#94a3b8; margin-top:2px;">
-                                🖥️ ${escapeHtml(item.computerName || '-')}${item.osUser ? ' • ' + escapeHtml(item.osUser) : ''}
-                            </div>
                         </td>
 
-                        <!-- 3. Online Status -->
+                        <!-- 3. License Key -->
+                        <td>
+                            ${keyHtml}
+                        </td>
+
+                        <!-- 4. Online Status -->
                         <td>
                             ${onlineHtml}
                             ${lastSeenText}
                         </td>
 
-                        <!-- 4. Duration & Remaining Days -->
+                        <!-- 5. Duration & Remaining -->
                         <td>
                             ${durationBadge}
                             ${grantedText}
                         </td>
 
-                        <!-- 5. Actions -->
+                        <!-- 6. Compact Actions -->
                         <td style="text-align:right; white-space:nowrap;">
-                            <!-- Add Days -->
-                            <button type="button" class="btn-table btn-table-add" onclick="openAdjustDaysModal('${devId}', 'add', ${item.remainingDays || 0})" title="បន្ថែមថ្ងៃ">
-                                ➕ បន្ថែមថ្ងៃ
-                            </button>
-
-                            <!-- Sub Days -->
-                            <button type="button" class="btn-table btn-table-sub" onclick="openAdjustDaysModal('${devId}', 'sub', ${item.remainingDays || 0})" title="បន្ថយថ្ងៃ">
-                                ➖ បន្ថយថ្ងៃ
-                            </button>
-
-                            <!-- Transfer to New Machine -->
-                            <button type="button" class="btn-table btn-table-transfer" onclick="openTransferModal('${devId}', ${item.remainingDays || 0}, ${item.remainingHours || 0}, ${item.remainingMinutes || 0}, ${item.isLifetime ? 'true' : 'false'}, '${escapeHtml(item.customName || '')}')" title="ផ្ទេរ License ទៅម៉ាស៊ីនថ្មី">
-                                🔄 ផ្ទេរ License
-                            </button>
-
-                            <!-- Disconnect / Expire License -->
-                            <button type="button" class="btn-table btn-table-revoke" onclick="confirmRevoke('${devId}')" title="កាត់ License ម៉ាស៊ីននេះឱ្យផុតកំណត់ (០ ថ្ងៃ) ភ្លាមៗ">
-                                🔌 ផ្ដាច់ (ផុតកំណត់)
-                            </button>
+                            <button type="button" class="btn-table btn-table-add" onclick="openAdjustDaysModal('${devId}', 'add', ${item.remainingDays || 0})" title="បន្ថែមថ្ងៃប្រើប្រាស់">+ ថ្ងៃ</button>
+                            <button type="button" class="btn-table btn-table-sub" onclick="openAdjustDaysModal('${devId}', 'sub', ${item.remainingDays || 0})" title="បន្ថយថ្ងៃប្រើប្រាស់">- ថ្ងៃ</button>
+                            <button type="button" class="btn-table btn-table-transfer" onclick="openTransferModal('${devId}', ${item.remainingDays || 0}, ${item.remainingHours || 0}, ${item.remainingMinutes || 0}, ${item.isLifetime ? 'true' : 'false'}, '${escapeHtml(item.customName || '')}')" title="ផ្ទេរ License ទៅម៉ាស៊ីនថ្មី">🔄 ផ្ទេរ</button>
+                            <button type="button" class="btn-table btn-table-revoke" onclick="confirmRevoke('${devId}')" title="កាត់ License ម៉ាស៊ីននេះឱ្យផុតកំណត់ភ្លាមៗ">🔌 ផ្ដាច់</button>
                         </td>
                     </tr>
                 `;
@@ -2165,7 +2230,8 @@
         }
 
         document.addEventListener('DOMContentLoaded', () => {
-            loadTrackedDevices();
+            loadTrackedDevices(false, true);
+            startTrackerAutoRefresh();
             loadPayments();
             loadCrackSuspects();
         });

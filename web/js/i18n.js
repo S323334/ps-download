@@ -736,6 +736,28 @@
                 btnLib.innerHTML = `<span>📚</span> <span id="headerLibraryText">${dict.libraryBtn.replace('📚 ', '')}</span> <span class="badge" id="libraryCountBadge" style="display:${badgeDisp}; margin-left:4px;">${badgeVal}</span> <span class="badge" id="activeDlCount" style="display:${dlDisp}; background:#0ea5e9; margin-left:4px;">${dlVal}</span>`;
             }
 
+            // 2b. Sidebar Download Folder Widget
+            const sfTitle = document.getElementById('sidebarFolderTitle');
+            const sfOpenText = document.getElementById('sidebarFolderOpenText');
+            const sfHint = document.getElementById('sidebarFolderChangeHint');
+            const sfAction = document.getElementById('sidebarFolderActionLabel');
+            if (currentLang === 'zh') {
+                if (sfTitle) sfTitle.innerText = '下载保存目录 (FOLDER)';
+                if (sfOpenText) sfOpenText.innerText = '打开';
+                if (sfHint) sfHint.innerText = '点击更换保存目录';
+                if (sfAction) sfAction.innerText = '选择';
+            } else if (currentLang === 'en') {
+                if (sfTitle) sfTitle.innerText = 'DOWNLOAD FOLDER';
+                if (sfOpenText) sfOpenText.innerText = 'Open';
+                if (sfHint) sfHint.innerText = 'Click to change folder';
+                if (sfAction) sfAction.innerText = 'Select';
+            } else {
+                if (sfTitle) sfTitle.innerText = 'ថតផ្ទុកវីដេអូ (FOLDER)';
+                if (sfOpenText) sfOpenText.innerText = 'បើក';
+                if (sfHint) sfHint.innerText = 'ចុចដើម្បីរើស Folder ថ្មី';
+                if (sfAction) sfAction.innerText = 'រើស';
+            }
+
             // 3. Category Tabs
             const tabAll = document.querySelector('.tab-btn[data-cat="all"]');
             if (tabAll) tabAll.innerText = dict.tabHot;

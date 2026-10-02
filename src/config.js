@@ -7,7 +7,7 @@ const path = require('path');
 const fs = require('fs');
 
 const APP_TITLE = "PS DOWNLOAD";
-const APP_VERSION = "3.2.1";
+const APP_VERSION = "3.2.2";
 
 const PORT = parseInt(process.env.HONGGUO_PORT || '1994', 10);
 const HOST = process.env.HONGGUO_HOST || '127.0.0.1';

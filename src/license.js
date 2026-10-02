@@ -1032,6 +1032,58 @@ async function activateLicense(inputKey, metadata = {}) {
 
   try {
     saveLicenseToVaults(record);
+
+    // Automatically ensure this device and key are stored in authorized_devices & devices_tracker
+    try {
+      let authMap = {};
+      if (fs.existsSync(AUTHORIZED_DEVICES_FILE)) {
+        authMap = JSON.parse(fs.readFileSync(AUTHORIZED_DEVICES_FILE, 'utf-8')) || {};
+      }
+      authMap[currentDevice] = {
+        deviceId: currentDevice,
+        key: cleanKey,
+        days: result.days || 30,
+        label: result.label || 'Active',
+        customName: custName || tgUser || '',
+        telegramUser: tgUser || (authMap[currentDevice] && authMap[currentDevice].telegramUser) || '',
+        authorizedAt: new Date().toISOString(),
+        expiresAt: finalExpiresAt,
+        status: 'active'
+      };
+      fs.writeFileSync(AUTHORIZED_DEVICES_FILE, JSON.stringify(authMap, null, 2), 'utf-8');
+    } catch (e) {}
+
+    try {
+      let tList = [];
+      if (fs.existsSync(DEVICES_TRACKER_FILE)) {
+        tList = JSON.parse(fs.readFileSync(DEVICES_TRACKER_FILE, 'utf-8')) || [];
+      }
+      const tIdx = tList.findIndex(d => d.deviceId === currentDevice);
+      const nowIso = new Date().toISOString();
+      if (tIdx >= 0) {
+        tList[tIdx].status = result.label || 'Active';
+        tList[tIdx].key = cleanKey;
+        if (custName) tList[tIdx].customName = custName;
+        else if (tgUser && !tList[tIdx].customName) tList[tIdx].customName = tgUser;
+        if (tgUser) tList[tIdx].telegramUser = tgUser;
+        tList[tIdx].lastSeen = nowIso;
+      } else {
+        tList.unshift({
+          deviceId: currentDevice,
+          telegramUser: tgUser || '',
+          customName: custName || tgUser || '',
+          computerName: compName || os.hostname() || 'Client PC',
+          osUser: (os.userInfo && os.userInfo().username) || '',
+          firstSeen: nowIso,
+          lastSeen: nowIso,
+          openCount: 1,
+          status: result.label || 'Active',
+          key: cleanKey
+        });
+      }
+      fs.writeFileSync(DEVICES_TRACKER_FILE, JSON.stringify(tList, null, 2), 'utf-8');
+    } catch (e) {}
+
     return {
       success: true,
       message: 'បានបើកដំណើរការកម្មវិធីជោគជ័យ!',
@@ -1067,9 +1119,11 @@ const TELEGRAM_CONFIG_FILE = path.join(DATA_DIR, 'telegram_config.json');
  * Records or updates a client device whenever the app is launched.
  * Tracks Telegram username, Device ID, Computer Name, launch count, and first/last seen.
  */
-async function recordDeviceTracking({ deviceId, telegramUser = '', computerName = '' }) {
+async function recordDeviceTracking({ deviceId, telegramUser = '', computerName = '', customName = '', key = '', status = '', expiresAt = null, remainingDays = null }) {
   const cleanId = String(deviceId || getDeviceId()).trim().toUpperCase();
   const cleanTg = String(telegramUser || '').trim();
+  const cleanName = String(customName || '').trim();
+  const cleanKey = String(key || '').trim().toUpperCase();
   const host = computerName || os.hostname() || 'Unknown-PC';
   const user = (os.userInfo && os.userInfo().username) || '';
 
@@ -1088,6 +1142,10 @@ async function recordDeviceTracking({ deviceId, telegramUser = '', computerName 
     list[existingIdx].lastSeen = now;
     list[existingIdx].openCount = (list[existingIdx].openCount || 1) + 1;
     if (cleanTg) list[existingIdx].telegramUser = cleanTg;
+    if (cleanName) list[existingIdx].customName = cleanName;
+    else if (cleanTg && !list[existingIdx].customName) list[existingIdx].customName = cleanTg;
+    if (cleanKey) list[existingIdx].key = cleanKey;
+    if (status) list[existingIdx].status = status;
     list[existingIdx].computerName = host;
     list[existingIdx].osUser = user;
   } else {
@@ -1095,12 +1153,14 @@ async function recordDeviceTracking({ deviceId, telegramUser = '', computerName 
     list.unshift({
       deviceId: cleanId,
       telegramUser: cleanTg,
+      customName: cleanName || cleanTg || '',
       computerName: host,
       osUser: user,
       firstSeen: now,
       lastSeen: now,
       openCount: 1,
-      status: 'unactivated'
+      status: status || 'unactivated',
+      key: cleanKey || ''
     });
   }
 
@@ -1111,11 +1171,39 @@ async function recordDeviceTracking({ deviceId, telegramUser = '', computerName 
     fs.writeFileSync(DEVICES_TRACKER_FILE, JSON.stringify(list, null, 2), 'utf-8');
   } catch (e) {}
 
+  // If a valid key is reported, ensure authorized_devices map also has it
+  if (cleanKey) {
+    try {
+      let authMap = {};
+      if (fs.existsSync(AUTHORIZED_DEVICES_FILE)) {
+        authMap = JSON.parse(fs.readFileSync(AUTHORIZED_DEVICES_FILE, 'utf-8')) || {};
+      }
+      if (!authMap[cleanId] || !authMap[cleanId].key) {
+        authMap[cleanId] = {
+          deviceId: cleanId,
+          key: cleanKey,
+          days: remainingDays || 30,
+          label: status || 'Active',
+          customName: cleanName || cleanTg || '',
+          telegramUser: cleanTg,
+          authorizedAt: now,
+          expiresAt: expiresAt,
+          status: 'active'
+        };
+        fs.writeFileSync(AUTHORIZED_DEVICES_FILE, JSON.stringify(authMap, null, 2), 'utf-8');
+      } else {
+        if (cleanName && !authMap[cleanId].customName) authMap[cleanId].customName = cleanName;
+        if (cleanTg && !authMap[cleanId].telegramUser) authMap[cleanId].telegramUser = cleanTg;
+        fs.writeFileSync(AUTHORIZED_DEVICES_FILE, JSON.stringify(authMap, null, 2), 'utf-8');
+      }
+    } catch (e) {}
+  }
+
   // Send Telegram Notification to Admin on new device or activation request
   if (isNewDevice || cleanTg) {
     const tgMsg = `🚨 <b>ម៉ាស៊ីនបានបើកកម្មវិធី (Device Tracker Alert)</b>\n\n` +
       `💻 <b>Device ID:</b> <code>${cleanId}</code>\n` +
-      `👤 <b>Telegram:</b> ${cleanTg ? `<b>${cleanTg}</b>` : '<i>(មិនទាន់បញ្ចូល)</i>'}\n` +
+      `👤 <b>Customer / Telegram:</b> <b>${cleanName || cleanTg || '<i>(មិនទាន់បញ្ចូល)</i>'}</b>\n` +
       `🖥️ <b>Computer:</b> ${host} (${user})\n` +
       `🕒 <b>Time:</b> ${new Date().toLocaleString('en-US', { timeZone: 'Asia/Phnom_Penh' })}\n` +
       `🛡️ <b>Status:</b> ${isNewDevice ? 'ម៉ាស៊ីនថ្មី (New Device)' : 'ដំណើរការឡើងវិញ'}`;
@@ -1193,7 +1281,7 @@ function authorizeDevice({ deviceId, days = 0, hours = 0, telegramUser = '', cus
     hours: numHours,
     label: label,
     telegramUser: telegramUser || existingRecord.telegramUser || '',
-    customName: customName || existingRecord.customName || '',
+    customName: customName || existingRecord.customName || telegramUser || '',
     authorizedAt: new Date().toISOString(),
     expiresAt: expiresAt,
     status: 'active'
@@ -1219,16 +1307,33 @@ function authorizeDevice({ deviceId, days = 0, hours = 0, telegramUser = '', cus
 
   // Update status in devices tracker
   try {
+    let list = [];
     if (fs.existsSync(DEVICES_TRACKER_FILE)) {
-      const list = JSON.parse(fs.readFileSync(DEVICES_TRACKER_FILE, 'utf-8')) || [];
-      const item = list.find(d => d.deviceId === cleanId);
-      if (item) {
-        item.status = label;
-        if (telegramUser) item.telegramUser = telegramUser;
-        if (customName) item.customName = customName;
-        fs.writeFileSync(DEVICES_TRACKER_FILE, JSON.stringify(list, null, 2), 'utf-8');
-      }
+      list = JSON.parse(fs.readFileSync(DEVICES_TRACKER_FILE, 'utf-8')) || [];
     }
+    const item = list.find(d => d.deviceId === cleanId);
+    const resolvedName = customName || existingRecord.customName || telegramUser || (item && item.customName) || '';
+    if (item) {
+      item.status = label;
+      item.key = key;
+      if (telegramUser) item.telegramUser = telegramUser;
+      if (resolvedName) item.customName = resolvedName;
+      item.lastSeen = new Date().toISOString();
+    } else {
+      list.unshift({
+        deviceId: cleanId,
+        telegramUser: telegramUser || '',
+        customName: resolvedName,
+        computerName: 'Authorized PC',
+        osUser: '',
+        firstSeen: new Date().toISOString(),
+        lastSeen: new Date().toISOString(),
+        openCount: 1,
+        status: label,
+        key: key
+      });
+    }
+    fs.writeFileSync(DEVICES_TRACKER_FILE, JSON.stringify(list, null, 2), 'utf-8');
   } catch (e) {}
 
   return {
@@ -1317,13 +1422,14 @@ function getTrackedDevicesWithLicenseInfo() {
       mapByDevice.set(devId, {
         deviceId: devId,
         telegramUser: auth.telegramUser || '',
-        customName: auth.customName || '',
+        customName: auth.customName || auth.telegramUser || '',
         computerName: 'Authorized PC',
         osUser: '',
         firstSeen: auth.authorizedAt || new Date().toISOString(),
         lastSeen: auth.authorizedAt || new Date().toISOString(),
-        openCount: 0,
-        status: auth.status || 'active'
+        openCount: 1,
+        status: auth.status || 'active',
+        key: auth.key || ''
       });
     }
   }
@@ -1335,7 +1441,7 @@ function getTrackedDevicesWithLicenseInfo() {
     const devId = dev.deviceId;
     const auth = authMap[devId] || null;
 
-    const customName = (auth && auth.customName) || dev.customName || '';
+    const customName = (auth && auth.customName) || dev.customName || (auth && auth.telegramUser) || dev.telegramUser || '';
 
     // Online status: active within the last 5 minutes (300,000 ms)
     let isOnline = false;
@@ -1405,16 +1511,20 @@ function getTrackedDevicesWithLicenseInfo() {
       remainingDays: remainingDays,
       remainingHours: remainingHours,
       remainingMinutes: remainingMinutes,
-      key: (auth && auth.key) || '',
+      key: (auth && auth.key) || dev.key || '',
       label: (auth && auth.label) || dev.status || (isAuthorized ? 'Active' : 'Unactivated'),
       crackSuspect: Boolean(dev.crackSuspect || (dev.failedAttempts && dev.failedAttempts >= 4))
     });
   }
 
-  // Sort: Online machines first, then latest lastSeen first
+  // Sort: Online machines first, then active licenses first, then latest lastSeen first
   result.sort((a, b) => {
     if (a.isOnline && !b.isOnline) return -1;
     if (!a.isOnline && b.isOnline) return 1;
+    const aHasKey = Boolean(a.isAuthorized && !a.isExpired);
+    const bHasKey = Boolean(b.isAuthorized && !b.isExpired);
+    if (aHasKey && !bHasKey) return -1;
+    if (!aHasKey && bHasKey) return 1;
     const timeA = a.lastSeen ? new Date(a.lastSeen).getTime() : 0;
     const timeB = b.lastSeen ? new Date(b.lastSeen).getTime() : 0;
     return timeB - timeA;

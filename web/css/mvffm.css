@@ -432,25 +432,32 @@
     padding-bottom: 4px;
 }
 .mv-source-btn {
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.12);
     color: #cbd5e1;
-    padding: 4px 10px;
-    border-radius: 8px;
-    font-size: 0.75rem;
+    padding: 5px 12px;
+    border-radius: 9px;
+    font-size: 0.76rem;
     font-weight: 600;
     cursor: pointer;
     white-space: nowrap;
-    transition: all 0.15s;
+    transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
 }
 .mv-source-btn:hover {
-    background: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.12);
     color: #ffffff;
+    border-color: rgba(255, 255, 255, 0.25);
+    transform: translateY(-1px);
 }
 .mv-source-btn.active {
-    background: #e11d48;
-    border-color: #f43f5e;
+    background: linear-gradient(135deg, #e11d48, #be123c);
+    border-color: #fb7185;
     color: #ffffff;
+    box-shadow: 0 0 12px rgba(225, 29, 72, 0.45);
 }
 
 /* Episodes Grid */
@@ -472,17 +479,20 @@
     background: rgba(255, 255, 255, 0.06);
     border: 1px solid rgba(255, 255, 255, 0.1);
     color: #cbd5e1;
-    padding: 6px 4px;
+    padding: 7px 8px;
     border-radius: 8px;
-    font-size: 0.75rem;
+    font-size: 0.76rem;
     font-weight: 600;
     cursor: pointer;
     text-align: center;
-    transition: all 0.15s;
+    transition: all 0.15s ease;
     user-select: none;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 .mv-ep-chip:hover {
     background: rgba(255, 255, 255, 0.15);

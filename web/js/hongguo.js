@@ -229,12 +229,12 @@
                 <div style="grid-column: 1/-1; background: linear-gradient(135deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.95)); border: 1px solid rgba(251, 191, 36, 0.35); border-radius: 14px; padding: 14px 20px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 14px; margin-bottom: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.4);">
                     <div style="display:flex; align-items:center; gap:12px;">
                         <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-weight:700; font-size:0.9rem; color:#f8fafc; user-select:none;">
-                            <input type="checkbox" id="starredSelectAllCb" checked onchange="toggleSelectAllStarred(this.checked)" style="width:18px; height:18px; accent-color:#f59e0b; cursor:pointer;">
+                            <input type="checkbox" id="hgStarredSelectAllCb" checked onchange="toggleSelectAllHongguoStarred(this.checked)" style="width:18px; height:18px; accent-color:#f59e0b; cursor:pointer;">
                             <span>${checkAllLabel} (<b id="selectedStarredCount" style="color:#fbbf24;">${starredList.length}</b>/${starredList.length})</span>
                         </label>
                     </div>
                     <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-                        <button class="btn btn-secondary" onclick="clearAllStarredDramas()" style="padding:7px 14px; font-size:0.82rem; color:#f87171; border-color:rgba(239,68,68,0.35);">
+                        <button class="btn btn-secondary" onclick="clearAllHongguoStarredDramas()" style="padding:7px 14px; font-size:0.82rem; color:#f87171; border-color:rgba(239,68,68,0.35);">
                             ${clearLabel}
                         </button>
                         <button class="btn btn-primary" onclick="downloadAllSelectedStarredSequential()" style="padding:9px 20px; font-size:0.88rem; font-weight:800; background:linear-gradient(135deg, #f59e0b 0%, #ea580c 50%, #e11d48 100%); border:none; box-shadow:0 4px 18px rgba(245,158,11,0.45); cursor:pointer;">
@@ -290,7 +290,7 @@
             applyDramaTitlesTranslation();
         }
 
-        function toggleSelectAllStarred(isChecked) {
+        function toggleSelectAllHongguoStarred(isChecked) {
             document.querySelectorAll('.starred-drama-checkbox').forEach(cb => {
                 cb.checked = isChecked;
             });
@@ -301,14 +301,14 @@
             const checked = document.querySelectorAll('.starred-drama-checkbox:checked').length;
             const badge = document.getElementById('selectedStarredCount');
             if (badge) badge.innerText = checked;
-            const masterCb = document.getElementById('starredSelectAllCb');
+            const masterCb = document.getElementById('hgStarredSelectAllCb');
             const total = document.querySelectorAll('.starred-drama-checkbox').length;
             if (masterCb && total > 0) {
                 masterCb.checked = (checked === total);
             }
         }
 
-        function clearAllStarredDramas() {
+        function clearAllHongguoStarredDramas() {
             if (!confirm('តើអ្នកពិតជាចង់លុបរឿងចេញពីបញ្ជីផ្កាយទាំងអស់មែនទេ?')) return;
             saveStarredDramas([]);
             renderStarredDramasView();
@@ -3037,9 +3037,9 @@
         window.toggleEpisodeCheck = toggleEpisodeCheck;
         window.playEpisode = playEpisode;
         window.selectEpisodeFromDrawer = selectEpisodeFromDrawer;
-        if (typeof clearAllStarredDramas === 'function') window.clearAllStarredDramas = clearAllStarredDramas;
+        if (typeof clearAllHongguoStarredDramas === 'function') window.clearAllHongguoStarredDramas = clearAllHongguoStarredDramas;
         if (typeof downloadAllSelectedStarredSequential === 'function') window.downloadAllSelectedStarredSequential = downloadAllSelectedStarredSequential;
-        if (typeof toggleSelectAllStarred === 'function') window.toggleSelectAllStarred = toggleSelectAllStarred;
+        if (typeof toggleSelectAllHongguoStarred === 'function') window.toggleSelectAllHongguoStarred = toggleSelectAllHongguoStarred;
         if (typeof downloadSingleStarredSeries === 'function') window.downloadSingleStarredSeries = downloadSingleStarredSeries;
         if (typeof updateSelectedStarredCount === 'function') window.updateSelectedStarredCount = updateSelectedStarredCount;
 
