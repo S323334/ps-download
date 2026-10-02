@@ -1201,7 +1201,9 @@ async function recordDeviceTracking({ deviceId, telegramUser = '', computerName 
 
   const authMap = typeof getAuthorizedDevicesMap === 'function' ? getAuthorizedDevicesMap() : {};
   const auth = authMap[cleanId] || null;
-  const resolvedCustomerName = (auth && auth.customName) || cleanName || (auth && auth.telegramUser) || cleanTg || '';
+  const localLic = (typeof getLicenseStatus === 'function') ? getLicenseStatus() : null;
+
+  const resolvedCustomerName = (auth && auth.customName) || cleanName || (auth && auth.telegramUser) || cleanTg || (localLic && localLic.custom_name) || '';
   const resolvedTg = (auth && auth.telegramUser) || cleanTg || '';
 
   const nowMs = Date.now();
@@ -1232,12 +1234,35 @@ async function recordDeviceTracking({ deviceId, telegramUser = '', computerName 
       hasActiveLicense = true;
       licenseStatusHtml = `🟢 ភ្ញៀវ VIP (${auth.label || 'Active'})`;
     }
+  } else if (localLic && localLic.activated && !localLic.expired) {
+    // Fallback to local active license for client app
+    hasActiveLicense = true;
+    if (localLic.is_lifetime) {
+      licenseStatusHtml = '👑 VIP ពេញមួយជីវិត (Lifetime VIP)';
+    } else if (localLic.expires_at) {
+      const expMs = new Date(localLic.expires_at).getTime();
+      const diffMs = expMs - nowMs;
+      if (diffMs > 0) {
+        const d = Math.floor(diffMs / 86400000);
+        const h = Math.floor((diffMs % 86400000) / 3600000);
+        const m = Math.floor((diffMs % 3600000) / 60000);
+        if (d > 0) {
+          licenseStatusHtml = `🟢 ភ្ញៀវ VIP (នៅសល់ ${d} ថ្ងៃ ${h} ម៉ោង)`;
+        } else if (h > 0) {
+          licenseStatusHtml = `🟢 ភ្ញៀវ VIP (នៅសល់ ${h} ម៉ោង ${m} នាទី)`;
+        } else {
+          licenseStatusHtml = `🟢 ភ្ញៀវ VIP (នៅសល់ ${m} នាទី)`;
+        }
+      }
+    } else {
+      licenseStatusHtml = `🟢 ភ្ញៀវ VIP (${localLic.label || 'Active'})`;
+    }
   }
 
-  // Throttle alerts: Send alert on new device or when app is newly opened (at most once every 30 minutes)
+  // Throttle alerts: Send alert immediately on app launch (10 seconds debounce to prevent double-fire)
   const existingDev = existingIdx >= 0 ? list[existingIdx] : null;
   const lastAlertMs = existingDev && existingDev.lastAlertAt ? new Date(existingDev.lastAlertAt).getTime() : 0;
-  const shouldSendAlert = isNewDevice || (nowMs - lastAlertMs > 1800000) || (cleanTg && !existingDev?.telegramUser);
+  const shouldSendAlert = isNewDevice || (nowMs - lastAlertMs > 10000);
 
   // Security & Spam Prevention Guard:
   // 1. NEVER send alert if skipAlert is true (e.g. cloud sync or background tracker)
@@ -1274,7 +1299,9 @@ async function recordDeviceTracking({ deviceId, telegramUser = '', computerName 
         `🛡️ <b>Status:</b> <b>🔴 ម៉ាស៊ីនថ្មី (មិនទាន់មាន License)</b>`;
     }
 
-    sendTelegramAlert(tgMsg).catch(() => {});
+    sendTelegramAlert(tgMsg)
+      .then(res => console.log('[Tracker Alert] Sent:', res?.success))
+      .catch(err => console.error('[Tracker Alert] Failed:', err.message));
   }
 
   const currentCustomName = (authMap[cleanId] && authMap[cleanId].customName) || cleanName || '';
@@ -1941,7 +1968,7 @@ async function checkAutoActivation(deviceId = null) {
   if (cfg.cloudSyncUrl) {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 4000);
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
       let syncUrl = cfg.cloudSyncUrl.trim();
       if (!syncUrl.includes('/api/license/check') && !syncUrl.includes('.json')) {
         syncUrl = syncUrl.replace(/\/+$/, '') + '/api/license/check';

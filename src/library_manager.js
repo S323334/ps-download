@@ -333,10 +333,22 @@ class LibraryManager {
                 if (f.includes('Full') || f.includes('វីដេអូពេញ')) {
                   hasFullVideo = true;
                   fullVideoName = f;
+                  const matchRange = f.match(/ភាគ0*(\d+)-0*(\d+)/i);
                   const matchFull = f.match(/Full_(\d+)ភាគ/i);
-                  if (matchFull) {
+                  if (matchRange) {
+                    const startEp = parseInt(matchRange[1], 10);
+                    const endEp = parseInt(matchRange[2], 10);
+                    const rangeCount = Math.max(0, endEp - startEp + 1);
+                    if (rangeCount > 0) episodeCount += rangeCount;
+                    for (let epN = startEp; epN <= endEp; epN++) {
+                      downloadedEpNums.add(epN);
+                    }
+                  } else if (matchFull) {
                     const fullCount = parseInt(matchFull[1], 10);
                     if (fullCount > episodeCount) episodeCount = fullCount;
+                    for (let epN = 1; epN <= fullCount; epN++) {
+                      downloadedEpNums.add(epN);
+                    }
                   } else if (episodeCount === 0) {
                     episodeCount = 1;
                   }
@@ -388,11 +400,12 @@ class LibraryManager {
       for (const n of downloadedEpNums) {
         if (n > maxFoundEp) maxFoundEp = n;
       }
-      const totalEps = (seriesMeta && (seriesMeta.episode_cnt || seriesMeta.total_episodes)) || (maxFoundEp > episodeCount ? maxFoundEp : episodeCount);
+      const rawTotalEps = (seriesMeta && (seriesMeta.episode_cnt || seriesMeta.total_episodes)) || (maxFoundEp > episodeCount ? maxFoundEp : episodeCount);
+      const totalEps = (typeof rawTotalEps === 'number' && rawTotalEps > 0 && rawTotalEps <= 5000) ? rawTotalEps : Math.min(episodeCount, 5000);
 
       // Calculate missing episodes
       let missingEps = [];
-      if (!hasFullVideo && totalEps > 0) {
+      if (!hasFullVideo && totalEps > 0 && totalEps <= 5000) {
         for (let ep = 1; ep <= totalEps; ep++) {
           if (!downloadedEpNums.has(ep)) {
             missingEps.push(ep);

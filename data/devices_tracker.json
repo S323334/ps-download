@@ -2,14 +2,14 @@
   {
     "deviceId": "HG-0D72-B707-5223",
     "telegramUser": "",
-    "customName": "ភ្ញៀវ Telegram (HG-0D72)",
+    "customName": "NR-សម្រាយរឿង69",
     "computerName": "Authorized PC",
     "osUser": "TH33",
     "firstSeen": "2026-10-02T15:14:58.256Z",
-    "lastSeen": "2026-10-02T15:53:04.426Z",
-    "openCount": 69,
+    "lastSeen": "2026-10-02T15:58:13.832Z",
+    "openCount": 79,
     "status": "active",
-    "key": "D007-3B71-9BC2-A82B"
+    "key": "D006-2FE6-035A-56DA"
   },
   {
     "deviceId": "HG-D801-31FE-A516",
@@ -18,8 +18,8 @@
     "computerName": "Authorized PC",
     "osUser": "TH33",
     "firstSeen": "2026-10-02T14:24:30.821Z",
-    "lastSeen": "2026-10-02T15:53:04.409Z",
-    "openCount": 69,
+    "lastSeen": "2026-10-02T15:58:13.820Z",
+    "openCount": 80,
     "status": "active",
     "key": "D007-7BDE-34DE-41B5"
   },
@@ -29,9 +29,9 @@
     "computerName": "DESKTOP-BBA0MFG",
     "osUser": "TH33",
     "firstSeen": "2026-09-29T09:27:38.382Z",
-    "lastSeen": "2026-10-02T15:53:04.395Z",
-    "openCount": 491,
-    "status": "active",
+    "lastSeen": "2026-10-02T16:03:03.906Z",
+    "openCount": 530,
+    "status": "អាជ្ញាប័ណ្ណ 30 ថ្ងៃ",
     "failedAttempts": 0,
     "crackSuspect": false,
     "lastFailedKey": "D007-7E4C-4141-29A5",
@@ -47,8 +47,8 @@
     },
     "lastPaymentPlan": "១ សប្តាហ៍ (.50)",
     "lastPaymentAmount": "1.50",
-    "customName": "ADMIN01",
-    "key": "D001-6133-36BB-C599",
-    "lastAlertAt": "2026-10-02T15:40:28.777Z"
+    "customName": "ADMIN",
+    "key": "D030-B936-51A1-C1C5",
+    "lastAlertAt": null
   }
 ]
