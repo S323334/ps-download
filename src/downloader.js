@@ -169,8 +169,22 @@ class DownloadManager extends EventEmitter {
     const seriesList = [];
     let totalDoneSum = 0;
     let totalEpsSum = 0;
+    let totalInFlightFraction = 0;
 
     for (const [sid, s] of this.queueSeries.entries()) {
+      let activeFraction = 0;
+      if (s.status === 'downloading' && s.total > 0) {
+        for (const task of this.tasks.values()) {
+          if (task.series_id === sid && task.status === 'downloading') {
+            activeFraction += ((task.progress || 0) / 100);
+          }
+        }
+      }
+      const rawProg = s.total > 0
+        ? Math.min(99.9, Math.round(((s.done || 0) + activeFraction) / s.total * 1000) / 10)
+        : (s.progress || 0);
+      const sProg = (s.status === 'done' || (s.total > 0 && s.done >= s.total)) ? 100 : rawProg;
+
       seriesList.push({
         sid,
         title: s.title,
@@ -178,17 +192,18 @@ class DownloadManager extends EventEmitter {
         done: s.done || 0,
         total: s.total || 0,
         status: s.status,
-        progress: s.progress || 0,
+        progress: sProg,
         download_mode: s.downloadMode || 'separate'
       });
       if (s.total > 0) {
         totalDoneSum += (s.done || 0);
         totalEpsSum += s.total;
+        totalInFlightFraction += activeFraction;
       }
     }
 
     const overallProg = totalEpsSum > 0
-      ? Math.round((totalDoneSum / totalEpsSum) * 1000) / 10
+      ? Math.min(99.9, Math.round(((totalDoneSum + totalInFlightFraction) / totalEpsSum) * 1000) / 10)
       : (this.totalEps > 0 ? Math.round((this.totalDone / this.totalEps) * 1000) / 10 : 0);
 
     const completed = !this.queueRunning && totalEpsSum > 0 && totalDoneSum >= totalEpsSum;
@@ -207,15 +222,19 @@ class DownloadManager extends EventEmitter {
       }
     }
 
+    const activeSeriesItem = activeSeries ? seriesList.find(s => s.sid === activeSeries.sid) : null;
+    const currentSeriesProg = activeSeriesItem ? activeSeriesItem.progress : overallProg;
+
     const seriesStates = {};
     for (const [sId, s] of this.queueSeries.entries()) {
+      const sItem = seriesList.find(item => item.sid === sId);
       seriesStates[sId] = {
         sid: sId,
         title: s.title,
         status: s.status,
         done: s.done || 0,
         total: s.total || 0,
-        progress: s.progress || 0,
+        progress: sItem ? sItem.progress : (s.progress || 0),
         downloadMode: s.downloadMode || 'separate',
         logs: s.logs || []
       };
@@ -233,7 +252,7 @@ class DownloadManager extends EventEmitter {
       current_status: displayStatus,
       current_series_done: activeSeries ? (activeSeries.done || 0) : totalDoneSum,
       current_series_total: activeSeries ? (activeSeries.total || 0) : totalEpsSum,
-      current_series_progress: activeSeries ? (activeSeries.progress || 0) : overallProg,
+      current_series_progress: currentSeriesProg,
       current_series_logs: activeSeries && activeSeries.logs && activeSeries.logs.length > 0 ? activeSeries.logs : [...this.queueLogs],
       series_states: seriesStates,
       speed: speedStr,
@@ -418,8 +437,9 @@ class DownloadManager extends EventEmitter {
   _dispatchSeriesQueue(quality = '1080p') {
     if (this.queueCanceled) return;
 
-    // Support up to 6 dramas downloading at the exact same time in parallel
-    const MAX_PARALLEL_SERIES = 6;
+    // Sequential Drama Queue: 1 active drama at maximum turbo speed (5 workers), remaining series queued
+    // As soon as drama 1 finishes, drama 2 starts automatically without competing for network bandwidth
+    const MAX_PARALLEL_SERIES = 1;
     const activeList = Array.from(this.queueSeries.values()).filter(s => s.status === 'downloading' || s.status === 'merging');
     const queuedList = Array.from(this.queueSeries.values()).filter(s => s.status === 'queued');
 
@@ -485,8 +505,10 @@ class DownloadManager extends EventEmitter {
       fs.mkdirSync(dramaDir, { recursive: true });
     }
 
-    // Save poster & metadata
-    this._saveDramaMetadata(dramaDir, detail);
+    // Save poster & metadata in background without blocking episode downloads
+    this._saveDramaMetadata(dramaDir, detail).catch(e => {
+      console.warn('[Downloader] Background metadata save error:', e.message);
+    });
 
     // Determine target episodes
     const targetIndices = parseEpisodeRange(currentEntry.range, detail.episodes.length);
@@ -509,9 +531,8 @@ class DownloadManager extends EventEmitter {
     currentEntry.progress = targetEpisodes.length > 0 ? Math.round((seriesDoneCount / targetEpisodes.length) * 1000) / 10 : 0;
     this._log(`Selected ${targetEpisodes.length} episode(s) for "${detail.title}" (${seriesDoneCount} already completed)`, sid);
 
-    // Worker pool for this series: 2 workers per series when multiple series active, up to 3 when single
-    const activeSeriesCount = Array.from(this.queueSeries.values()).filter(s => s.status === 'downloading').length;
-    const numWorkers = Math.min(activeSeriesCount > 2 ? 2 : 3, targetEpisodes.length);
+    // High-speed parallel worker pool: up to 5 concurrent episode workers
+    const numWorkers = Math.min(5, targetEpisodes.length);
 
     let epIndex = 0;
     const worker = async () => {
@@ -533,6 +554,8 @@ class DownloadManager extends EventEmitter {
           downloaded_bytes: 0
         });
 
+        this._log(`[EP ${ep.index}] កំពុងទាញយក...`, sid);
+
         const ok = await this._downloadSingleEpisode(ep, detail.title, sid, dramaDir, seriesQuality, taskId);
         const task = this.tasks.get(taskId);
         if (task) {
@@ -544,6 +567,7 @@ class DownloadManager extends EventEmitter {
           currentEntry.done = seriesDoneCount;
           currentEntry.progress = Math.round((seriesDoneCount / targetEpisodes.length) * 1000) / 10;
           this.totalDone++;
+          this._log(`[EP ${ep.index}] ✓ ទាញយកជោគជ័យ (${seriesDoneCount}/${targetEpisodes.length})`, sid);
           libraryManager.updateProgress(sid, seriesDoneCount, targetEpisodes.length, currentEntry.progress, this.totalDownloadedBytes);
         }
       }
@@ -586,13 +610,13 @@ class DownloadManager extends EventEmitter {
 
     // Merging and completion
     if (seriesDoneCount === targetEpisodes.length) {
-      if (currentEntry.downloadMode === 'merged' || currentEntry.downloadMode === 'both') {
+      if (currentEntry.downloadMode !== 'separate') {
         currentEntry.status = 'merging';
-        this._log(`Starting video merge for "${detail.title}" (Mode: ${currentEntry.downloadMode})...`, sid);
+        this._log(`Starting video merge for "${detail.title}" (Mode: Merged)...`, sid);
         await mergeDramaEpisodes({
           dramaDir,
           seriesTitle: detail.title,
-          mode: currentEntry.downloadMode,
+          mode: 'merged',
           episodes: targetEpisodes,
           onLog: (msg) => this._log(msg, sid)
         });
@@ -601,12 +625,12 @@ class DownloadManager extends EventEmitter {
       libraryManager.markCompleted(sid);
       this._log(`Finished downloading all ${seriesDoneCount} episodes of "${detail.title}"!`, sid);
     } else if (seriesDoneCount > 0) {
-      if (currentEntry.downloadMode === 'merged' || currentEntry.downloadMode === 'both') {
+      if (currentEntry.downloadMode !== 'separate') {
         currentEntry.status = 'merging';
         await mergeDramaEpisodes({
           dramaDir,
           seriesTitle: detail.title,
-          mode: currentEntry.downloadMode,
+          mode: 'merged',
           episodes: targetEpisodes,
           onLog: (msg) => this._log(msg, sid)
         });
@@ -713,23 +737,43 @@ class DownloadManager extends EventEmitter {
       return false;
     }
 
-    // Stream download CDN link into .part using native fetch with retry
+    // Stream download CDN link into .part using native fetch with retry & stall watchdog
     let success = false;
     for (let attempt = 1; attempt <= 3 && !cancelToken.canceled && !success; attempt++) {
+      let stallInterval = null;
+      let abortController = new AbortController();
       try {
         const fetchHeaders = track.headers || {
           'User-Agent': 'com.phoenix.read/71332',
           'Referer': 'https://novel.snssdk.com/'
         };
 
-        const res = await fetch(track.main_url, { headers: fetchHeaders });
+        const connectTimeout = setTimeout(() => {
+          abortController.abort(new Error('Connection timeout (18s)'));
+        }, 18000);
+
+        const res = await fetch(track.main_url, {
+          headers: fetchHeaders,
+          signal: abortController.signal
+        });
+        clearTimeout(connectTimeout);
+
         if (res.ok && res.body) {
           const totalBytes = parseInt(res.headers.get('content-length') || track.size || 0, 10);
           const out = fs.createWriteStream(partFile, { highWaterMark: 1024 * 1024 });
           let receivedBytes = 0;
+          let lastDataTime = Date.now();
+
+          // Stall watchdog: If no data received for 20 seconds, abort & retry automatically
+          stallInterval = setInterval(() => {
+            if (Date.now() - lastDataTime > 20000) {
+              abortController.abort(new Error('Stream stalled (no bytes received for 20s)'));
+            }
+          }, 3000);
 
           const reader = Readable.fromWeb(res.body);
           reader.on('data', (chunk) => {
+            lastDataTime = Date.now();
             if (cancelToken.canceled) {
               reader.destroy();
               out.destroy();
@@ -748,15 +792,19 @@ class DownloadManager extends EventEmitter {
           });
 
           await pipeline(reader, out);
+          if (stallInterval) clearInterval(stallInterval);
           success = !cancelToken.canceled && fs.existsSync(partFile) && fs.statSync(partFile).size > 10240;
         }
       } catch (e) {
+        if (stallInterval) clearInterval(stallInterval);
         if (attempt < 3 && !cancelToken.canceled) {
           this._log(`Download stream attempt ${attempt} for EP ${ep.index} error: ${e.message}, retrying in 1s...`);
           await new Promise(r => setTimeout(r, 1000));
         } else {
           this._log(`Download stream error for EP ${ep.index}: ${e.message}`);
         }
+      } finally {
+        if (stallInterval) clearInterval(stallInterval);
       }
     }
 

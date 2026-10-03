@@ -61,6 +61,7 @@
                 _lastHaoSouItems = _allHaoSouItems.slice(0, _haosouRenderLimit);
                 renderHaoSouCards(_lastHaoSouItems);
                 _hsRecsLoaded = true;
+                window._hsRecsLoaded = true;
             } catch (err) {
                 const safeErr = (typeof escapeHtml === 'function') ? escapeHtml(err.message) : err.message;
                 if (grid) grid.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:30px; color:#ef4444;">⚠️ បរាជ័យក្នុងការទាញយក: ${safeErr}</div>`;
@@ -153,6 +154,14 @@
                 showToast(currentLang === 'zh' ? '请输入短剧片名或链接！' : (currentLang === 'km' ? 'សូមវាយបញ្ចូលឈ្មោះរឿង ឬលីង!' : 'Please enter drama title or link!'), '⚠️');
                 if (input) input.focus();
                 return;
+            }
+
+            if (/^https?:\/\//i.test(query)) {
+                const lower = query.toLowerCase();
+                if (lower.includes('youtube.com') || lower.includes('youtu.be') || lower.includes('tiktok.com') || lower.includes('douyin.com') || lower.includes('kuaishou.com')) {
+                    showToast('⚠️ លីងនេះមិនមែនជាលីង HAOSOU ឡើយ! សូមបិទភ្ជាប់លីង ឬវាយឈ្មោះរឿងក្នុង HAOSOU', 'warning');
+                    return;
+                }
             }
 
             if (typeof isMvffmUrl === 'function' && isMvffmUrl(query)) {
@@ -428,7 +437,9 @@
 
             const epCount = currentHsDrama.episodes.length;
 
-            const doSubmit = async (selectedMode = 'separate') => {
+            const doSubmit = async (selectedMode) => {
+                const activeMode = (typeof window.getActiveDownloadMode === 'function') ? window.getActiveDownloadMode() : 'merged';
+                const finalMode = selectedMode || activeMode || 'merged';
                 const btn = document.getElementById('btnHsDownload');
                 if (btn) btn.disabled = true;
 
@@ -442,7 +453,7 @@
                             book_id: currentHsDrama.id,
                             title: currentHsDrama.title,
                             episodes: currentHsDrama.episodes,
-                            download_mode: selectedMode
+                            download_mode: finalMode
                         })
                     });
 
@@ -459,6 +470,7 @@
             };
 
             const proceedWithMode = () => {
+                const activeMode = (typeof window.getActiveDownloadMode === 'function') ? window.getActiveDownloadMode() : 'merged';
                 if (typeof window.promptDownloadMode === 'function') {
                     window.promptDownloadMode({
                         title: currentHsDrama.title,
@@ -466,7 +478,7 @@
                         onConfirm: doSubmit
                     });
                 } else {
-                    doSubmit('separate');
+                    doSubmit(activeMode);
                 }
             };
 
@@ -602,10 +614,8 @@
                         inputEl.value = text.trim();
                         inputEl.focus();
                     }
-                    showToast('បានបិទភ្ជាប់!', '📋');
-                    if (typeof isMvffmUrl === 'function' && isMvffmUrl(text.trim())) {
-                        submitHsSearch();
-                    }
+                    showToast('បានបិទភ្ជាប់ (Paste) ដោយជោគជ័យ!', '📋');
+                    // Silent paste: user must press Enter or click Search
                 }
             } catch (e) {}
         }

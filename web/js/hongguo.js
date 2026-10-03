@@ -317,6 +317,7 @@
 
         async function downloadSingleStarredSeries(sid, title, cover) {
             try {
+                const activeMode = (typeof window.getActiveDownloadMode === 'function') ? window.getActiveDownloadMode() : 'merged';
                 showToast(`កំពុងដាក់ "${title}" ទៅក្នុងជួរទាញយក...`, '📥');
                 const res = await fetch('/dl/submit', {
                     method: 'POST',
@@ -325,13 +326,15 @@
                         series_id: sid,
                         title: title || 'Drama',
                         cover_url: cover || '',
-                        range: 'all'
+                        range: 'all',
+                        download_mode: activeMode
                     })
                 });
                 const data = await res.json();
                 showToast(`✓ បានដាក់ "${title}" ទៅក្នុងជួរទាញយក!`, '📥');
-                toggleDownloadsDrawer(true);
-                pollDownloadStatus();
+                toggleDownloadsDrawer(true, 'active');
+                if (typeof pollDownloadStatus === 'function') pollDownloadStatus();
+                if (typeof startDownloadPolling === 'function') startDownloadPolling();
             } catch (err) {
                 showToast(`បញ្ហាទាញយក: ${err.message}`, '❌');
             }
@@ -344,18 +347,20 @@
                 return;
             }
 
+            const activeMode = (typeof window.getActiveDownloadMode === 'function') ? window.getActiveDownloadMode() : 'merged';
             const sids = checkedCbs.map(cb => cb.value);
             try {
                 showToast(`កំពុងដាក់ ${sids.length} រឿងទៅក្នុងជួរទាញយកតាមលំដាប់...`, '📥');
                 const res = await fetch('/dl/submit', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ series_ids: sids })
+                    body: JSON.stringify({ series_ids: sids, download_mode: activeMode })
                 });
                 const data = await res.json();
                 showToast(`✓ បានដាក់ ${sids.length} រឿងទៅក្នុងជួរ! ពេលចប់មួយរឿង នឹងលោតចូលមួយរឿងបន្ទាប់ដោយស្វ័យប្រវត្តិ។`, '🚀');
-                toggleDownloadsDrawer(true);
-                pollDownloadStatus();
+                toggleDownloadsDrawer(true, 'active');
+                if (typeof pollDownloadStatus === 'function') pollDownloadStatus();
+                if (typeof startDownloadPolling === 'function') startDownloadPolling();
             } catch (err) {
                 showToast(`បញ្ហាទាញយក: ${err.message}`, '❌');
             }
@@ -506,39 +511,8 @@
         }
 
         function handleSearchInputPaste(event) {
-            let pastedText = (event && event.clipboardData) ? event.clipboardData.getData('text') : '';
-            setTimeout(async () => {
-                const inputEl = document.getElementById('searchInput');
-                let rawVal = pastedText || (inputEl ? inputEl.value : '');
-                if (!rawVal && window.electronAPI && typeof window.electronAPI.readClipboard === 'function') {
-                    try { rawVal = await window.electronAPI.readClipboard(); } catch (e) {}
-                }
-                const cleanYt = typeof extractCleanYouTubeUrl === 'function' ? extractCleanYouTubeUrl(rawVal) : rawVal;
-                if (cleanYt && typeof isYouTubeUrl === 'function' && isYouTubeUrl(cleanYt)) {
-                    if (inputEl) inputEl.value = '';
-                    switchPlatform('youtube');
-                    const ytInp = document.getElementById('ytUrlInput');
-                    if (ytInp) {
-                        ytInp.value = cleanYt;
-                        ytInp.focus();
-                    }
-                    const dict = I18N_DICT[currentLang] || I18N_DICT['zh'];
-                    showToast(dict.ytToastPasted || 'Pasted!', '📋');
-                    return;
-                }
-                if (typeof isMvffmUrl === 'function' && isMvffmUrl(rawVal)) {
-                    if (inputEl) inputEl.value = '';
-                    switchPlatform('mvffm');
-                    const mvInp = document.getElementById('mvDramaInput');
-                    if (mvInp) {
-                        mvInp.value = rawVal.trim();
-                        mvInp.focus();
-                    }
-                    if (typeof analyzeMvffmDrama === 'function') analyzeMvffmDrama(rawVal.trim());
-                    showToast('MVFFM Link Recognized! 🎬', '📋');
-                    return;
-                }
-            }, 30);
+            // Stay silent: do not jump to other platforms or auto-analyze.
+            // User must explicitly click Fetch / Search or press Enter.
         }
 
         function onSearchInputChanged(val) {
@@ -1832,8 +1806,9 @@
           });
           const data = await res.json();
           showToast(`✓ បានដាក់ភាគ [${rangeStr}] ទៅក្នុងជួរទាញយក (${sorted.length} ភាគ)!`, '📥');
-          toggleDownloadsDrawer(true);
-          pollDownloadStatus();
+          toggleDownloadsDrawer(true, 'active');
+          if (typeof pollDownloadStatus === 'function') pollDownloadStatus();
+          if (typeof startDownloadPolling === 'function') startDownloadPolling();
         } catch (err) {
           showToast(`បញ្ហាទាញយក: ${err.message}`, '❌');
         }
@@ -2862,11 +2837,13 @@
             const cover = currentDetailSeries.cover;
             const epCnt = currentDetailSeries.episode_cnt || (currentDetailSeries.episodes ? currentDetailSeries.episodes.length : 0);
 
-            const doSubmit = async (selectedMode = 'separate') => {
+            const doSubmit = async (selectedMode) => {
+                const activeMode = (typeof window.getActiveDownloadMode === 'function') ? window.getActiveDownloadMode() : 'merged';
+                const finalMode = selectedMode || activeMode || 'merged';
                 const payload = {
                     series_ids: [sid],
                     ranges: { [sid]: rangeVal },
-                    download_mode: selectedMode,
+                    download_mode: finalMode,
                     series_info: {
                         [sid]: {
                             title: title,
@@ -2895,7 +2872,9 @@
                     setTimeout(syncDownloadedSeriesCache, 800);
                     showToast(`បានដាក់បញ្ចូលទៅក្នុងការទាញយក! (${rangeVal})`, '📥');
                     closeDetailModal();
-                    toggleDownloadsDrawer(true);
+                    toggleDownloadsDrawer(true, 'active');
+                    if (typeof pollDownloadStatus === 'function') pollDownloadStatus();
+                    if (typeof startDownloadPolling === 'function') startDownloadPolling();
                 } catch (err) {
                     showToast(`បរាជ័យក្នុងការដាក់ទាញយក: ${err.message}`, '❌');
                 }
@@ -2909,7 +2888,7 @@
                         onConfirm: doSubmit
                     });
                 } else {
-                    doSubmit('separate');
+                    doSubmit();
                 }
             };
 
@@ -2929,11 +2908,13 @@
             const drama = (window.allDramas || []).find(d => String(d.series_id) === String(seriesId));
             const epCount = (drama && drama.episode_cnt) ? drama.episode_cnt : 80;
 
-            const doSubmit = async (selectedMode = 'separate') => {
+            const doSubmit = async (selectedMode) => {
+                const activeMode = (typeof window.getActiveDownloadMode === 'function') ? window.getActiveDownloadMode() : 'merged';
+                const finalMode = selectedMode || activeMode || 'merged';
                 const payload = {
                     series_ids: [seriesId],
                     ranges: { [seriesId]: 'all' },
-                    download_mode: selectedMode,
+                    download_mode: finalMode,
                     series_info: {
                         [seriesId]: { title: title, cover: cover }
                     }
@@ -2956,13 +2937,16 @@
                     updateVisibleCardBadges();
                     setTimeout(syncDownloadedSeriesCache, 800);
                     showToast(`បានបន្ថែម "${title}" ទៅក្នុងបញ្ជីទាញយក!`, '📥');
-                    toggleDownloadsDrawer(true);
+                    toggleDownloadsDrawer(true, 'active');
+                    if (typeof pollDownloadStatus === 'function') pollDownloadStatus();
+                    if (typeof startDownloadPolling === 'function') startDownloadPolling();
                 } catch (err) {
                     showToast(`Error: ${err.message}`, '❌');
                 }
             };
 
             const proceedWithMode = () => {
+                const activeMode = (typeof window.getActiveDownloadMode === 'function') ? window.getActiveDownloadMode() : 'merged';
                 if (typeof window.promptDownloadMode === 'function') {
                     window.promptDownloadMode({
                         title: title || 'Drama',
@@ -2970,7 +2954,7 @@
                         onConfirm: doSubmit
                     });
                 } else {
-                    doSubmit('separate');
+                    doSubmit(activeMode);
                 }
             };
 
@@ -3003,7 +2987,9 @@
                 updateVisibleCardBadges();
                 setTimeout(syncDownloadedSeriesCache, 800);
                 showToast(`បានដាក់ទាញយក EP${epIndex}!`, '📥');
-                toggleDownloadsDrawer(true);
+                toggleDownloadsDrawer(true, 'active');
+                if (typeof pollDownloadStatus === 'function') pollDownloadStatus();
+                if (typeof startDownloadPolling === 'function') startDownloadPolling();
             } catch (err) {
                 showToast(`Error: ${err.message}`, '❌');
             }

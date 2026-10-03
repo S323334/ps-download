@@ -365,6 +365,19 @@ const PATTERNS_EN = [
 // Clean Google Translate oddities for Khmer
 function polishKhmerTranslation(text) {
   let cleaned = text
+    .replace(/\[Full Movie\]/gi, '[ពេញមួយរឿង]')
+    .replace(/\(Full Movie\)/gi, '[ពេញមួយរឿង]')
+    .replace(/\[Eng\s*Sub[^\]]*\]/gi, '[Eng Sub]')
+    .replace(/\(Eng\s*Sub[^\)]*\)/gi, '[Eng Sub]')
+    .replace(/Full Chinese Short Movie/gi, 'ភាពយន្តខ្លីចិនពេញមួយរឿង')
+    .replace(/Chinese Short Movie/gi, 'ភាពយន្តខ្លីចិន')
+    .replace(/Chinese Short Drama(s)?/gi, 'រឿងភាគខ្លីចិន')
+    .replace(/Chinese Drama(s)?/gi, 'រឿងភាគចិន')
+    .replace(/#Short Drama(s)?/gi, '#រឿងភាគខ្លី')
+    .replace(/Short Drama(s)?/gi, 'រឿងភាគខ្លី')
+    .replace(/Mini Drama/gi, 'រឿងភាគខ្លី')
+    .replace(/Full Movie/gi, 'ពេញមួយរឿង')
+    .replace(/ល្ខោនខ្នាតតូច/g, 'រឿងភាគខ្លី')
     .replace(/ផ្លែប៉ោមនៃភ្នែករបស់ខ្ញុំ/g, 'គ្រាប់ពេជ្រសំណព្វចិត្ត')
     .replace(/ផ្លែប៉ោមនៃភ្នែក/g, 'គ្រាប់ពេជ្រសំណព្វចិត្ត')
     .replace(/បៃតង និងគួរឲ្យស្រលាញ់/g, 'កូនស្រីតូចគួរឱ្យស្រលាញ់')
@@ -506,7 +519,7 @@ async function translateDramaTitle(title, targetLang = 'km') {
     } else if (lang === 'km' && /[\u4e00-\u9fa5]/.test(cached)) {
       _CACHE.delete(cacheKey);
     } else {
-      return cached;
+      return (lang === 'km') ? polishKhmerTranslation(cached) : ((lang === 'en') ? polishEnglishTranslation(cached) : cached);
     }
   }
 
@@ -564,15 +577,19 @@ async function translateDramaTitle(title, targetLang = 'km') {
 async function translateBatchTitles(titles, targetLang = 'km') {
   const lang = (targetLang === 'zh' || targetLang === 'zh-CN') ? 'zh' : ((targetLang === 'en') ? 'en' : 'km');
   const result = {};
-  const tasks = (titles || []).map(async (t) => {
-    if (!t) return;
-    try {
-      result[t] = await translateDramaTitle(t, lang);
-    } catch (e) {
-      result[t] = t;
-    }
-  });
-  await Promise.all(tasks);
+  const list = titles || [];
+  const chunkSize = 5;
+  for (let i = 0; i < list.length; i += chunkSize) {
+    const chunk = list.slice(i, i + chunkSize);
+    await Promise.all(chunk.map(async (t) => {
+      if (!t) return;
+      try {
+        result[t] = await translateDramaTitle(t, lang);
+      } catch (e) {
+        result[t] = t;
+      }
+    }));
+  }
   return result;
 }
 

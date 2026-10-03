@@ -15,8 +15,11 @@
     <link rel="stylesheet" href="/css/hongguo.css">
     <link rel="stylesheet" href="/css/haosou.css">
     <link rel="stylesheet" href="/css/mvffm.css">
+    <link rel="stylesheet" href="/css/dailymotion.css">
     <link rel="stylesheet" href="/css/youtube.css">
+    <link rel="stylesheet" href="/css/tiktok.css">
     <link rel="stylesheet" href="/css/starred.css">
+    <script src="/hls.min.js"></script>
 </head>
 <body>
 
@@ -77,7 +80,16 @@
                         <span class="platform-sparkle mv-sparkle" style="background:rgba(225,29,72,0.2); color:#fda4af; border:1px solid rgba(225,29,72,0.4); border-radius:6px; font-size:0.62rem; padding:1px 4px; font-weight:800;">21K+</span>
                     </button>
 
-                    <!-- Tab 4: YouTube -->
+                    <!-- Tab 4: Dailymotion Short Dramas -->
+                    <button type="button" class="platform-tab-btn" id="tabPlatformDailymotion" onclick="switchPlatform('dailymotion')" role="tab" aria-selected="false" title="DAILYMOTION (dailymotion.com) - ចុច Logo ដើម្បីបើកវេបសាយផ្ទាល់">
+                        <div class="dm-badge-icon" onclick="onDailymotionLogoClick(event)" title="ចុច Logo ដើម្បីបើកវេបសាយផ្ទាល់ (dailymotion.com) ↗" style="width:24px; height:24px; display:flex; align-items:center; justify-content:center; cursor:pointer;">
+                            <img src="/dailymotion_icon.svg" alt="Dailymotion" style="width:20px; height:20px; object-fit:contain;">
+                        </div>
+                        <span class="platform-title dm-title" id="dmTabLabel">DAILYMOTION</span>
+                        <span class="platform-sparkle dm-sparkle" style="background:rgba(2,132,199,0.2); color:#7dd3fc; border:1px solid rgba(56,189,248,0.4); border-radius:6px; font-size:0.62rem; padding:1px 4px; font-weight:800;">30M+</span>
+                    </button>
+
+                    <!-- Tab 5: YouTube -->
                     <button type="button" class="platform-tab-btn" id="tabPlatformYoutube" onclick="switchPlatform('youtube')" role="tab" aria-selected="false" title="YouTube Downloader">
                         <div class="yt-badge-icon">
                             <svg viewBox="0 0 24 24" width="18" height="18">
@@ -87,6 +99,33 @@
                         </div>
                         <span class="platform-title yt-title">YOUTUBE</span>
                         <span class="platform-sparkle">4K</span>
+                    </button>
+
+                    <!-- Tab 6: TikTok Downloader (Global) -->
+                    <button type="button" class="platform-tab-btn" id="tabPlatformTiktok" onclick="switchPlatform('tiktok')" role="tab" aria-selected="false" title="TikTok Downloader">
+                        <div class="tt-badge-icon" style="width:22px; height:22px; display:flex; align-items:center; justify-content:center;">
+                            <img src="/tiktok_icon.svg" alt="TikTok" style="width:20px; height:20px; object-fit:contain; border-radius:5px;">
+                        </div>
+                        <span class="platform-title tt-title" id="ttTabLabel">TIKTOK</span>
+                        <span class="platform-sparkle" style="background:rgba(37,244,238,0.2); color:#25f4ee; border:1px solid rgba(37,244,238,0.4); border-radius:6px; font-size:0.62rem; padding:1px 4px; font-weight:800;">GLOBAL</span>
+                    </button>
+
+                    <!-- Tab 7: Douyin Downloader (TikTok ចិន) -->
+                    <button type="button" class="platform-tab-btn" id="tabPlatformDouyin" onclick="switchPlatform('douyin')" role="tab" aria-selected="false" title="TikTok ចិន (Douyin) Downloader">
+                        <div class="dy-badge-icon" style="width:22px; height:22px; display:flex; align-items:center; justify-content:center;">
+                            <img src="/douyin_icon.svg" alt="Douyin" style="width:20px; height:20px; object-fit:contain; border-radius:5px;">
+                        </div>
+                        <span class="platform-title dy-title" id="dyTabLabel">TIKTOK ចិន</span>
+                        <span class="platform-sparkle" style="background:rgba(254,44,85,0.2); color:#fe2c55; border:1px solid rgba(254,44,85,0.4); border-radius:6px; font-size:0.62rem; padding:1px 4px; font-weight:800;">DOUYIN</span>
+                    </button>
+
+                    <!-- Tab 8: Kuaishou Downloader (ខៅស៊ូ) -->
+                    <button type="button" class="platform-tab-btn" id="tabPlatformKuaishou" onclick="switchPlatform('kuaishou')" role="tab" aria-selected="false" title="ខៅស៊ូ (Kuaishou) Downloader">
+                        <div class="ks-badge-icon" style="width:22px; height:22px; display:flex; align-items:center; justify-content:center;">
+                            <img src="/kuaishou_icon.svg" alt="Kuaishou" style="width:20px; height:20px; object-fit:contain; border-radius:5px;">
+                        </div>
+                        <span class="platform-title ks-title" id="ksTabLabel">KUAISHOU</span>
+                        <span class="platform-sparkle" style="background:rgba(255,80,0,0.2); color:#ff7500; border:1px solid rgba(255,80,0,0.4); border-radius:6px; font-size:0.62rem; padding:1px 4px; font-weight:800;">ខៅស៊ូ</span>
                     </button>
                 </div>
             </div>
@@ -154,7 +193,7 @@
                     <span>ការកំណត់</span>
                     <span id="settingsUpdateDot" style="display:none;" class="header-update-dot"></span>
                 </button>
-                <span class="sidebar-version-tag">v3.2.2</span>
+                <span class="sidebar-version-tag">v3.2.3</span>
             </div>
         </div>
     </header>
@@ -410,7 +449,6 @@
                             <span style="font-size:0.78rem; color:#94a3b8; font-weight:600;">ទម្រង់:</span>
                             <button type="button" class="btn-dl-mode-chip active" id="hsChipModeMerged" onclick="setQuickDownloadMode('merged')" title="បញ្ចូលភាគទាំងអស់ជាវីដេអូពេញមួយខ្សែ (Merged)">🎞️ បញ្ចូលរឿង</button>
                             <button type="button" class="btn-dl-mode-chip" id="hsChipModeSeparate" onclick="setQuickDownloadMode('separate')" title="រក្សាទុកជាភាគរាយៗដាច់ដោយឡែក (Separate)">📁 រាយភាគ</button>
-                            <button type="button" class="btn-dl-mode-chip" id="hsChipModeBoth" onclick="setQuickDownloadMode('both')" title="យកទាំងពីរ (Both: Merged + Separate)">🎬 ទាំងពីរ</button>
                         </div>
                         <button type="button" class="hs-dl-btn" id="btnHsDownload" onclick="startHsBatchDownload()">
                             <span>⬇️</span>
@@ -569,7 +607,6 @@
                                     <span style="font-size:0.75rem; color:#94a3b8; font-weight:600;">ទម្រង់:</span>
                                     <button type="button" class="btn-dl-mode-chip active" id="mvChipModeMerged" onclick="setQuickDownloadMode('merged')" title="បញ្ចូលភាគទាំងអស់ជាវីដេអូពេញមួយខ្សែ (Merged)">🎞️ បញ្ចូលរឿង</button>
                                     <button type="button" class="btn-dl-mode-chip" id="mvChipModeSeparate" onclick="setQuickDownloadMode('separate')" title="រក្សាទុកជាភាគរាយៗដាច់ដោយឡែក (Separate)">📁 រាយភាគ</button>
-                                    <button type="button" class="btn-dl-mode-chip" id="mvChipModeBoth" onclick="setQuickDownloadMode('both')" title="យកទាំងពីរ (Both: Merged + Separate)">🎬 ទាំងពីរ</button>
                                 </div>
                             </div>
                             <div class="mv-dl-options">
@@ -631,6 +668,125 @@
                     </div>
                 </div>
                 <div id="mvTasksList"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dailymotion Chinese Short Drama View -->
+    <div id="dailymotionView" class="dailymotion-view-container" style="display:none;">
+        <div class="dm-content-wrapper">
+            <!-- Hero Banner -->
+            <div class="dm-hero-banner">
+                <div class="dm-hero-glow"></div>
+                <div class="dm-hero-content">
+                    <div class="dm-hero-header-row">
+                        <div class="dm-hero-left">
+                            <div class="dm-logo-clickable" onclick="openDailymotionWebsite()" title="ចុច Logo នេះដើម្បីចូលទៅដល់វេបសាយផ្ទាល់ (dailymotion.com)" style="background:rgba(255,255,255,0.06); border:1px solid rgba(56,189,248,0.3); padding:8px;">
+                                <img src="/dailymotion_icon.svg" alt="Dailymotion" style="width:30px; height:30px; object-fit:contain;">
+                            </div>
+                            <div>
+                                <h1 class="dm-hero-title">
+                                    <span class="dm-title-grad" id="dmHeroTitle">🎬 រឿងភាគល្បីៗ</span>
+                                </h1>
+                                <p class="dm-hero-subtitle" id="dmHeroSubtitle">
+                                    ទស្សនា និងទាញយករឿងភាគល្បីៗ និងខ្សែភាពយន្តពេញមួយរឿង រយៈពេលចាប់ពី 30 នាទីឡើងទៅ
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Search Input Box -->
+                    <div class="dm-search-box-card">
+                        <div class="dm-search-input-wrapper">
+                            <span style="font-size:18px;">🔍</span>
+                            <input type="text" id="dmDramaInput" class="dm-main-input" placeholder="ស្វែងរករឿង ឬបិទភ្ជាប់លីង Dailymotion..." onkeydown="onDmInputKeyDown(event)" autocomplete="off" spellcheck="false">
+                        </div>
+                        <div class="dm-search-buttons">
+                            <button type="button" class="dm-btn-paste" onclick="pasteDmFromClipboard()" title="Paste URL">
+                                <span>📋</span> <span id="dmPasteBtnText">ផាសលីង</span>
+                            </button>
+                            <button type="button" class="dm-btn-search" onclick="searchDailymotionDramas()">
+                                <span>🔍</span> <span id="dmSearchBtnText">ស្វែងរក</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Drama Detail & Player Card (Clean Single Full Movie Player) -->
+            <div id="dmDramaCard" class="dm-detail-card" style="display:none;">
+                <div class="dm-player-wrapper">
+                    <video id="dmVideoPlayer" class="dm-video-player" controls preload="metadata" playsinline></video>
+                </div>
+
+                <div class="dm-card-info-col">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px;">
+                        <div style="min-width:0; flex:1;">
+                            <h3 class="dm-detail-title" id="dmCardTitle" style="font-size:1.35rem; font-weight:700; color:#fff; margin-bottom:4px; word-break:break-word;">Drama Title</h3>
+                            <div id="dmCardSubOrig" class="dm-detail-sub-orig" style="font-size:0.85rem; color:#94a3b8; margin-bottom:8px; word-break:break-word; display:none;"></div>
+                            <div id="dmCardTags" style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px;">
+                                <span class="tag-pill" id="dmTagDuration" style="background:rgba(2,132,199,0.25); color:#7dd3fc; border:1px solid rgba(56,189,248,0.4); padding:2px 8px; border-radius:6px; font-size:0.75rem;">⏱️ ពេញមួយរឿង (30+ នាទី)</span>
+                                <span class="tag-pill" id="dmTagQuality" style="background:rgba(16,185,129,0.2); color:#6ee7b7; border:1px solid rgba(16,185,129,0.4); padding:2px 8px; border-radius:6px; font-size:0.75rem;">⭐ កម្រិតច្បាស់ HD 1080p</span>
+                                <span id="dmCardChannelTag" class="tag-pill" style="background:rgba(255,255,255,0.08); color:#e2e8f0; padding:2px 8px; border-radius:6px; font-size:0.75rem;">👤 ប៉ុស្តិ៍ Dailymotion</span>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-secondary" onclick="closeDmDramaCard()" title="បិទ (Close)" style="padding:6px 12px; border-radius:8px; font-size:0.82rem; flex-shrink:0;">✕</button>
+                    </div>
+
+                    <p id="dmCardDesc" style="color:#cbd5e1; font-size:0.88rem; line-height:1.5; margin-bottom:12px; max-height:85px; overflow-y:auto;">
+                        ខ្សែភាពយន្តភាគខ្លីពេញមួយរឿង កម្រិតច្បាស់ HD រយៈពេលចាប់ពី 30 នាទីឡើងទៅ
+                    </p>
+
+                    <!-- Download Options -->
+                    <div style="margin-top:16px; padding-top:14px; border-top:1px solid rgba(255,255,255,0.08); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <span style="font-size:0.84rem; color:#94a3b8;">📂 រក្សាទុកនៅ:</span>
+                            <span id="dmOutputDirDisplay" style="font-size:0.82rem; color:#38bdf8; font-family:monospace; background:rgba(0,0,0,0.3); padding:4px 8px; border-radius:6px; max-width:260px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">...</span>
+                            <button type="button" class="btn btn-secondary" onclick="pickDmFolder()" style="padding:4px 10px; font-size:0.8rem; border-radius:6px;">ប្តូរ</button>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <button type="button" class="btn btn-secondary" onclick="openActiveDmExternal()" title="បើកមើលក្នុង Browser ផ្ទាល់" style="padding:10px 14px; font-size:0.85rem; border-radius:10px; font-weight:600;">
+                                <span>🌐</span> <span>បើកលើ Browser</span>
+                            </button>
+                            <button type="button" class="dm-dl-btn" id="btnDmDetailDownload" onclick="downloadCurrentDailymotionVideo()">
+                                <span>⬇️</span>
+                                <span id="dmDetailDownloadText">ទាញយកវីដេអូនេះ</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Drama Recommendations / Search Grid -->
+            <div class="dm-section-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:16px;">
+                <h2 class="dm-section-title" id="dmSectionTitle">
+                    <span>🎬</span> <span id="dmSectionTitleText">រឿងភាគល្បីៗ</span>
+                </h2>
+                <div style="font-size:0.78rem; color:#38bdf8; font-weight:700; background:rgba(2,132,199,0.18); border:1px solid rgba(56,189,248,0.3); border-radius:12px; padding:3px 12px; display:flex; align-items:center; gap:6px;">
+                    <span>⏱️</span> <span id="dmDurationBadgeText">ពេញមួយរឿងចាប់ពី 30 នាទីឡើង</span>
+                </div>
+            </div>
+
+            <div class="dm-recs-grid" id="dmRecsGrid"></div>
+
+            <!-- Load More Dramas Button -->
+            <div class="load-more-container" id="dmLoadMoreContainer" style="display:flex; justify-content:center; margin: 32px 0 20px 0;">
+                <button type="button" class="btn-load-more" id="btnDmLoadMore" onclick="loadMoreDailymotionDramas()" style="background:linear-gradient(135deg, #0284c7, #0066dc); border:none; color:#fff; font-weight:700; padding:12px 28px; border-radius:12px; font-size:0.9rem; cursor:pointer; display:flex; align-items:center; gap:8px; box-shadow:0 4px 18px rgba(2,132,199,0.4); transition:all 0.2s ease;">
+                    <span>📥</span> <span id="dmLoadMoreBtnText">ផ្ទុកបន្ថែមរឿងភាគច្រើនទៀត</span>
+                </button>
+            </div>
+
+            <!-- Active Download Tasks Section -->
+            <div id="dmTasksContainer" class="dm-tasks-card" style="display:none;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                    <div style="font-weight:700; color:#ffffff; font-size:1rem; display:flex; align-items:center; gap:8px;">
+                        <span>⬇️</span> <span>បញ្ជីទាញយក Dailymotion (Active Downloads)</span>
+                    </div>
+                    <div style="display:flex; gap:8px;">
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="openDmFolder()">📁 បើក Folder</button>
+                    </div>
+                </div>
+                <div id="dmTasksList"></div>
             </div>
         </div>
     </div>
@@ -832,6 +988,159 @@
                 <div id="ytTasksContainer" class="yt-tasks-grid" style="display:none;">
                     <!-- Task cards injected via JS -->
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TikTok, Douyin & Kuaishou Downloader View -->
+    <div id="tiktokView" class="tiktok-view-container" style="display:none;">
+        <div class="tt-content-wrapper">
+            <!-- Hero Card -->
+            <div class="tt-hero-banner">
+                <div class="tt-hero-glow"></div>
+                <div class="tt-hero-content">
+                    <div class="tt-hero-header-row">
+                        <div style="display:flex; align-items:center; gap:16px;">
+                            <div id="ttHeroIconWrapper" style="width:46px; height:46px; display:flex; align-items:center; justify-content:center; flex-shrink:0; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.15); border-radius:14px; padding:6px; box-shadow:0 4px 16px rgba(0,0,0,0.4);">
+                                <img id="ttHeroIcon" src="/tiktok_icon.svg" alt="Logo" style="width:100%; height:100%; object-fit:contain; border-radius:8px;">
+                            </div>
+                            <div>
+                                <h1 class="tt-hero-title" style="margin:0 0 4px 0; display:flex; align-items:center; gap:10px;">
+                                    <span class="tt-title-cyan" id="ttHeroTitle">TikTok</span> Downloader
+                                </h1>
+                                <p class="tt-hero-subtitle" id="ttHeroSubtitle" style="margin:0;">
+                                    ទាញយកវីដេអូពី TikTok គុណភាពខ្ពស់ គ្មាន Watermark (No Watermark)
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- URL Input Box -->
+                    <div class="tt-search-box-card">
+                        <div class="tt-search-input-wrapper">
+                            <span style="font-size:20px;">🔗</span>
+                            <input type="text" id="ttUrlInput" class="tt-main-input" placeholder="បិទភ្ជាប់លីង TikTok, Douyin (TikTok ចិន), ឬ Kuaishou (Paste link: https://v.douyin.com/... ឬ https://vt.tiktok.com/...)..." onkeydown="onTtInputKeyDown(event)" autocomplete="off" spellcheck="false">
+                        </div>
+                        <div class="tt-search-buttons">
+                            <button type="button" class="btn tt-btn-paste" onclick="pasteTtFromClipboard()" title="Paste URL">
+                                <span>📋</span> <span id="ttPasteBtnText">ផាសលីង</span>
+                            </button>
+                            <button type="button" class="btn tt-btn-analyze" id="btnTtAnalyze" onclick="analyzeCurrentTtUrl()">
+                                <span id="ttAnalyzeSpinner" style="display:none;">⏳</span>
+                                <span id="ttAnalyzeBtnText">⚡ វិភាគវីដេអូ</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Video Detail & In-App Player Card -->
+            <div id="ttVideoCard" class="tt-detail-card" style="display:none;">
+                <div class="tt-player-wrapper" id="ttPlayerWrapper">
+                    <!-- Media switch buttons: Video vs Poster -->
+                    <div class="tt-media-toggle-bar" style="position:absolute; top:10px; right:10px; z-index:10; display:flex; gap:6px;">
+                        <button type="button" id="btnTtModeVideo" class="tt-mode-btn active" onclick="setTtMediaMode('video')" title="ចាក់វីដេអូ">▶️ វីដេអូ</button>
+                        <button type="button" id="btnTtModePoster" class="tt-mode-btn" onclick="setTtMediaMode('poster')" title="មើលរូបភាព Poster">🖼️ Poster</button>
+                    </div>
+
+                    <!-- Poster View -->
+                    <div id="ttPosterDisplay" style="display:none; width:100%; height:100%; position:relative;">
+                        <img id="ttPosterImg" src="" alt="Poster" style="width:100%; height:100%; object-fit:contain; background:#000;">
+                    </div>
+
+                    <!-- Video Player View -->
+                    <div id="ttVideoDisplay" style="width:100%; height:100%; display:flex; align-items:center; justify-content:center;">
+                        <video id="ttVideoPlayer" class="tt-video-player" controls preload="metadata" playsinline></video>
+                    </div>
+                </div>
+
+                <div class="tt-card-info-col">
+                    <div>
+                        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px;">
+                            <div style="min-width:0; flex:1;">
+                                <h3 id="ttCardTitle" style="font-size:1.25rem; font-weight:700; color:#fff; margin-bottom:6px; word-break:break-word;">Video Title</h3>
+                                <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:12px;">
+                                    <span class="tag-pill" id="ttCardPlatformBadge" style="background:rgba(34,211,238,0.2); color:#22d3ee; border:1px solid rgba(34,211,238,0.4); padding:2px 8px; border-radius:6px; font-size:0.75rem; font-weight:700;">TikTok</span>
+                                    <span id="ttCardAuthor" style="font-size:0.85rem; color:#cbd5e1; font-weight:600;">👤 Creator</span>
+                                    <span id="ttCardDuration" style="font-size:0.85rem; color:#94a3b8;">⏱️ 00:00</span>
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-secondary" onclick="clearTtInput()" title="បិទ (Close)" style="padding:6px 12px; border-radius:8px; font-size:0.82rem; flex-shrink:0;">✕</button>
+                        </div>
+
+                        <!-- Format Selector -->
+                        <div class="tt-format-selector">
+                            <div class="tt-format-option active" data-format="no_watermark" onclick="selectTtFormat('no_watermark')">
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <span style="font-size:1.1rem;">🌟</span>
+                                    <div>
+                                        <div style="font-weight:700; color:#f8fafc; font-size:0.88rem;">គ្មាន Watermark (No Watermark MP4)</div>
+                                        <div style="font-size:0.75rem; color:#94a3b8;">គុណភាពច្បាស់ HD គ្មាន Logo ឬ Watermark ឡើយ (ត្រូវបានណែនាំ)</div>
+                                    </div>
+                                </div>
+                                <span style="color:#22d3ee; font-weight:800; font-size:0.8rem;">✓ ពេញនិយម</span>
+                            </div>
+
+                            <div class="tt-format-option" data-format="watermark" onclick="selectTtFormat('watermark')">
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <span style="font-size:1.1rem;">🎬</span>
+                                    <div>
+                                        <div style="font-weight:700; color:#f8fafc; font-size:0.88rem;">វីដេអូដើម (Original MP4)</div>
+                                        <div style="font-size:0.75rem; color:#94a3b8;">ទាញយកវីដេអូដើមតាមប្រព័ន្ធស្តង់ដារ</div>
+                                    </div>
+                                </div>
+                                <span style="color:#94a3b8; font-weight:600; font-size:0.8rem;">MP4</span>
+                            </div>
+
+                            <div class="tt-format-option" data-format="audio_only" onclick="selectTtFormat('audio_only')">
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <span style="font-size:1.1rem;">🎵</span>
+                                    <div>
+                                        <div style="font-weight:700; color:#f8fafc; font-size:0.88rem;">សំឡេងតន្ត្រី (MP3 Audio Only)</div>
+                                        <div style="font-size:0.75rem; color:#94a3b8;">ទាញយកតែបទចម្រៀង / Background Music</div>
+                                    </div>
+                                </div>
+                                <span style="color:#94a3b8; font-weight:600; font-size:0.8rem;">MP3</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Download Options -->
+                    <div style="margin-top:16px; padding-top:14px; border-top:1px solid rgba(255,255,255,0.08); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <span style="font-size:0.84rem; color:#94a3b8;">📂 រក្សាទុកនៅ:</span>
+                            <span id="ttOutputDirDisplay" style="font-size:0.82rem; color:#22d3ee; font-family:monospace; background:rgba(0,0,0,0.3); padding:4px 8px; border-radius:6px; max-width:260px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">...</span>
+                            <button type="button" class="btn btn-secondary" onclick="pickTtFolder()" style="padding:4px 10px; font-size:0.8rem; border-radius:6px;">ប្តូរ</button>
+                        </div>
+                        <button type="button" class="tt-dl-btn" id="btnTtDownload" onclick="downloadCurrentTtVideo()">
+                            <span>⬇️</span>
+                            <span id="ttDownloadBtnText">ទាញយកវីដេអូគ្មាន Watermark (No Watermark MP4)</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Active Downloads List -->
+            <div class="tt-tasks-section">
+                <div class="tt-tasks-header">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <h3 style="font-size:1.05rem; font-weight:700; color:#fff; margin:0;">📋 បញ្ជីទាញយក TikTok & Douyin & Kuaishou</h3>
+                        <span class="badge" id="ttTasksBadge" style="display:none; background:#06b6d4; color:#fff; font-size:0.75rem; padding:2px 8px; border-radius:10px;">0</span>
+                    </div>
+                    <button type="button" class="btn btn-secondary" onclick="openTikTokFolder()" style="padding:6px 12px; font-size:0.8rem; border-radius:8px;">
+                        <span>📂</span> <span>បើក Folder TikTok</span>
+                    </button>
+                </div>
+
+                <!-- Empty State -->
+                <div id="ttEmptyTasks" style="text-align:center; padding:36px; color:#94a3b8; display:flex; flex-direction:column; align-items:center;">
+                    <div style="font-size:2rem; margin-bottom:8px;">🎵</div>
+                    <div style="font-weight:600; color:#e2e8f0; margin-bottom:4px;">មិនទាន់មានវីដេអូកំពុងទាញយកនៅឡើយទេ</div>
+                    <div style="font-size:0.82rem; color:#64748b;">បិទភ្ជាប់លីង TikTok, Douyin (TikTok ចិន), ឬ Kuaishou ខាងលើ រួចចុច "វិភាគវីដេអូ" ដើម្បីទាញយក</div>
+                </div>
+
+                <!-- Tasks List Container -->
+                <div id="ttTasksContainer" class="tt-tasks-grid" style="display:none;"></div>
             </div>
         </div>
     </div>
@@ -1112,9 +1421,6 @@
                     </button>
                     <button type="button" class="btn-dl-mode-chip" id="chipModeSeparate" onclick="setQuickDownloadMode('separate')" title="រក្សាទុកជាភាគរាយៗដាច់ដោយឡែក (Separate Episodes)">
                       <span>📁 រាយភាគ</span>
-                    </button>
-                    <button type="button" class="btn-dl-mode-chip" id="chipModeBoth" onclick="setQuickDownloadMode('both')" title="យកទាំងពីរ៖ បញ្ចូលគ្នាផង និងរាយភាគផង (Both)">
-                      <span>🎬 ទាំងពីរ</span>
                     </button>
                   </div>
                 </div>
@@ -1448,7 +1754,7 @@
                             </div>
                         </div>
                         <span class="badge" id="settingsCurrentVersionBadge" style="background:rgba(59,130,246,0.16); border:1px solid rgba(59,130,246,0.4); color:#93c5fd; padding:3px 10px; font-size:0.78rem; font-weight:700;">
-                            v3.2.2
+                            v3.2.3
                         </span>
                     </div>
 
@@ -1459,7 +1765,7 @@
                                 <span id="updateStatusIcon" style="font-size:1.15rem;">✅</span>
                                 <div>
                                     <div id="updateStatusText" style="color:#cbd5e1; font-weight:600;">
-                                        កម្មវិធីរបស់អ្នកជាកំណែចុងក្រោយបំផុតហើយ (v3.2.2)
+                                        កម្មវិធីរបស់អ្នកជាកំណែចុងក្រោយបំផុតហើយ (v3.2.3)
                                     </div>
                                     <div id="updateStatusSubtext" style="font-size:0.73rem; color:var(--text-dim); display:none; margin-top:2px;"></div>
                                 </div>
@@ -1475,12 +1781,6 @@
                         <!-- Changelog preview (Shown only when update available) -->
                         <div id="updateChangelogBox" style="display:none; margin-top:10px; background:rgba(0,0,0,0.35); border-radius:6px; padding:8px 10px; font-size:0.76rem; color:#e2e8f0; line-height:1.45; max-height:75px; overflow-y:auto; white-space:pre-wrap; border-left:3px solid #10b981;"></div>
                     </div>
-                </div>
-
-                <div style="background:rgba(255, 255, 255, 0.03); border:1px solid var(--border-glass); border-radius:8px; padding:12px; font-size:0.8rem; color:var(--text-dim);">
-                    <div>• <b>Application:</b> PS DOWNLOAD V3</div>
-                    <div>• <b>Data Source:</b> https://hongguoduanju.com/ (SSR Scraper)</div>
-                    <div>• <b>Video Stream:</b> Direct unencrypted MP4 CDN (HTTP 206 Partial Content)</div>
                 </div>
             </div>
             <div class="modal-footer">
@@ -1739,21 +2039,6 @@
                         </div>
                         <div class="dl-radio-dot"></div>
                     </div>
-
-                    <!-- Option 3: Both (Merged + Separate) -->
-                    <div class="dl-mode-card" id="dlModeCardBoth" onclick="selectDownloadModeCard('both')">
-                        <div class="dl-mode-icon-box">🎬</div>
-                        <div class="dl-mode-info">
-                            <div class="dl-mode-title-row">
-                                <span class="dl-mode-title">យកទាំងពីរ (Both: Merged + Separate)</span>
-                                <span class="dl-mode-tag both">All-in-One</span>
-                            </div>
-                            <div class="dl-mode-desc">
-                                រក្សាទុកទាំងភាគរាយៗដាច់ដោយឡែកផង និងភ្ជាប់បង្កើតជាវីដេអូពេញមួយខ្សែវែងផង (ទទួលបានទាំងពីរ)។
-                            </div>
-                        </div>
-                        <div class="dl-radio-dot"></div>
-                    </div>
                 </div>
 
                 <!-- Remember Choice Checkbox -->
@@ -1777,6 +2062,67 @@
         </div>
     </div>
 
+    <!-- Persistent Floating Live Download Widget (Shown across all tabs when downloading and drawer is closed) -->
+    <div id="floatingDlWidget" class="floating-dl-widget" onclick="toggleDownloadsDrawer(true, 'active')" title="ចុចដើម្បីបើកផ្ទាំងទាញយក & Log (Click to view downloads)" style="display:none;">
+        <div class="fdw-header">
+            <div class="fdw-badge" id="fdwBadgeWrap">
+                <span class="fdw-pulse-dot"></span>
+                <span id="fdwStatusLabel">កំពុងទាញយក</span>
+            </div>
+            <div class="fdw-pct-badge" id="fdwPercentText">0.0%</div>
+        </div>
+        <div class="fdw-title-line" id="fdwTitleText">កំពុងទាញយក...</div>
+        <div class="fdw-progress-bar-wrap">
+            <div class="fdw-progress-bar-fill" id="fdwProgressFill" style="width: 0%;"></div>
+        </div>
+        <div class="fdw-meta-row">
+            <span class="fdw-eps-count" id="fdwEpisodesCount">0/0 ភាគ</span>
+            <span class="fdw-speed" id="fdwSpeedText">⚡ 0.0 MB/s</span>
+        </div>
+    </div>
+
+    <!-- Dailymotion Video Player Modal with Interactive Episode Playlist ("កន្លែងកុកពេលលេង") -->
+    <div id="dmPlayerModal" class="dm-modal-backdrop" style="display:none;" onclick="if(event.target===this) closeDailymotionPlayer()">
+        <div class="dm-modal-window">
+            <div class="dm-modal-header">
+                <div class="dm-modal-title-box">
+                    <span class="dm-modal-badge">DAILYMOTION</span>
+                    <h3 class="dm-modal-title" id="dmModalTitle">Chinese Short Drama</h3>
+                </div>
+                <button type="button" class="dm-btn-modal-close" onclick="closeDailymotionPlayer()" title="បិទ (Close)">✕</button>
+            </div>
+            <div class="dm-modal-grid">
+                <!-- Left: Video Player Section -->
+                <div class="dm-player-section">
+                    <div class="dm-iframe-wrapper">
+                        <iframe id="dmPlayerIframe" src="about:blank" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>
+                    </div>
+                    <div class="dm-player-controls-bar">
+                        <button type="button" class="dm-btn-download-now" onclick="downloadCurrentDailymotionVideo()">
+                            <span>📥</span> <span>ទាញយកវីដេអូនេះ (Download Video)</span>
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="openDmFolder()">
+                            <span>📁</span> <span>បើក Folder Dailymotion</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Right: Playlist Drawer ("កន្លែងកុកពេលលេង") -->
+                <div class="dm-playlist-section">
+                    <div class="dm-playlist-header">
+                        <div class="dm-playlist-title">
+                            <span>📑</span> <span>ភាគ / វគ្គ (Playlist)</span>
+                        </div>
+                        <span class="dm-playlist-count" id="dmPlaylistCount">1 វីដេអូ</span>
+                    </div>
+                    <div class="dm-playlist-scroll" id="dmPlaylistScroll">
+                        <!-- Episode buttons injected dynamically -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast Notifications Container -->
     <div class="toast-container" id="toastContainer"></div>
 
@@ -1791,7 +2137,9 @@
     <script src="/js/hongguo.js"></script>
     <script src="/js/haosou.js"></script>
     <script src="/js/mvffm.js"></script>
+    <script src="/js/dailymotion.js"></script>
     <script src="/js/youtube.js"></script>
+    <script src="/js/tiktok.js"></script>
     <script src="/js/app.js"></script>
 </body>
 </html>

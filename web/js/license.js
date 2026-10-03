@@ -366,12 +366,18 @@ async function checkAppLicenseStatus() {
             deviceIdEl.innerText = data.device_id;
         }
 
-        // Auto-report ping to server (Device Tracking & Anti-Leak)
-        reportDevicePing(data.device_id, savedTg);
+        // Auto-report ping to server (Only send Launch Alert ONCE per app session!)
+        if (!window._hasReportedAppLaunch) {
+            window._hasReportedAppLaunch = true;
+            reportDevicePing(data.device_id, savedTg, { isLaunch: true });
+        } else {
+            reportDevicePing(data.device_id, '', { isHeartbeat: true });
+        }
         if (!window._devicePingInterval) {
             window._devicePingInterval = setInterval(() => {
                 if (_currentLicenseData && _currentLicenseData.device_id) {
-                    reportDevicePing(_currentLicenseData.device_id);
+                    // Periodic 2-minute heartbeat to stay Online (skip Telegram alert)
+                    reportDevicePing(_currentLicenseData.device_id, '', { isHeartbeat: true });
                 }
             }, 120000);
         }
@@ -450,7 +456,7 @@ async function checkAppLicenseStatus() {
 /**
  * Reports device ping & Telegram username to backend tracking database & Telegram Bot
  */
-async function reportDevicePing(deviceId, tgUser) {
+async function reportDevicePing(deviceId, tgUser, options = {}) {
     try {
         const lic = (typeof _currentLicenseData === 'object' && _currentLicenseData) ? _currentLicenseData : {};
         const key = lic.key || localStorage.getItem('ps_license_key') || '';
@@ -471,7 +477,8 @@ async function reportDevicePing(deviceId, tgUser) {
                     key: key,
                     status: status,
                     expiresAt: expiresAt,
-                    remainingDays: remainingDays
+                    remainingDays: remainingDays,
+                    skipAlert: Boolean(options && options.isHeartbeat)
                 })
             });
             if (trackResp.ok) {

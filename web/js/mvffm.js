@@ -204,8 +204,9 @@ async function pasteMvFromClipboard() {
         const input = document.getElementById('mvDramaInput');
         if (input) {
             input.value = text.trim();
-            showToast('បានបិទភ្ជាប់ Link (URL Pasted)', '📋');
-            analyzeMvffmDrama(input.value);
+            input.focus();
+            showToast('បានបិទភ្ជាប់ (Paste) ដោយជោគជ័យ!', '📋');
+            // Silent paste: user must press Enter or click Search
         }
     } catch (e) {
         showToast('សូមចុច Ctrl+V ដើម្បី Paste', 'ℹ️');
@@ -231,6 +232,13 @@ async function analyzeMvffmDrama(idOrUrl) {
     if (!targetQuery) {
         showToast('សូមបញ្ចូលលីង ឬឈ្មោះរឿង MVFFM', '⚠️');
         return;
+    }
+
+    if (/^https?:\/\//i.test(targetQuery)) {
+        if (!targetQuery.toLowerCase().includes('mvffm')) {
+            showToast('⚠️ លីងនេះមិនមែនជាលីង MVFFM ឡើយ! សូមបិទភ្ជាប់លីង MVFFM ឬវាយឈ្មោះរឿង', 'warning');
+            return;
+        }
     }
 
     const btn = document.getElementById('btnMvSearch');
@@ -531,7 +539,9 @@ async function downloadMvffmEpisodes(mode = 'all') {
         return;
     }
 
-    const doSubmit = async (selectedMode = 'separate') => {
+    const doSubmit = async (selectedMode) => {
+        const activeMode = (typeof window.getActiveDownloadMode === 'function') ? window.getActiveDownloadMode() : 'merged';
+        const finalMode = selectedMode || activeMode || 'merged';
         showToast(`កំពុងចាប់ផ្តើមទាញយក ${targetEps.length} ភាគ...`, '📥');
 
         try {
@@ -542,7 +552,7 @@ async function downloadMvffmEpisodes(mode = 'all') {
                     drama_id: currentMvDrama.id,
                     title: currentMvDrama.title,
                     episodes: targetEps,
-                    download_mode: selectedMode
+                    download_mode: finalMode
                 })
             });
             const data = await res.json();
@@ -557,6 +567,7 @@ async function downloadMvffmEpisodes(mode = 'all') {
     };
 
     const proceedWithMode = () => {
+        const activeMode = (typeof window.getActiveDownloadMode === 'function') ? window.getActiveDownloadMode() : 'merged';
         if (typeof window.promptDownloadMode === 'function') {
             window.promptDownloadMode({
                 title: currentMvDrama.title,
@@ -564,7 +575,7 @@ async function downloadMvffmEpisodes(mode = 'all') {
                 onConfirm: doSubmit
             });
         } else {
-            doSubmit('separate');
+            doSubmit(activeMode);
         }
     };
 

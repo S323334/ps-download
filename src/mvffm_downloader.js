@@ -430,7 +430,7 @@ class MvffmDownloader {
   /**
    * Start batch downloading episodes of an MVFFM drama
    */
-  async startDownload({ drama_id, title, episodes = [], customDir = null, range = 'all', download_mode = 'separate', quality = 'original', fps = null, target_height = null }) {
+  async startDownload({ drama_id, title, episodes = [], customDir = null, range = 'all', download_mode = 'merged', quality = 'original', fps = null, target_height = null }) {
     if (!episodes || episodes.length === 0) {
       throw new Error('គ្មានភាគសម្រាប់ទាញយកទេ (No episodes selected to download)');
     }
@@ -458,7 +458,7 @@ class MvffmDownloader {
       error_message: '',
       created_at: Date.now(),
       episodes: episodes,
-      download_mode: download_mode || 'separate',
+      download_mode: download_mode || 'merged',
       quality: quality || 'original',
       fps: fps ? parseInt(fps, 10) : null,
       target_height: target_height ? parseInt(target_height, 10) : (quality && parseInt(quality, 10) ? parseInt(quality, 10) : null)
@@ -530,12 +530,12 @@ class MvffmDownloader {
     }
 
     if (task.status !== 'canceled') {
-      if (task.completed_episodes > 0 && (task.download_mode === 'merged' || task.download_mode === 'both')) {
+      if (task.completed_episodes > 0 && task.download_mode !== 'separate') {
         task.status = 'merging';
         await mergeDramaEpisodes({
           dramaDir: task.drama_dir,
           seriesTitle: task.title,
-          mode: task.download_mode,
+          mode: 'merged',
           episodes: task.episodes,
           onLog: (msg) => console.log(`[MVFFM] ${msg}`)
         });

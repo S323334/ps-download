@@ -1,12 +1,13 @@
 const fs = require('fs');
 const path = require('path');
 
-const { app, BrowserWindow, ipcMain, dialog, shell, clipboard, Tray, Menu } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell, clipboard, Tray, Menu, session } = require('electron');
 
 const { APP_TITLE, PORT, HOST, getOutputDir, saveSettings } = require('./src/config.js');
 const { startServer, setNativeFolderPicker } = require('./src/server.js');
 const { downloadManager } = require('./src/downloader.js');
 const { youtubeDownloader } = require('./src/youtube_downloader.js');
+const { sendAppLaunchTelegramNotification } = require('./src/license.js');
 
 let mainWindow = null;
 let serverInstance = null;
@@ -48,6 +49,30 @@ async function initApp() {
       }
     }
 
+    // Configure session webRequest to allow player iframe embeds (Dailymotion, etc.)
+    if (session && session.defaultSession && session.defaultSession.webRequest) {
+      // 1. Inject proper Referer & Origin for Dailymotion to avoid 403 Forbidden
+      session.defaultSession.webRequest.onBeforeSendHeaders(
+        { urls: ['*://*.dailymotion.com/*', '*://geo.dailymotion.com/*', '*://*.dmcdn.net/*'] },
+        (details, callback) => {
+          details.requestHeaders['Referer'] = 'https://www.dailymotion.com/';
+          details.requestHeaders['Origin'] = 'https://www.dailymotion.com';
+          callback({ requestHeaders: details.requestHeaders });
+        }
+      );
+
+      // 2. Strip restrictive headers (X-Frame-Options, Content-Security-Policy) so iframe player renders seamlessly
+      session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+        const responseHeaders = Object.assign({}, details.responseHeaders);
+        delete responseHeaders['x-frame-options'];
+        delete responseHeaders['X-Frame-Options'];
+        delete responseHeaders['content-security-policy'];
+        delete responseHeaders['Content-Security-Policy'];
+        delete responseHeaders['content-security-policy-report-only'];
+        callback({ responseHeaders });
+      });
+    }
+
     // 2. Set native folder picker hook for server API
     setNativeFolderPicker(async () => {
       if (!mainWindow) return null;
@@ -65,6 +90,11 @@ async function initApp() {
     // 3. Create Desktop Window & System Tray
     createMainWindow();
     createTray();
+
+    // 4. Send Telegram Alert once per app launch session
+    sendAppLaunchTelegramNotification().catch(err => {
+      console.warn('[Main] Telegram launch notification error:', err.message);
+    });
   } catch (err) {
     console.error('[Main] Initialization failed:', err);
     dialog.showErrorBox('Initialization Error', `Failed to start application server: ${err.message}`);
@@ -98,7 +128,8 @@ function createMainWindow() {
       preload: path.join(__dirname, 'src', 'preload.js'),
       nodeIntegration: false,
       contextIsolation: true,
-      webSecurity: true
+      webSecurity: true,
+      backgroundThrottling: false
     }
   });
 

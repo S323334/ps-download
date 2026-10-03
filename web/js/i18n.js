@@ -680,6 +680,10 @@
             if (typeof renderGlobalStarredGrid === 'function') {
                 renderGlobalStarredGrid();
             }
+            // Re-render Dailymotion view if loaded or active
+            if (typeof _dmItems !== 'undefined' && _dmItems && _dmItems.length && typeof renderDailymotionCards === 'function') {
+                renderDailymotionCards(_dmItems);
+            }
             updateVisibleTitlesOnPage();
         }
 
@@ -1050,6 +1054,48 @@
             if (elCatHist) elCatHist.textContent = dict.hsCatHist || 'បុរាណ (Historical)';
             const elLoadMore = document.getElementById('hsLoadMoreText');
             if (elLoadMore) elLoadMore.textContent = dict.hsLoadMoreText || 'ផ្ទុកបន្ថែមរឿងភាគច្រើនទៀត (Load More Dramas)';
+
+            // 15. Dailymotion Platform UI
+            const dmHeroTitle = document.getElementById('dmHeroTitle');
+            if (dmHeroTitle) {
+                dmHeroTitle.textContent = currentLang === 'zh' ? '🎬 热门短剧' : (currentLang === 'km' ? '🎬 រឿងភាគល្បីៗ' : '🎬 Popular Dramas');
+            }
+            const dmSectionTitleText = document.getElementById('dmSectionTitleText');
+            if (dmSectionTitleText) {
+                dmSectionTitleText.textContent = currentLang === 'zh' ? '热门短剧与微电影' : (currentLang === 'km' ? 'រឿងភាគល្បីៗ' : 'Popular Short Dramas & Films');
+            }
+            const dmHeroSub = document.getElementById('dmHeroSubtitle');
+            if (dmHeroSub) {
+                dmHeroSub.textContent = currentLang === 'zh'
+                    ? '在线观看并下载 30 分钟以上高清华语短剧与微电影'
+                    : (currentLang === 'km' ? 'ទស្សនា និងទាញយករឿងភាគល្បីៗ និងខ្សែភាពយន្តខ្លីពេញមួយខ្សែ (Chinese Short Drama & Film Full Movie) រយៈពេលចាប់ពី 30 នាទីឡើងទៅ' : 'Watch and download 30+ min Chinese short dramas and full movies in HD');
+            }
+            const dmInput = document.getElementById('dmDramaInput');
+            if (dmInput) {
+                dmInput.placeholder = currentLang === 'zh'
+                    ? '搜索华语短剧片名，或粘贴 Dailymotion 链接 (https://www.dailymotion.com/video/...)...'
+                    : (currentLang === 'km' ? 'ស្វែងរករឿងចិន ឬបិទភ្ជាប់លីង Dailymotion (Paste link: https://www.dailymotion.com/video/...)...' : 'Search Chinese dramas or paste Dailymotion link...');
+            }
+
+            // 16. TikTok & Douyin & Kuaishou Platform UI
+            const ttTabLbl = document.getElementById('ttTabLabel');
+            if (ttTabLbl) ttTabLbl.textContent = 'TIKTOK';
+            const ttHeroSub = document.getElementById('ttHeroSubtitle');
+            if (ttHeroSub) {
+                ttHeroSub.textContent = currentLang === 'zh'
+                    ? '抖音 / TikTok / 快手 高清无水印视频下载器'
+                    : (currentLang === 'km' ? 'ទាញយកវីដេអូពី TikTok, TikTok ចិន (Douyin), និង ខៅស៊ូ (Kuaishou) គុណភាពខ្ពស់ គ្មាន Watermark (No Watermark)' : 'Download HD Watermark-free videos from TikTok, Douyin & Kuaishou');
+            }
+            const ttInput = document.getElementById('ttUrlInput');
+            if (ttInput) {
+                ttInput.placeholder = currentLang === 'zh'
+                    ? '粘贴 TikTok / 抖音 / 快手 视频分享链接...'
+                    : (currentLang === 'km' ? 'បិទភ្ជាប់លីង TikTok, Douyin (TikTok ចិន), ឬ Kuaishou (Paste link: https://v.douyin.com/... ឬ https://vt.tiktok.com/...)...' : 'Paste TikTok, Douyin or Kuaishou link...');
+            }
+            const ttAnalyzeBtn = document.getElementById('ttAnalyzeBtnText');
+            if (ttAnalyzeBtn) {
+                ttAnalyzeBtn.textContent = currentLang === 'zh' ? '⚡ 解析视频' : (currentLang === 'km' ? '⚡ វិភាគវីដេអូ' : '⚡ Fetch Video');
+            }
         }
 
 
@@ -1213,6 +1259,15 @@
                 }
             }
 
+            // Update Dailymotion card titles
+            document.querySelectorAll('.dm-card-title[data-original-title]').forEach(el => {
+                const orig = el.getAttribute('data-original-title');
+                if (!orig) return;
+                const display = getDisplayTitle(orig);
+                el.innerText = display;
+                el.setAttribute('title', display);
+            });
+
             // Update active YouTube task titles if displayed
             document.querySelectorAll('.yt-task-title[data-original-title]').forEach(el => {
                 const orig = el.getAttribute('data-original-title');
@@ -1221,10 +1276,23 @@
                 el.innerText = display;
                 el.setAttribute('title', display);
             });
+
+            // Update Dailymotion detail card title if displayed
+            if (typeof _activeDmPlayerVideo !== 'undefined' && _activeDmPlayerVideo && _activeDmPlayerVideo.title) {
+                const dmTitleEl = document.getElementById('dmCardTitle');
+                const dmSubEl = document.getElementById('dmCardSubOrig');
+                if (dmTitleEl) {
+                    const disp = currentLang === 'original' ? _activeDmPlayerVideo.title : getDisplayTitle(_activeDmPlayerVideo.title);
+                    dmTitleEl.textContent = disp;
+                }
+                if (dmSubEl) {
+                    dmSubEl.textContent = (currentLang !== 'original' && currentLang !== 'zh') ? _activeDmPlayerVideo.title : '';
+                }
+            }
         }
 
         function applyDramaTitlesTranslation() {
-            const titleSelectors = '.card-title[data-original-title], .mv-card-title[data-original-title], .hs-card-title[data-original-title], .starred-card-title[data-original-title]';
+            const titleSelectors = '.card-title[data-original-title], .mv-card-title[data-original-title], .hs-card-title[data-original-title], .starred-card-title[data-original-title], .dm-card-title[data-original-title]';
             if (currentLang === 'original') {
                 document.querySelectorAll(titleSelectors).forEach(el => {
                     const orig = el.getAttribute('data-original-title');
@@ -1254,6 +1322,12 @@
                 if (typeof currentHsDrama !== 'undefined' && currentHsDrama && currentHsDrama.title) {
                     const hsTitleEl = document.getElementById('hsCardTitle');
                     if (hsTitleEl) hsTitleEl.textContent = currentHsDrama.title;
+                }
+                if (typeof _activeDmPlayerVideo !== 'undefined' && _activeDmPlayerVideo && _activeDmPlayerVideo.title) {
+                    const dmTitleEl = document.getElementById('dmCardTitle');
+                    const dmSubEl = document.getElementById('dmCardSubOrig');
+                    if (dmTitleEl) dmTitleEl.textContent = _activeDmPlayerVideo.title;
+                    if (dmSubEl) dmSubEl.textContent = '';
                 }
                 document.querySelectorAll('.yt-task-title[data-original-title]').forEach(el => {
                     const orig = el.getAttribute('data-original-title');
@@ -1315,6 +1389,21 @@
                     } else {
                         queueTitleTranslation(currentHsDrama.title);
                     }
+                }
+            }
+            if (typeof _activeDmPlayerVideo !== 'undefined' && _activeDmPlayerVideo && _activeDmPlayerVideo.title) {
+                const dmTitleEl = document.getElementById('dmCardTitle');
+                const dmSubEl = document.getElementById('dmCardSubOrig');
+                if (dmTitleEl) {
+                    const cached = getDisplayTitle(_activeDmPlayerVideo.title);
+                    if (cached !== _activeDmPlayerVideo.title) {
+                        dmTitleEl.textContent = cached;
+                    } else {
+                        queueTitleTranslation(_activeDmPlayerVideo.title);
+                    }
+                }
+                if (dmSubEl) {
+                    dmSubEl.textContent = (currentLang !== 'original' && currentLang !== 'zh') ? _activeDmPlayerVideo.title : '';
                 }
             }
             document.querySelectorAll('.yt-task-title[data-original-title]').forEach(el => {

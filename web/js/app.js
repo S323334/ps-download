@@ -628,7 +628,9 @@ let pollTimer = null;
             } else {
                 drawer.classList.toggle('active');
             }
+            const fdw = document.getElementById('floatingDlWidget');
             if (drawer.classList.contains('active')) {
+                if (fdw) fdw.style.display = 'none';
                 if (currentDrawerTab === 'library') {
                     loadUnifiedLibrary();
                 } else if (currentDrawerTab === 'memory') {
@@ -636,6 +638,8 @@ let pollTimer = null;
                 } else {
                     pollDownloadStatus();
                 }
+            } else {
+                if (typeof pollDownloadStatus === 'function') pollDownloadStatus();
             }
         }
         window.toggleDownloadsDrawer = toggleDownloadsDrawer;
@@ -690,11 +694,13 @@ let pollTimer = null;
                 }
 
                 const hgRunning = Boolean(hgData && hgData.running);
+                const hsTasks = (hgData && Array.isArray(hgData.haosou_tasks)) ? hgData.haosou_tasks : [];
+                const mvTasks = (hgData && Array.isArray(hgData.mvffm_tasks)) ? hgData.mvffm_tasks : [];
                 const activeHgCount = (hgData && Array.isArray(hgData.series))
                     ? hgData.series.filter(s => s.status === 'downloading' || s.status === 'merging').length
                     : (hgRunning ? 1 : 0);
                 const activeYtTasks = ytTasks.filter(t => ['downloading', 'pending', 'merging'].includes(t.status));
-                const totalActive = activeHgCount + activeYtTasks.length;
+                const totalActive = activeHgCount + activeYtTasks.length + hsTasks.length + mvTasks.length;
 
                 // 1. Header Active Download Badge
                 const dlBadge = document.getElementById('activeDlCount');
@@ -909,11 +915,94 @@ let pollTimer = null;
                         syncDownloadedSeriesCache();
                     }
                 }
+
+                // 10. Update Persistent Floating Live Download Widget (Active across all tabs when drawer is closed)
+                const fdw = document.getElementById('floatingDlWidget');
+                if (fdw) {
+                    const isDrawerOpen = drawer && drawer.classList.contains('active');
+                    if (totalActive > 0 && !isDrawerOpen) {
+                        fdw.style.display = 'block';
+                        const fdwBadgeWrap = document.getElementById('fdwBadgeWrap');
+                        const fdwStatusLabel = document.getElementById('fdwStatusLabel');
+                        const fdwPercent = document.getElementById('fdwPercentText');
+                        const fdwTitle = document.getElementById('fdwTitleText');
+                        const fdwProgressFill = document.getElementById('fdwProgressFill');
+                        const fdwEpisodes = document.getElementById('fdwEpisodesCount');
+                        const fdwSpeed = document.getElementById('fdwSpeedText');
+
+                        if (fdwBadgeWrap) fdwBadgeWrap.className = 'fdw-badge';
+                        if (fdwStatusLabel) fdwStatusLabel.innerText = 'កំពុងទាញយក';
+                        if (fdwPercent) fdwPercent.className = 'fdw-pct-badge';
+                        if (fdwProgressFill) fdwProgressFill.className = 'fdw-progress-bar-fill';
+
+                        if (hgRunning && hgData) {
+                            const pct = (typeof hgData.current_series_progress === 'number' ? hgData.current_series_progress : (hgData.progress || 0));
+                            if (fdwPercent) fdwPercent.innerText = `${pct.toFixed(1)}%`;
+                            if (fdwProgressFill) fdwProgressFill.style.width = `${pct}%`;
+                            if (fdwTitle) fdwTitle.innerText = hgData.current_title || 'Hongguo Drama';
+                            if (fdwEpisodes) fdwEpisodes.innerText = `${hgData.current_series_done || hgData.total_done || 0}/${hgData.current_series_total || hgData.total_eps || 0} ភាគ`;
+                            if (fdwSpeed) fdwSpeed.innerText = `⚡ ${hgData.speed || '0.0 MB/s'}`;
+                        } else if (activeYtTasks.length > 0) {
+                            const yt = activeYtTasks[0];
+                            const pct = yt.percentNum || 0;
+                            if (fdwPercent) fdwPercent.innerText = `${pct}%`;
+                            if (fdwProgressFill) fdwProgressFill.style.width = `${pct}%`;
+                            if (fdwTitle) fdwTitle.innerText = yt.title || 'YouTube Video';
+                            if (fdwEpisodes) fdwEpisodes.innerText = 'YouTube';
+                            if (fdwSpeed) fdwSpeed.innerText = `⚡ ${yt.speed || 'Downloading...'}`;
+                        } else if (hsTasks.length > 0) {
+                            const hs = hsTasks[0];
+                            const pct = hs.progress_pct || 0;
+                            if (fdwPercent) fdwPercent.innerText = `${pct}%`;
+                            if (fdwProgressFill) fdwProgressFill.style.width = `${pct}%`;
+                            if (fdwTitle) fdwTitle.innerText = hs.title || 'HaoSou Drama';
+                            if (fdwEpisodes) fdwEpisodes.innerText = `${hs.completed_episodes || 0}/${hs.total_episodes || 0} ភាគ`;
+                            if (fdwSpeed) fdwSpeed.innerText = `⚡ ${hs.speed_str || 'HaoSou'}`;
+                        } else if (mvTasks.length > 0) {
+                            const mv = mvTasks[0];
+                            const pct = mv.progress_pct || 0;
+                            if (fdwPercent) fdwPercent.innerText = `${pct}%`;
+                            if (fdwProgressFill) fdwProgressFill.style.width = `${pct}%`;
+                            if (fdwTitle) fdwTitle.innerText = mv.title || 'MVFFM Drama';
+                            if (fdwEpisodes) fdwEpisodes.innerText = `${mv.completed_episodes || 0}/${mv.total_episodes || 0} ភាគ`;
+                            if (fdwSpeed) fdwSpeed.innerText = `⚡ ${mv.speed_str || 'MVFFM'}`;
+                        }
+                    } else if (isDrawerOpen) {
+                        fdw.style.display = 'none';
+                    } else {
+                        if (window._prevTotalActive > 0 && hgData && hgData.completed) {
+                            const fdwBadgeWrap = document.getElementById('fdwBadgeWrap');
+                            const fdwStatusLabel = document.getElementById('fdwStatusLabel');
+                            const fdwPercent = document.getElementById('fdwPercentText');
+                            const fdwProgressFill = document.getElementById('fdwProgressFill');
+                            const fdwTitle = document.getElementById('fdwTitleText');
+                            if (fdwBadgeWrap) fdwBadgeWrap.className = 'fdw-badge completed';
+                            if (fdwStatusLabel) fdwStatusLabel.innerText = '✓ រួចរាល់';
+                            if (fdwPercent) {
+                                fdwPercent.className = 'fdw-pct-badge completed';
+                                fdwPercent.innerText = '100%';
+                            }
+                            if (fdwProgressFill) {
+                                fdwProgressFill.className = 'fdw-progress-bar-fill completed';
+                                fdwProgressFill.style.width = '100%';
+                            }
+                            if (fdwTitle) fdwTitle.innerText = 'បានទាញយកចប់សព្វគ្រប់!';
+                            setTimeout(() => {
+                                const currentTotal = window._lastTotalActiveCount || 0;
+                                if (fdw && currentTotal === 0) fdw.style.display = 'none';
+                            }, 4000);
+                        } else {
+                            fdw.style.display = 'none';
+                        }
+                    }
+                    window._prevTotalActive = totalActive;
+                    window._lastTotalActiveCount = totalActive;
+                }
             } catch (e) {
                 // Silent background poll
             } finally {
                 isPollingActive = false;
-                const nextDelay = document.hidden ? 8000 : (totalActive > 0 ? 1500 : 4500);
+                const nextDelay = totalActive > 0 ? 1200 : (document.hidden ? 6000 : 4000);
                 scheduleNextPoll(nextDelay);
             }
         }
@@ -944,7 +1033,7 @@ let pollTimer = null;
                             total: libItem.total_episodes || libItem.episode_count || 0,
                             status: libItem.status || 'completed',
                             progress: libItem.progress || 100,
-                            download_mode: 'separate'
+                            download_mode: 'merged'
                         });
                         existingSids.add(sid);
                     }
@@ -982,9 +1071,9 @@ let pollTimer = null;
 
                         let modeBadgeHtml = '';
                         if (s.download_mode === 'merged') {
-                            modeBadgeHtml = `<span style="background:rgba(245,158,11,0.18); color:#fbbf24; border:1px solid rgba(245,158,11,0.4); font-size:0.65rem; padding:1px 6px; border-radius:4px; font-weight:700;">🎞️ វីដេអូពេញ</span>`;
-                        } else if (s.download_mode === 'both') {
-                            modeBadgeHtml = `<span style="background:rgba(168,85,247,0.18); color:#c084fc; border:1px solid rgba(168,85,247,0.4); font-size:0.65rem; padding:1px 6px; border-radius:4px; font-weight:700;">🎬 ភាគ + ពេញ</span>`;
+                            modeBadgeHtml = `<span style="background:rgba(245,158,11,0.18); color:#fbbf24; border:1px solid rgba(245,158,11,0.4); font-size:0.65rem; padding:1px 6px; border-radius:4px; font-weight:700;">🎞️ បញ្ចូលរឿង</span>`;
+                        } else if (s.download_mode === 'separate') {
+                            modeBadgeHtml = `<span style="background:rgba(59,130,246,0.18); color:#60a5fa; border:1px solid rgba(59,130,246,0.4); font-size:0.65rem; padding:1px 6px; border-radius:4px; font-weight:700;">📁 រាយភាគ</span>`;
                         }
 
                         const progPct = isDone ? 100 : Math.max(0, Math.min(100, Math.round(s.progress || 0)));

@@ -33,6 +33,8 @@ const { libraryManager } = require('./library_manager.js');
 const { youtubeDownloader } = require('./youtube_downloader.js');
 const { haosouDownloader } = require('./haosou_downloader.js');
 const { mvffmDownloader } = require('./mvffm_downloader.js');
+const { dailymotionDownloader } = require('./dailymotion_downloader.js');
+const { tiktokDownloader } = require('./tiktok_downloader.js');
 const { downloadMemoryManager } = require('./download_memory_manager.js');
 const { checkForUpdates, applyUpdate } = require('./updater.js');
 const { probeDramaQuality, probeBatch } = require('./video_prober.js');
@@ -63,7 +65,8 @@ const {
   recordPaymentNotification,
   getPaymentRequests,
   registerPendingCheckout,
-  fulfillPayWayPayment
+  fulfillPayWayPayment,
+  sendAppLaunchTelegramNotification
 } = require('./license.js');
 const { startTelegramBot, parseFlexiblePaymentNotification, checkGroupPaymentVerification } = require('./telegram_bot.js');
 const cenc = require('../lib/cenc.js');
@@ -431,13 +434,58 @@ async function ensurePlayableVideoFile(vid, seriesId, quality = '720p', customSt
 
   try {
     const res = await taskPromise;
+    pruneVideoCache();
     return res;
   } finally {
     _DECRYPT_PROMISES.delete(taskKey);
   }
 }
 
+/**
+ * Automatically prunes temporary video cache files to prevent high disk usage.
+ * Limits total video preview cache to max 200MB and removes stale .part/.enc files.
+ */
+function pruneVideoCache(maxBytes = 200 * 1024 * 1024) {
+  try {
+    if (!fs.existsSync(CACHE_DIR)) return;
+    const files = fs.readdirSync(CACHE_DIR);
+    const mp4Files = [];
+    const now = Date.now();
+    for (const f of files) {
+      const full = path.join(CACHE_DIR, f);
+      // Clean leftover temporary part or enc files older than 15 mins
+      if (f.endsWith('.part') || f.endsWith('.enc')) {
+        try {
+          const stat = fs.statSync(full);
+          if (now - stat.mtimeMs > 15 * 60 * 1000) {
+            fs.unlinkSync(full);
+          }
+        } catch (_) {}
+        continue;
+      }
+      if (f.endsWith('.mp4')) {
+        try {
+          const stat = fs.statSync(full);
+          mp4Files.push({ file: full, size: stat.size, mtime: stat.mtimeMs });
+        } catch (_) {}
+      }
+    }
+    // Sort oldest first
+    mp4Files.sort((a, b) => a.mtime - b.mtime);
+    let totalSize = mp4Files.reduce((sum, item) => sum + item.size, 0);
+    while (totalSize > maxBytes && mp4Files.length > 0) {
+      const oldest = mp4Files.shift();
+      try {
+        fs.unlinkSync(oldest.file);
+        totalSize -= oldest.size;
+      } catch (_) {}
+    }
+  } catch (_) {}
+}
+
 function startServer(port = PORT, host = HOST) {
+  pruneVideoCache();
+  setInterval(pruneVideoCache, 3600000);
   const server = http.createServer(async (req, res) => {
     // CORS headers
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -856,7 +904,7 @@ function startServer(port = PORT, host = HOST) {
         const platform = body.platform || 'hongguo';
         const title = body.title || 'Drama';
         const missingEps = Array.isArray(body.missing_episodes) ? body.missing_episodes : [];
-        const downloadMode = body.download_mode || 'separate';
+        const downloadMode = body.download_mode || 'merged';
 
         if (missingEps.length === 0) {
           return sendJson(res, 400, { ok: false, message: 'គ្មានភាគដែលខ្វះទេ (No missing episodes to download)' });
@@ -1564,7 +1612,7 @@ function startServer(port = PORT, host = HOST) {
             title: body.title,
             episodes: body.episodes || [],
             customDir: body.custom_dir,
-            download_mode: body.download_mode || 'separate',
+            download_mode: body.download_mode || 'merged',
             quality: body.quality || 'original',
             fps: body.fps || null,
             target_height: body.target_height || null
@@ -1676,7 +1724,7 @@ function startServer(port = PORT, host = HOST) {
             title: body.title,
             episodes: body.episodes || [],
             customDir: body.custom_dir,
-            download_mode: body.download_mode || 'separate',
+            download_mode: body.download_mode || 'merged',
             quality: body.quality || 'original',
             fps: body.fps || null,
             target_height: body.target_height || null
@@ -1726,6 +1774,268 @@ function startServer(port = PORT, host = HOST) {
         return sendJson(res, 200, { ok: true, opened: target });
       }
 
+      // ==========================================
+      // 27-DM. Dailymotion Chinese Short Drama Endpoints
+      // ==========================================
+
+      // 27dm-a. Recommendations / Feed: GET /api/dailymotion/feed
+      if (pathname === '/api/dailymotion/feed' && req.method === 'GET') {
+        const category = parsedUrl.searchParams.get('category') || 'trending';
+        const page = parseInt(parsedUrl.searchParams.get('page') || '1', 10);
+        try {
+          const data = await dailymotionDownloader.getChineseDramas(category, page, 36);
+          return sendJson(res, 200, { ok: true, data });
+        } catch (err) {
+          return sendError(res, 500, err.message || 'Failed to fetch Dailymotion dramas');
+        }
+      }
+
+      // 27dm-b. Search: GET /api/dailymotion/search?q=...
+      if (pathname === '/api/dailymotion/search' && req.method === 'GET') {
+        const q = parsedUrl.searchParams.get('q') || '';
+        const page = parseInt(parsedUrl.searchParams.get('page') || '1', 10);
+        try {
+          const data = await dailymotionDownloader.searchDramas(q, page, 36);
+          return sendJson(res, 200, { ok: true, data });
+        } catch (err) {
+          return sendError(res, 500, err.message || 'Failed to search Dailymotion');
+        }
+      }
+
+      // 27dm-c. Video Detail & Channel Episodes: GET /api/dailymotion/detail?id=...
+      if (pathname === '/api/dailymotion/detail' && req.method === 'GET') {
+        const id = parsedUrl.searchParams.get('id') || '';
+        try {
+          const data = await dailymotionDownloader.getVideoDetail(id);
+          return sendJson(res, 200, { ok: true, data });
+        } catch (err) {
+          return sendError(res, 404, err.message || 'Video not found');
+        }
+      }
+
+      // 27dm-c2. Direct Stream URL (.m3u8): GET /api/dailymotion/stream?id=...
+      if (pathname === '/api/dailymotion/stream' && req.method === 'GET') {
+        const id = parsedUrl.searchParams.get('id') || '';
+        try {
+          const streamUrl = await dailymotionDownloader.getStreamUrl(id);
+          if (streamUrl) {
+            return sendJson(res, 200, {
+              ok: true,
+              stream_url: streamUrl,
+              proxy_url: `/api/dailymotion/hls/${encodeURIComponent(id)}/manifest.m3u8`
+            });
+          }
+          return sendError(res, 404, 'Direct stream not found');
+        } catch (err) {
+          return sendError(res, 500, err.message || 'Stream extraction failed');
+        }
+      }
+
+      // 27dm-c3. Dailymotion HLS Proxy (Solves CORS & ensures 100% native smooth playback)
+      const dmHlsMatch = pathname.match(/^\/api\/dailymotion\/hls\/([^/]+)\/(.+)$/);
+      if (dmHlsMatch && req.method === 'GET') {
+        const videoId = decodeURIComponent(dmHlsMatch[1]);
+        const fileName = dmHlsMatch[2];
+        try {
+          const manifestUrl = await dailymotionDownloader.getStreamUrl(videoId);
+          if (!manifestUrl) {
+            return sendError(res, 404, 'Dailymotion stream not found');
+          }
+          const baseUrl = manifestUrl.substring(0, manifestUrl.lastIndexOf('/') + 1);
+          const targetUrl = fileName === 'manifest.m3u8' ? manifestUrl : (baseUrl + fileName);
+
+          const clientReq = https.get(targetUrl, {
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+              'Referer': 'https://www.dailymotion.com/'
+            }
+          }, (clientRes) => {
+            const isM3u8 = fileName.endsWith('.m3u8');
+            const isMedia = fileName.endsWith('.mp4') || fileName.endsWith('.m4s') || fileName.endsWith('.ts');
+            const contentType = isM3u8
+              ? 'application/vnd.apple.mpegurl'
+              : (isMedia ? 'video/mp4' : (clientRes.headers['content-type'] || 'application/octet-stream'));
+
+            res.writeHead(clientRes.statusCode || 200, {
+              'Content-Type': contentType,
+              'Access-Control-Allow-Origin': '*',
+              'Access-Control-Allow-Methods': 'GET, OPTIONS',
+              'Access-Control-Allow-Headers': '*',
+              'Cache-Control': isM3u8 ? 'no-cache' : 'public, max-age=3600'
+            });
+            clientRes.pipe(res);
+          });
+
+          clientReq.on('error', (err) => {
+            if (!res.headersSent) {
+              sendError(res, 502, err.message);
+            }
+          });
+          return;
+        } catch (err) {
+          return sendError(res, 500, err.message || 'HLS proxy error');
+        }
+      }
+
+      // 27dm-d. Start Download: POST /api/dailymotion/download
+      if (pathname === '/api/dailymotion/download' && req.method === 'POST') {
+        if (!requireLicenseAuth(res)) return;
+        const body = await parseJsonBody(req);
+        try {
+          const task = await dailymotionDownloader.startDownload({
+            video_id: body.video_id,
+            url: body.url,
+            title: body.title,
+            customDir: body.custom_dir
+          });
+          return sendJson(res, 200, { ok: true, data: task });
+        } catch (err) {
+          return sendError(res, 500, err.message || 'Failed to start Dailymotion download');
+        }
+      }
+
+      // 27dm-e. Tasks List: GET /api/dailymotion/tasks
+      if (pathname === '/api/dailymotion/tasks' && req.method === 'GET') {
+        return sendJson(res, 200, {
+          ok: true,
+          tasks: dailymotionDownloader.getTasks(),
+          output_dir: dailymotionDownloader.getDailymotionOutputDir()
+        });
+      }
+
+      // 27dm-f. Cancel Task: POST /api/dailymotion/cancel
+      if (pathname === '/api/dailymotion/cancel' && req.method === 'POST') {
+        const body = await parseJsonBody(req);
+        const resObj = dailymotionDownloader.cancelTask(body.task_id);
+        return sendJson(res, 200, resObj);
+      }
+
+      // 27dm-g. Open Folder: POST /api/dailymotion/open_folder
+      if (pathname === '/api/dailymotion/open_folder' && req.method === 'POST') {
+        let target = dailymotionDownloader.getDailymotionOutputDir();
+        if (process.platform === 'win32') {
+          exec(`explorer.exe "${target}"`);
+        } else if (process.platform === 'darwin') {
+          exec(`open "${target}"`);
+        } else {
+          exec(`xdg-open "${target}"`);
+        }
+        return sendJson(res, 200, { ok: true, opened: target });
+      }
+
+      // ==========================================
+      // 27-TT. TikTok, Douyin & Kuaishou Downloader Endpoints
+      // ==========================================
+
+      // 27tt-a. Analyze Video: POST /api/tiktok/analyze
+      if (pathname === '/api/tiktok/analyze' && req.method === 'POST') {
+        const body = await parseJsonBody(req);
+        try {
+          const info = await tiktokDownloader.analyzeVideo(body.url, body.platform);
+          return sendJson(res, 200, { ok: true, data: info });
+        } catch (err) {
+          return sendError(res, 400, err.message || 'Failed to analyze video');
+        }
+      }
+
+      // 27tt-b. Start Download: POST /api/tiktok/download
+      if (pathname === '/api/tiktok/download' && req.method === 'POST') {
+        if (!requireLicenseAuth(res)) return;
+        const body = await parseJsonBody(req);
+        try {
+          const task = await tiktokDownloader.startDownload({
+            url: body.url,
+            play_url: body.play_url,
+            format: body.format,
+            title: body.title,
+            author: body.author,
+            platform: body.platform,
+            customDir: body.custom_dir
+          });
+          return sendJson(res, 200, { ok: true, data: task });
+        } catch (err) {
+          return sendError(res, 500, err.message || 'Failed to start download');
+        }
+      }
+
+      // 27tt-c. Tasks List: GET /api/tiktok/tasks
+      if (pathname === '/api/tiktok/tasks' && req.method === 'GET') {
+        return sendJson(res, 200, {
+          ok: true,
+          tasks: tiktokDownloader.getTasks(),
+          output_dir: tiktokDownloader.getTikTokOutputDir()
+        });
+      }
+
+      // 27tt-d. Cancel Task: POST /api/tiktok/cancel
+      if (pathname === '/api/tiktok/cancel' && req.method === 'POST') {
+        const body = await parseJsonBody(req);
+        const resObj = tiktokDownloader.cancelTask(body.task_id);
+        return sendJson(res, 200, resObj);
+      }
+
+      // 27tt-e. Open Folder: POST /api/tiktok/open_folder
+      if (pathname === '/api/tiktok/open_folder' && req.method === 'POST') {
+        let target = tiktokDownloader.getTikTokOutputDir();
+        if (process.platform === 'win32') {
+          exec(`explorer.exe "${target}"`);
+        } else if (process.platform === 'darwin') {
+          exec(`open "${target}"`);
+        } else {
+          exec(`xdg-open "${target}"`);
+        }
+        return sendJson(res, 200, { ok: true, opened: target });
+      }
+
+      // 27tt-f. TikTok / Douyin / Kuaishou Media Proxy Stream: GET /api/tiktok/stream_proxy
+      if (pathname === '/api/tiktok/stream_proxy' && req.method === 'GET') {
+        const streamUrl = query.url;
+        if (!streamUrl) return sendError(res, 400, 'Missing url query');
+
+        try {
+          const targetUrl = new URL(streamUrl);
+          const isHttps = targetUrl.protocol === 'https:';
+          const client = isHttps ? https : http;
+
+          const headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
+            'Referer': targetUrl.origin + '/',
+            'Accept': '*/*'
+          };
+          if (req.headers.range) {
+            headers['Range'] = req.headers.range;
+          }
+
+          const proxyReq = client.get(streamUrl, { headers, timeout: 25000 }, (proxyRes) => {
+            if ([301, 302, 303, 307, 308].includes(proxyRes.statusCode) && proxyRes.headers.location) {
+              res.writeHead(302, { Location: `/api/tiktok/stream_proxy?url=${encodeURIComponent(proxyRes.headers.location)}` });
+              return res.end();
+            }
+
+            const resHeaders = {
+              'Content-Type': proxyRes.headers['content-type'] || 'video/mp4',
+              'Accept-Ranges': 'bytes',
+              'Access-Control-Allow-Origin': '*'
+            };
+            if (proxyRes.headers['content-range']) resHeaders['Content-Range'] = proxyRes.headers['content-range'];
+            if (proxyRes.headers['content-length']) resHeaders['Content-Length'] = proxyRes.headers['content-length'];
+
+            res.writeHead(proxyRes.statusCode || 200, resHeaders);
+            proxyRes.pipe(res);
+          });
+
+          proxyReq.on('error', (e) => {
+            if (!res.headersSent) sendError(res, 502, `Proxy error: ${e.message}`);
+          });
+          req.on('close', () => {
+            proxyReq.destroy();
+          });
+          return;
+        } catch (err) {
+          return sendError(res, 400, `Invalid URL: ${err.message}`);
+        }
+      }
+
       // 28. License & Device Tracking API Endpoints
       // 28a. License Status: GET /api/license/status
       if (pathname === '/api/license/status' && req.method === 'GET') {
@@ -1758,7 +2068,8 @@ function startServer(port = PORT, host = HOST) {
           key: body.key,
           status: body.status,
           expiresAt: body.expiresAt,
-          remainingDays: body.remainingDays
+          remainingDays: body.remainingDays,
+          skipAlert: Boolean(body.skipAlert)
         });
         return sendJson(res, 200, result);
       }
@@ -2229,6 +2540,10 @@ function startServer(port = PORT, host = HOST) {
   return new Promise((resolve, reject) => {
     server.listen(port, host, () => {
       console.log(`[Desktop Server] Listening on http://${host}:${port}`);
+      // Notify Admin on Telegram when server is started
+      try {
+        sendAppLaunchTelegramNotification().catch(() => {});
+      } catch (_) {}
       // Auto-start Telegram Bot listener for incoming commands & key generation (Only for local dev/admin, never on client builds)
       if (!isPackaged) {
         try {

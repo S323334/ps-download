@@ -1,11 +1,8 @@
 /**
  * Smart Drama Download Mode Selector & Auto-Concatenation Controller.
- * Handles:
- * 1. Smart Auto-Detection:
- *    - Single video (<= 1 episode): downloads immediately without prompt
- *    - Drama (> 1 episode): shows sleek modal for Merged vs Separate vs Both
- * 2. User preference persistence (Remember choice)
- * 3. Modal UI interactivity
+ * Supports strictly 2 options as requested:
+ * 1. "បញ្ចូលរឿង" (Merged Full Video) - Always 100% merged!
+ * 2. "ភាគ" (Separate Episodes)
  */
 
 (function() {
@@ -13,18 +10,16 @@
     let _selectedDownloadMode = 'merged';
 
     function selectDownloadModeCard(mode) {
-        _selectedDownloadMode = mode;
+        const cleanMode = (mode === 'separate') ? 'separate' : 'merged';
+        _selectedDownloadMode = cleanMode;
         const cards = document.querySelectorAll('.dl-mode-card');
         cards.forEach(c => c.classList.remove('active'));
 
-        if (mode === 'merged') {
+        if (cleanMode === 'merged') {
             const el = document.getElementById('dlModeCardMerged');
             if (el) el.classList.add('active');
-        } else if (mode === 'separate') {
+        } else if (cleanMode === 'separate') {
             const el = document.getElementById('dlModeCardSeparate');
-            if (el) el.classList.add('active');
-        } else if (mode === 'both') {
-            const el = document.getElementById('dlModeCardBoth');
             if (el) el.classList.add('active');
         }
     }
@@ -33,7 +28,8 @@
         _pendingDownloadModeCallback = onConfirm;
 
         // Restore saved preference if any, default to 'merged'
-        const saved = localStorage.getItem('hg_drama_dl_mode') || 'merged';
+        let saved = localStorage.getItem('hg_drama_dl_mode') || 'merged';
+        if (saved !== 'separate') saved = 'merged';
         selectDownloadModeCard(saved);
 
         const subEl = document.getElementById('dlModeModalSub');
@@ -74,7 +70,7 @@
     /**
      * Smart prompt:
      * - If single video (<= 1 ep), execute directly without dialog
-     * - If multi-episode drama (> 1 ep), prompt user with 3 options
+     * - If multi-episode drama (> 1 ep), prompt user or use active mode
      */
     function promptDownloadMode({ title, episodeCount = 1, onConfirm }) {
         if (!episodeCount || episodeCount <= 1) {
@@ -88,22 +84,24 @@
     }
 
     function getActiveDownloadMode() {
-        return localStorage.getItem('hg_drama_dl_mode') || 'merged';
+        const m = localStorage.getItem('hg_drama_dl_mode');
+        return (m === 'separate') ? 'separate' : 'merged';
     }
 
     function setQuickDownloadMode(mode) {
-        localStorage.setItem('hg_drama_dl_mode', mode);
-        _selectedDownloadMode = mode;
-        updateModeChipsUI(mode);
+        const cleanMode = (mode === 'separate') ? 'separate' : 'merged';
+        localStorage.setItem('hg_drama_dl_mode', cleanMode);
+        _selectedDownloadMode = cleanMode;
+        updateModeChipsUI(cleanMode);
         if (typeof showToast === 'function') {
-            const label = mode === 'merged' ? '🎞️ បញ្ចូលគ្នាជាវីដេអូពេញ (Merged Full Video)' : (mode === 'both' ? '🎬 យកទាំងពីរ (Merged + Separate)' : '📁 រាយភាគដាច់ដោយឡែក (Separate Episodes)');
+            const label = cleanMode === 'merged' ? '🎞️ បញ្ចូលរឿងជាវីដេអូពេញ (Merged Full Video)' : '📁 រាយភាគដាច់ដោយឡែក (Separate Episodes)';
             showToast(`បានជ្រើសរើសទម្រង់៖ ${label}`, '⚙️');
         }
     }
 
     function updateModeChipsUI(mode) {
         const curMode = (mode || getActiveDownloadMode()).toLowerCase();
-        ['Merged', 'Separate', 'Both'].forEach(m => {
+        ['Merged', 'Separate'].forEach(m => {
             const isAct = curMode === m.toLowerCase();
             const hgChip = document.getElementById(`chipMode${m}`);
             if (hgChip) hgChip.classList.toggle('active', isAct);
