@@ -39,6 +39,22 @@ function parseGitHubRepo(input) {
   return null;
 }
 
+// Global real-time update progress tracker
+let _currentUpdateProgress = {
+  active: false,
+  status: 'idle', // 'idle' | 'starting' | 'downloading' | 'extracting' | 'applying' | 'completed' | 'error'
+  percent: 0,
+  downloadedBytes: 0,
+  totalBytes: 0,
+  speedKBps: 0,
+  message: '',
+  error: null
+};
+
+function getUpdateProgress() {
+  return { ..._currentUpdateProgress };
+}
+
 /**
  * Helper to perform an HTTPS GET request with redirects and GitHub headers.
  */
@@ -54,7 +70,8 @@ function httpsGet(urlStr, maxRedirects = 5) {
         'User-Agent': `Hongguo-Downloader/${APP_VERSION} (Desktop-Electron)`,
         'Accept': 'application/vnd.github.v3+json, text/plain, */*'
       },
-      timeout: 15000
+      family: 4,
+      timeout: 25000
     };
 
     const req = client.get(urlStr, options, (res) => {
@@ -87,9 +104,9 @@ function httpsGet(urlStr, maxRedirects = 5) {
 }
 
 /**
- * Download a binary file to disk following redirects.
+ * Download a binary file to disk following redirects with real-time progress.
  */
-function downloadFile(urlStr, destPath, maxRedirects = 5) {
+function downloadFile(urlStr, destPath, maxRedirects = 5, totalBytesHint = 0) {
   return new Promise((resolve, reject) => {
     if (maxRedirects < 0) return reject(new Error('Too many redirects'));
 
@@ -98,9 +115,11 @@ function downloadFile(urlStr, destPath, maxRedirects = 5) {
 
     const options = {
       headers: {
-        'User-Agent': `Hongguo-Downloader/${APP_VERSION} (Desktop-Electron)`
+        'User-Agent': `Hongguo-Downloader/${APP_VERSION} (Desktop-Electron)`,
+        'Accept': '*/*'
       },
-      timeout: 60000
+      family: 4,
+      timeout: 300000
     };
 
     const fileStream = fs.createWriteStream(destPath);
@@ -108,38 +127,96 @@ function downloadFile(urlStr, destPath, maxRedirects = 5) {
     const req = client.get(urlStr, options, (res) => {
       if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
         fileStream.close();
-        if (fs.existsSync(destPath)) fs.unlinkSync(destPath);
-        return downloadFile(res.headers.location, destPath, maxRedirects - 1).then(resolve).catch(reject);
+        if (fs.existsSync(destPath)) {
+          try { fs.unlinkSync(destPath); } catch (_) {}
+        }
+        return downloadFile(res.headers.location, destPath, maxRedirects - 1, totalBytesHint).then(resolve).catch(reject);
       }
 
       if (res.statusCode !== 200) {
         fileStream.close();
-        if (fs.existsSync(destPath)) fs.unlinkSync(destPath);
-        return reject(new Error(`Download failed HTTP ${res.statusCode}`));
+        if (fs.existsSync(destPath)) {
+          try { fs.unlinkSync(destPath); } catch (_) {}
+        }
+        const err = new Error(`Download failed HTTP ${res.statusCode}`);
+        _currentUpdateProgress.status = 'error';
+        _currentUpdateProgress.error = err.message;
+        return reject(err);
       }
+
+      let contentLength = parseInt(res.headers['content-length'], 10);
+      if (!contentLength || isNaN(contentLength) || contentLength <= 0) {
+        contentLength = totalBytesHint > 0 ? totalBytesHint : (5 * 1024 * 1024);
+      }
+
+      _currentUpdateProgress.active = true;
+      _currentUpdateProgress.status = 'downloading';
+      _currentUpdateProgress.totalBytes = contentLength;
+      _currentUpdateProgress.message = 'កំពុងទាញយកឯកសារកូដថ្មី...';
+
+      let downloadedBytes = 0;
+      let lastBytes = 0;
+      let lastTime = Date.now();
+
+      res.on('data', (chunk) => {
+        downloadedBytes += chunk.length;
+        _currentUpdateProgress.downloadedBytes = downloadedBytes;
+
+        const now = Date.now();
+        const elapsed = (now - lastTime) / 1000;
+        if (elapsed >= 0.35) {
+          const bytesDiff = downloadedBytes - lastBytes;
+          _currentUpdateProgress.speedKBps = Math.round((bytesDiff / elapsed) / 1024);
+          lastBytes = downloadedBytes;
+          lastTime = now;
+        }
+
+        // Scale download phase from 1% up to 90%
+        let pct = Math.min(90, Math.round((downloadedBytes / contentLength) * 90));
+        if (pct < 1) pct = 1;
+        _currentUpdateProgress.percent = pct;
+
+        // Reset socket timeout on each received chunk
+        if (req.setTimeout) req.setTimeout(120000);
+      });
 
       res.pipe(fileStream);
 
       fileStream.on('finish', () => {
         fileStream.close();
+        _currentUpdateProgress.percent = 90;
         resolve(destPath);
       });
     });
 
     fileStream.on('error', (err) => {
-      if (fs.existsSync(destPath)) fs.unlinkSync(destPath);
+      if (fs.existsSync(destPath)) {
+        try { fs.unlinkSync(destPath); } catch (_) {}
+      }
+      _currentUpdateProgress.status = 'error';
+      _currentUpdateProgress.error = err.message;
       reject(err);
     });
 
     req.on('timeout', () => {
       req.destroy();
       fileStream.close();
-      if (fs.existsSync(destPath)) fs.unlinkSync(destPath);
-      reject(new Error('Download timed out'));
+      if (fs.existsSync(destPath)) {
+        try { fs.unlinkSync(destPath); } catch (_) {}
+      }
+      const err = new Error('Download timed out');
+      _currentUpdateProgress.status = 'error';
+      _currentUpdateProgress.error = err.message;
+      reject(err);
     });
+
     req.on('error', (err) => {
       fileStream.close();
-      if (fs.existsSync(destPath)) fs.unlinkSync(destPath);
+      if (fs.existsSync(destPath)) {
+        try { fs.unlinkSync(destPath); } catch (_) {}
+      }
+      _currentUpdateProgress.status = 'error';
+      _currentUpdateProgress.error = err.message;
       reject(err);
     });
   });
@@ -296,10 +373,23 @@ async function checkForUpdates(customRepo = null) {
  * Apply the update by downloading the zip package, extracting, and updating project files.
  */
 async function applyUpdate(downloadUrl, targetRepo = null) {
+  _currentUpdateProgress = {
+    active: true,
+    status: 'starting',
+    percent: 1,
+    downloadedBytes: 0,
+    totalBytes: 0,
+    speedKBps: 0,
+    message: 'កំពុងចាប់ផ្តើម...',
+    error: null
+  };
+
   if (!downloadUrl) {
     // If no explicit download url, check updates first
     const check = await checkForUpdates(targetRepo);
     if (!check.download_url) {
+      _currentUpdateProgress.status = 'error';
+      _currentUpdateProgress.error = 'មិនមាន Download URL សម្រាប់ធ្វើបច្ចុប្បន្នភាពឡើយ';
       throw new Error('មិនមាន Download URL សម្រាប់ធ្វើបច្ចុប្បន្នភាពឡើយ។');
     }
     downloadUrl = check.download_url;
@@ -310,7 +400,12 @@ async function applyUpdate(downloadUrl, targetRepo = null) {
     const tempExePath = path.join(CACHE_DIR, `PS_DOWNLOAD_Update_${Date.now()}.exe`);
     try {
       console.log('[Updater] Downloading installer update from:', downloadUrl);
+      _currentUpdateProgress.status = 'downloading';
+      _currentUpdateProgress.message = 'កំពុងទាញយក Installer កំណែថ្មី...';
       await downloadFile(downloadUrl, tempExePath);
+      _currentUpdateProgress.status = 'completed';
+      _currentUpdateProgress.percent = 100;
+      _currentUpdateProgress.message = 'បានទាញយក Installer រួចរាល់! កំពុងបើកកម្មវិធីដំឡើង...';
       console.log('[Updater] Launching installer:', tempExePath);
       exec(`start "" "${tempExePath}"`);
       setTimeout(() => {
@@ -328,6 +423,8 @@ async function applyUpdate(downloadUrl, targetRepo = null) {
         message: 'កំពុងបើកកម្មវិធីដំឡើងកំណែថ្មី... កម្មវិធីនឹងបិទដើម្បីដំឡើងដោយស្វ័យប្រវត្ត!'
       };
     } catch (e) {
+      _currentUpdateProgress.status = 'error';
+      _currentUpdateProgress.error = e.message;
       throw new Error(`បរាជ័យក្នុងការទាញយក Installer: ${e.message}`);
     }
   }
@@ -336,15 +433,22 @@ async function applyUpdate(downloadUrl, targetRepo = null) {
   const extractDir = path.join(CACHE_DIR, `update_ext_${Date.now()}`);
 
   try {
-    // 1. Download update zip file
+    // 1. Download update zip file (with ~5MB default hint for archive zips)
     console.log('[Updater] Downloading update from:', downloadUrl);
-    await downloadFile(downloadUrl, tempZipPath);
+    _currentUpdateProgress.status = 'downloading';
+    _currentUpdateProgress.percent = 2;
+    _currentUpdateProgress.message = 'កំពុងទាញយកឯកសារកូដថ្មីពី GitHub...';
+    await downloadFile(downloadUrl, tempZipPath, 5, 5000000);
 
     if (!fs.existsSync(tempZipPath) || fs.statSync(tempZipPath).size < 100) {
       throw new Error('ឯកសារ Zip ដែលទាញយកមកទទេ ឬខូច។');
     }
 
-    // 2. Extract zip file using tar or powershell
+    // 2. Extract zip file using bsdtar or powershell
+    _currentUpdateProgress.status = 'extracting';
+    _currentUpdateProgress.percent = 92;
+    _currentUpdateProgress.message = 'កំពុងពន្លាឯកសារកូដថ្មី (Extracting)...';
+
     if (!fs.existsSync(extractDir)) {
       fs.mkdirSync(extractDir, { recursive: true });
     }
@@ -374,6 +478,10 @@ async function applyUpdate(downloadUrl, targetRepo = null) {
     // 4. Determine destination directory:
     // In packaged Electron, APP_DIR is inside resources/app.asar (read-only archive).
     // Placing files in resources/app overrides app.asar automatically without needing re-install!
+    _currentUpdateProgress.status = 'applying';
+    _currentUpdateProgress.percent = 96;
+    _currentUpdateProgress.message = 'កំពុងដំឡើងកូដថ្មី (Installing)...';
+
     let targetAppDir = APP_DIR;
     if (isPackaged) {
       const resDir = process.resourcesPath || path.join(path.dirname(process.execPath), 'resources');
@@ -415,6 +523,9 @@ async function applyUpdate(downloadUrl, targetRepo = null) {
     }
 
     console.log('[Updater] Update applied successfully to version:', updatedVersion);
+    _currentUpdateProgress.status = 'completed';
+    _currentUpdateProgress.percent = 100;
+    _currentUpdateProgress.message = `បានធ្វើបច្ចុប្បន្នភាពកូដជោគជ័យទៅកាន់កំណែ v${updatedVersion}!`;
 
     return {
       status: 'success',
@@ -422,6 +533,10 @@ async function applyUpdate(downloadUrl, targetRepo = null) {
       message: `បានធ្វើបច្ចុប្បន្នភាពដោយជោគជ័យទៅកាន់កំណែ v${updatedVersion}! សូម Restart កម្មវិធី។`
     };
 
+  } catch (err) {
+    _currentUpdateProgress.status = 'error';
+    _currentUpdateProgress.error = err.message;
+    throw err;
   } finally {
     // Cleanup temporary files
     try {
@@ -436,5 +551,6 @@ async function applyUpdate(downloadUrl, targetRepo = null) {
 module.exports = {
   parseGitHubRepo,
   checkForUpdates,
-  applyUpdate
+  applyUpdate,
+  getUpdateProgress
 };

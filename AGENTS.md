@@ -38,9 +38,9 @@
   - ភ្ញៀវចាស់**មិនបាច់ទាញយក File ថ្មីឡើយ**។ គាត់គ្រាន់តែបើកកម្មវិធីចាស់ រួចចុច `⚙️ ការកំណត់` -> `🔄 Update`។
   - ប្រព័ន្ធ Updater នឹងទាញយកកូដថ្មីពី GitHub `main` មកជំនួសក្នុង `resources/app/` ដោយស្វ័យប្រវត្តិ។
   - **ការរក្សាទុក License**: ឯកសារ `data/license.json` ត្រូវបានការពារមិនឱ្យសរសេរជាន់ពីលើឡើយ ដូច្នេះ License Key របស់ភ្ញៀវនៅតែ Active ដដែល ១០០% មិនបាត់បង់ទេ។
-  - ពេលកែប្រែ App រួច ត្រូវកែ Version (ឧ. `3.2.2`) ក្នុង `package.json`, `src/config.js`, `web/index.html` និងចម្លងចូល `Upload_To_GitHub/` ជានិច្ច មុននឹង Push ឡើង GitHub។
+  - ពេលកែប្រែ App រួច ត្រូវកែ Version (ឧ. `3.2.3`) ក្នុង `package.json`, `src/config.js`, `web/index.html` និងចម្លងចូល `Upload_To_GitHub/` ជានិច្ច មុននឹង Push ឡើង GitHub។
 - **ការផ្ញើជូនភ្ញៀវថ្មី (New Customers)**:
-  - ប្រើ File Portable ZIP ដែលបានវេចខ្ចប់ស្រាប់ក្នុង `dist/` (ឧ. `dist/PS_DOWNLOAD_v3.2.2_Portable.zip` ~163 MB) ដាក់លើ Google Drive ឬ Telegram ដើម្បីផ្ញើ Link ឱ្យភ្ញៀវថ្មី។
+  - ប្រើ File Portable ZIP ដែលបានវេចខ្ចប់ស្រាប់ក្នុង `dist/` (ឧ. `dist/PS_DOWNLOAD_v3.2.3_Portable.zip` ~163 MB) ដាក់លើ Google Drive ឬ Telegram ដើម្បីផ្ញើ Link ឱ្យភ្ញៀវថ្មី។
 
 ---
 
@@ -55,5 +55,42 @@
 - **លុបប្រអប់ Debug Info ក្នុង Settings (`web/index.html`)**:
   - នៅពេលឡើង Version ថ្មីបន្ទាប់ (ឧ. `v3.2.3`) ត្រូវលុបប្រអប់អក្សរ ៣ ជួរនៅបាតក្រោមនៃផ្ទាំង Settings (`• Application: PS DOWNLOAD V3`, `• Data Source: https://hongguoduanju.com/ (SSR Scraper)`, `• Video Stream: Direct unencrypted MP4 CDN...`) ចេញឱ្យស្អាត។
   - **គោលបំណង**: ការពារកុំឱ្យទម្លាយឈ្មោះ Website (`hongguoduanju.com`) និងបច្ចេកទេសទាញយក (`SSR Scraper`) ទៅកាន់ភ្ញៀវ ឬអ្នកដទៃ ដើម្បីរក្សាការសម្ងាត់ និងភាព Professional របស់កម្មវិធី។
+
+---
+
+## 8. Customer-Facing Release Notes & Description Rule (ក្បួនសរសេរ Description ជូនភ្ញៀវអាន)
+- **ដាច់ខាតកុំសរសេរបែបបច្ចេកទេស Admin អានម្នាក់ឯង** (មិនត្រូវសរសេរថា "កែ code នេះ, បន្ថែម Keygen នោះ, កែ API..." ឡើយ)៖
+  - រាល់ពេលសរសេរ **Release Notes / Description** នៅលើ GitHub និងសារប្រកាសក្នុង Telegram ត្រូវតែសរសេរជា **ភាសាអតិថិជន (Customer-Facing Language)** ផ្ដោតលើផលប្រយោជន៍ និងភាពងាយស្រួលរបស់ភ្ញៀវជាចម្បង ៖
+    1. **ពាក្យស្វាគមន៍ & អរគុណភ្ញៀវ** យ៉ាងរាក់ទាក់ និងមានលក្ខណៈ Professional។
+    2. **អត្ថប្រយោជន៍ថ្មីៗសម្រាប់ភ្ញៀវ (What's New)** ៖ ល្បឿនទាញយក Full HD លឿនជាងមុន, កម្មវិធីរលូនមិនគាំង, ស៊ីកម្លាំងកុំព្យូទ័រ (CPU/RAM) តិចបំផុត, និងធានាសុវត្ថិភាព License Key ១០០% មិនបាត់បង់ថ្ងៃឡើយពេល Update។
+    3. **ការណែនាំពីរបៀប Update ងាយៗសម្រាប់ភ្ញៀវចាស់** ៖ បើកកម្មវិធី -> ចុច `⚙️ ការកំណត់` -> ចុច `🔄 Update` (៥ វិនាទីរួចរាល់)។
+    4. **ការណែនាំពីរបៀបដំឡើងសម្រាប់ភ្ញៀវថ្មី** ៖ ទាញយក File `.zip` -> Extract All -> បើក `PS DOWNLOAD.exe` -> ផ្ញើ Device ID មក Admin។
+    5. **ជំនួយ និងសេវាកម្មអតិថិជន ២៤/៧** ៖ ភ្ជាប់ Telegram Admin (`@Thpisal33`)។
+
+---
+
+## 9. Key Admin Unified Architecture (ប្រព័ន្ធ Key Admin រួមបញ្ចូលគ្នា V2.0 + V3)
+- **ទម្រង់ All-In-One**: រៀបចំផ្ទាំង Key Generator នៅខាងលើ + Instructions Box នៅខាងស្តាំ + របារស្ថិតិ (Total & Online) និងតារាង User នៅខាងក្រោមលើផ្ទាំងតែមួយ មិនបាច់ប្តូរ Tab ឡើយ។
+- **រក្សាទុកមុខងារចាស់ V2.0 ទាំងស្រុង ១០០% មិនឱ្យបាត់បង់** ៖
+  - ប្រអប់លេខកូដម៉ាស៊ីន (HWID) + ប៊ូតុង Paste។
+  - ធីក Universal (កូដប្រើបានគ្រប់ម៉ាស៊ីន) + Claim Window (1h, 12h, 24h, 48h, 72h, 168h)។
+  - ឈ្មោះអតិថិជន (Customer Name) + Telegram Username។
+  - ចំនួនថ្ងៃ (Duration Presets) ៖ 1, 3, 7, 14, 30, 60, 90, 180, 365, Lifetime + វាយថ្ងៃផ្ទាល់ខ្លួន។
+  - ប្រអប់ការណែនាំ (Instructions Box) ៖ ជំហាន ១-៥ + គន្លឹះ Right-Click Menu។
+  - **Menu ចុចស្តាំ (Right-Click Context Menu) លើតារាងភ្ញៀវ** ៖
+    - `⏱️ កំណត់ / បន្ថែមថ្ងៃ (Set Days)`
+    - `👤 កែឈ្មោះភ្ញៀវ (Set Name)`
+    - `👑 Set Lifetime (ពេញមួយជីវិត)`
+    - `🔒 Lock (0 Days / ចាក់សោដកហូត)`
+    - `📋 ចម្លង Device ID`
+    - `🔑 ចម្លង License Key`
+    - `🔄 ផ្ទេរ License ទៅម៉ាស៊ីនថ្មី`
+  - **ការគាំទ្រកូដចាស់ (Backward Compatibility)** ៖ ទទួលស្គាល់កូដចាស់ MD5 ពី KeyGen V2.0 (`PS_MEDIA_SECURE_KEY_2026`) និងដកស្រង់ឈ្មោះ Base64 ពីកន្ទុយ Key (`KEY:b64(name)`) ដោយស្វ័យប្រវត្តិ។
+- **មុខងារថ្មី V3 បន្ថែមពីលើ** ៖
+  - ⚡ បើកសិទ្ធិអូតូ (Auto Authorize 1-Click) មិនបាច់ផ្ញើ Key ទៅវិញទៅមក។
+  - 💬 ប៊ូតុងចម្លងសារ Telegram ប្រាប់ភ្ញៀវស្រេចៗ។
+  - 🚨 តាមដានអ្នកលួច Crack (Anti-Crack Tracker & Google Maps)។
+  - 💰 សារជូនដំណឹងការបង់ប្រាក់ KHQR & Telegram Bot Alerts។
+  - ☁️ Cloud Sync ២៤/៧ ជាមួយ Render Cloud។
 
 

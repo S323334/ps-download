@@ -80,9 +80,26 @@ function resolveWritableDirs() {
   }
 
   if (portableBase) {
+    const pData = path.join(portableBase, 'data');
+    const pCache = path.join(portableBase, 'cache');
+    try {
+      if (!fs.existsSync(pData)) fs.mkdirSync(pData, { recursive: true });
+      if (!fs.existsSync(pCache)) fs.mkdirSync(pCache, { recursive: true });
+      const resDir = process.resourcesPath || path.join(exeDir, 'resources');
+      const bundledData = path.join(resDir, 'app', 'data');
+      if (fs.existsSync(bundledData)) {
+        for (const f of fs.readdirSync(bundledData)) {
+          const srcF = path.join(bundledData, f);
+          const dstF = path.join(pData, f);
+          if (!fs.existsSync(dstF) && fs.statSync(srcF).isFile()) {
+            try { fs.copyFileSync(srcF, dstF); } catch (_) {}
+          }
+        }
+      }
+    } catch (_) {}
     return {
-      dataDir: path.join(portableBase, 'data'),
-      cacheDir: path.join(portableBase, 'cache')
+      dataDir: pData,
+      cacheDir: pCache
     };
   }
 
@@ -99,9 +116,27 @@ function resolveWritableDirs() {
     userData = path.join(roaming, 'ps-download');
   }
 
+  const uData = path.join(userData, 'data');
+  const uCache = path.join(userData, 'cache');
+  try {
+    if (!fs.existsSync(uData)) fs.mkdirSync(uData, { recursive: true });
+    if (!fs.existsSync(uCache)) fs.mkdirSync(uCache, { recursive: true });
+    const resDir = process.resourcesPath || path.join(exeDir, 'resources');
+    const bundledData = path.join(resDir, 'app', 'data');
+    if (fs.existsSync(bundledData)) {
+      for (const f of fs.readdirSync(bundledData)) {
+        const srcF = path.join(bundledData, f);
+        const dstF = path.join(uData, f);
+        if (!fs.existsSync(dstF) && fs.statSync(srcF).isFile()) {
+          try { fs.copyFileSync(srcF, dstF); } catch (_) {}
+        }
+      }
+    }
+  } catch (_) {}
+
   return {
-    dataDir: path.join(userData, 'data'),
-    cacheDir: path.join(userData, 'cache')
+    dataDir: uData,
+    cacheDir: uCache
   };
 }
 

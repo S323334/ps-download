@@ -2344,13 +2344,69 @@ let pollTimer = null;
             const btnIcon = document.getElementById('btnUpdateActionIcon');
             const btnText = document.getElementById('btnUpdateActionText');
             const cardBox = document.getElementById('updateCardBox');
+            const progressContainer = document.getElementById('updateProgressBarContainer');
+            const progressFill = document.getElementById('updateProgressBarFill');
+            const progressPhase = document.getElementById('updateProgressPhaseText');
+            const progressPercent = document.getElementById('updateProgressPercentText');
+            const progressBytes = document.getElementById('updateProgressBytesText');
+            const progressSpeed = document.getElementById('updateProgressSpeedText');
 
             if (btnAction) {
                 btnAction.disabled = true;
                 btnAction.style.pointerEvents = 'none';
             }
             if (btnIcon) btnIcon.innerText = '⏳';
-            if (btnText) btnText.innerText = 'កំពុងទាញយក...';
+            if (btnText) btnText.innerText = 'ទាញយក... 1%';
+
+            if (progressContainer) {
+                progressContainer.style.display = 'block';
+                if (progressFill) progressFill.style.width = '1%';
+                if (progressPercent) progressPercent.innerText = '1%';
+                if (progressBytes) progressBytes.innerText = '0 MB / 4.9 MB';
+                if (progressSpeed) progressSpeed.innerText = 'កំពុងភ្ជាប់...';
+                if (progressPhase) progressPhase.innerHTML = `<span>⏳</span> <span>កំពុងទាញយកកូដថ្មីពី GitHub...</span>`;
+            }
+
+            let progressTimer = null;
+            const startProgressPolling = () => {
+                progressTimer = setInterval(async () => {
+                    try {
+                        const prRes = await fetch('/api/update/progress');
+                        if (!prRes.ok) return;
+                        const p = await prRes.json();
+                        if (!p || !p.active) return;
+
+                        const pct = Math.max(1, p.percent || 1);
+                        if (progressFill) progressFill.style.width = `${pct}%`;
+                        if (progressPercent) progressPercent.innerText = `${pct}%`;
+
+                        if (p.downloadedBytes > 0) {
+                            const mbDown = (p.downloadedBytes / (1024 * 1024)).toFixed(1);
+                            const mbTotal = p.totalBytes > 0 ? (p.totalBytes / (1024 * 1024)).toFixed(1) : '4.9';
+                            if (progressBytes) progressBytes.innerText = `${mbDown} MB / ${mbTotal} MB`;
+                        }
+
+                        if (p.speedKBps !== undefined && p.speedKBps > 0) {
+                            if (progressSpeed) progressSpeed.innerText = `${p.speedKBps} KB/s`;
+                        }
+
+                        if (p.status === 'extracting') {
+                            if (btnText) btnText.innerText = `ពន្លាឯកសារ... ${pct}%`;
+                            if (progressPhase) progressPhase.innerHTML = `<span>📦</span> <span>${p.message || 'កំពុងពន្លាឯកសារកូដថ្មី...'}</span>`;
+                            if (progressSpeed) progressSpeed.innerText = 'កំពុងពន្លា';
+                        } else if (p.status === 'applying') {
+                            if (btnText) btnText.innerText = `ដំឡើង... ${pct}%`;
+                            if (progressPhase) progressPhase.innerHTML = `<span>⚙️</span> <span>${p.message || 'កំពុងដំឡើងកូដថ្មី...'}</span>`;
+                            if (progressSpeed) progressSpeed.innerText = 'កំពុងដំឡើង';
+                        } else if (p.status === 'downloading') {
+                            if (btnText) btnText.innerText = `ទាញយក... ${pct}%`;
+                            if (progressPhase) progressPhase.innerHTML = `<span>📥</span> <span>${p.message || 'កំពុងទាញយកកូដថ្មី...'}</span>`;
+                        }
+                    } catch (_) {}
+                }, 350);
+            };
+
+            startProgressPolling();
 
             try {
                 const res = await fetch('/api/update/apply', {
@@ -2362,14 +2418,20 @@ let pollTimer = null;
                     })
                 });
 
+                if (progressTimer) clearInterval(progressTimer);
+
                 const result = await res.json();
                 if (result.status === 'success') {
+                    if (progressFill) progressFill.style.width = '100%';
+                    if (progressPercent) progressPercent.innerText = '100%';
+                    if (btnText) btnText.innerText = '100% រួចរាល់';
+
                     showToast('បានធ្វើបច្ចុប្បន្នភាពកូដជោគជ័យ!', '🎉');
                     if (cardBox) {
                         cardBox.innerHTML = `
                             <div style="text-align:center; padding:12px 6px;">
                                 <div style="font-size:1.05rem; font-weight:800; color:#34d399; margin-bottom:6px;">
-                                    ✅ ធ្វើបច្ចុប្បន្នភាពកូដជោគជ័យ!
+                                    ✅ ធ្វើបច្ចុប្បន្នភាពកូដជោគជ័យ (100%)!
                                 </div>
                                 <div style="font-size:0.82rem; color:#cbd5e1; margin-bottom:12px;">
                                     បានដំឡើងកំណែ <b>v${escapeHtml(result.updated_version)}</b> រួចរាល់។ សូម Restart កម្មវិធីឥឡូវនេះ!
@@ -2390,6 +2452,8 @@ let pollTimer = null;
                     throw new Error(result.error || 'បរាជ័យក្នុងការ Update');
                 }
             } catch (err) {
+                if (progressTimer) clearInterval(progressTimer);
+                if (progressContainer) progressContainer.style.display = 'none';
                 showToast(`បរាជ័យ: ${err.message}`, '❌');
                 if (btnAction) {
                     btnAction.disabled = false;

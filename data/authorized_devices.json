@@ -15,10 +15,9 @@
     "deviceId": "HG-DBC0-79F8-FD0C",
     "key": "D030-B936-51A1-C1C5",
     "days": 30,
-    "hours": 0,
     "label": "អាជ្ញាប័ណ្ណ 30 ថ្ងៃ",
     "customName": "ADMIN",
-    "telegramUser": "",
+    "telegramUser": "@Thpisal33",
     "authorizedAt": "2026-09-29T10:43:41.434Z",
     "expiresAt": "2026-10-29T10:43:41.432Z",
     "status": "active"
@@ -33,7 +32,6 @@
     "customName": "NR-សម្រាយរឿង69",
     "authorizedAt": "2026-10-02T15:14:57.907Z",
     "expiresAt": "2026-10-08T15:14:57.903Z",
-    "status": "active",
-    "revoked": false
+    "status": "active"
   }
 }

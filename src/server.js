@@ -36,7 +36,7 @@ const { mvffmDownloader } = require('./mvffm_downloader.js');
 const { dailymotionDownloader } = require('./dailymotion_downloader.js');
 const { tiktokDownloader } = require('./tiktok_downloader.js');
 const { downloadMemoryManager } = require('./download_memory_manager.js');
-const { checkForUpdates, applyUpdate } = require('./updater.js');
+const { checkForUpdates, applyUpdate, getUpdateProgress } = require('./updater.js');
 const { probeDramaQuality, probeBatch } = require('./video_prober.js');
 const {
   getLicenseStatus,
@@ -1364,6 +1364,11 @@ function startServer(port = PORT, host = HOST) {
         }
       }
 
+      // 24b. Software Updater Progress: GET /api/update/progress or /dl/update/progress
+      if (pathname === '/api/update/progress' || pathname === '/dl/update/progress') {
+        return sendJson(res, 200, getUpdateProgress());
+      }
+
       // 24c. Software Updater Apply: POST /api/update/apply or /dl/update/apply
       if ((pathname === '/api/update/apply' || pathname === '/dl/update/apply') && req.method === 'POST') {
         const body = await parseJsonBody(req);
@@ -2039,7 +2044,16 @@ function startServer(port = PORT, host = HOST) {
       // 28. License & Device Tracking API Endpoints
       // 28a. License Status: GET /api/license/status
       if (pathname === '/api/license/status' && req.method === 'GET') {
-        return sendJson(res, 200, getLicenseStatus());
+        let lic = getLicenseStatus();
+        if (!lic || !lic.activated) {
+          try {
+            const autoRes = await checkAutoActivation();
+            if (autoRes && autoRes.authorized) {
+              lic = getLicenseStatus();
+            }
+          } catch (_) {}
+        }
+        return sendJson(res, 200, lic);
       }
 
       // 28b. Activate with Key: POST /api/license/activate
@@ -2158,9 +2172,17 @@ function startServer(port = PORT, host = HOST) {
                       customName: cd.customName,
                       key: cd.key,
                       status: cd.status,
-                      expiresAt: cd.expiresAt,
-                      skipAlert: true
-                    });
+                    if (cd.key && (cd.status === 'active' || String(cd.status).includes('ថ្ងៃ') || cd.expiresAt)) {
+                      authorizeDevice({
+                        deviceId: cd.deviceId,
+                        days: cd.days || 0,
+                        customName: cd.customName || '',
+                        telegramUser: cd.telegramUser || '',
+                        customLabel: cd.label || cd.status,
+                        customExpiresAt: cd.expiresAt || null,
+                        customAuthorizedAt: cd.firstSeen ? (typeof cd.firstSeen === 'number' ? new Date(cd.firstSeen).toISOString() : cd.firstSeen) : null
+                      });
+                    }
                     syncedCount++;
                   }
                 }
@@ -2185,7 +2207,9 @@ function startServer(port = PORT, host = HOST) {
                     deviceId: d.deviceId,
                     days: cloudData.days || 30,
                     customName: cloudData.customName || d.customName || '',
-                    customLabel: cloudData.label
+                    customLabel: cloudData.label,
+                    customExpiresAt: cloudData.expiresAt,
+                    customAuthorizedAt: cloudData.authorizedAt
                   });
                   syncedCount++;
                 }

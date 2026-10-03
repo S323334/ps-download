@@ -30,22 +30,57 @@ let _cachedDeviceId = null;
 /**
  * Retrieves or generates a persistent, unique Hardware/Device ID for this machine.
  * Combines Windows MachineGuid + Computer Name + Username + CPU architecture.
+ * Uses ultra-fast Windows Registry query (~30ms) and disk persistence so it NEVER changes.
  */
 function getDeviceId() {
   if (_cachedDeviceId) return _cachedDeviceId;
 
+  const deviceIdSavedPaths = [
+    path.join(DATA_DIR, 'device_id.txt'),
+    path.join(process.env.PROGRAMDATA || 'C:\\ProgramData', 'HongguoDownloader', 'device_id.txt'),
+    path.join(process.env.APPDATA || '', 'HongguoDownloader', 'device_id.txt')
+  ];
+
   let rawMachineGuid = '';
   if (process.platform === 'win32') {
+    // 1. Fast native Windows Registry query (takes ~20-50ms, never hangs)
     try {
-      const out = cp.execSync(
-        'powershell -NoProfile -Command "(Get-ItemProperty -Path HKLM:\\SOFTWARE\\Microsoft\\Cryptography).MachineGuid"',
-        { timeout: 3000, stdio: ['ignore', 'pipe', 'ignore'] }
-      ).toString().trim();
-      if (out && out.length > 8) {
-        rawMachineGuid = out;
+      const regOut = cp.execSync('reg query "HKLM\\SOFTWARE\\Microsoft\\Cryptography" /v MachineGuid', {
+        timeout: 2000,
+        stdio: ['ignore', 'pipe', 'ignore']
+      }).toString();
+      const match = regOut.match(/MachineGuid\s+REG_SZ\s+(\S+)/i);
+      if (match && match[1] && match[1].length > 8) {
+        rawMachineGuid = match[1].trim();
       }
-    } catch (e) {
-      // Fallback
+    } catch (_) {}
+
+    // 2. Fallback to PowerShell if registry query didn't return
+    if (!rawMachineGuid) {
+      try {
+        const out = cp.execSync(
+          'powershell -NoProfile -Command "(Get-ItemProperty -Path HKLM:\\SOFTWARE\\Microsoft\\Cryptography).MachineGuid"',
+          { timeout: 3500, stdio: ['ignore', 'pipe', 'ignore'] }
+        ).toString().trim();
+        if (out && out.length > 8) {
+          rawMachineGuid = out;
+        }
+      } catch (_) {}
+    }
+  }
+
+  // If machineGuid was temporarily unreadable, recover from previously saved device_id.txt
+  if (!rawMachineGuid) {
+    for (const p of deviceIdSavedPaths) {
+      try {
+        if (fs.existsSync(p)) {
+          const saved = fs.readFileSync(p, 'utf-8').trim();
+          if (saved && saved.startsWith('HG-') && saved.length >= 14) {
+            _cachedDeviceId = saved;
+            return _cachedDeviceId;
+          }
+        }
+      } catch (_) {}
     }
   }
 
@@ -64,6 +99,16 @@ function getDeviceId() {
   const part3 = hexHash.substring(8, 12);
 
   _cachedDeviceId = `HG-${part1}-${part2}-${part3}`;
+
+  // Persist this device ID across all vaults so it stays 100% stable
+  for (const p of deviceIdSavedPaths) {
+    try {
+      const dir = path.dirname(p);
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+      if (!fs.existsSync(p)) fs.writeFileSync(p, _cachedDeviceId, 'utf-8');
+    } catch (_) {}
+  }
+
   return _cachedDeviceId;
 }
 
@@ -491,13 +536,53 @@ function getSystemAuthVaultPaths() {
 }
 
 /**
+ * Returns all possible locations where license.json could exist on this computer
+ * across Portable, Packaged, UserData, and System Vault directories.
+ */
+function getAllPossibleLicensePaths() {
+  const list = new Set();
+  try { if (LICENSE_FILE) list.add(LICENSE_FILE); } catch (_) {}
+  try { if (DATA_DIR) list.add(path.join(DATA_DIR, 'license.json')); } catch (_) {}
+
+  // 1. Portable Base / exe directory data folder
+  try {
+    const exeDir = path.dirname(process.execPath);
+    list.add(path.join(exeDir, 'data', 'license.json'));
+    list.add(path.join(exeDir, 'license.json'));
+  } catch (_) {}
+
+  // 2. Resources / app data folder (Electron packaged)
+  try {
+    const resDir = process.resourcesPath || path.join(path.dirname(process.execPath), 'resources');
+    list.add(path.join(resDir, 'app', 'data', 'license.json'));
+    list.add(path.join(resDir, 'data', 'license.json'));
+  } catch (_) {}
+
+  // 3. UserData / Roaming app data folder
+  try {
+    const roaming = process.env.APPDATA || (os.homedir ? path.join(os.homedir(), 'AppData', 'Roaming') : null);
+    if (roaming) {
+      list.add(path.join(roaming, 'ps-download', 'data', 'license.json'));
+      list.add(path.join(roaming, 'HongguoDownloader', 'license.json'));
+    }
+  } catch (_) {}
+
+  // 4. System Vaults (ProgramData, AppData, LocalAppData)
+  for (const v of getSystemVaultPaths()) {
+    list.add(v);
+  }
+
+  return Array.from(list);
+}
+
+/**
  * Saves license record to local file AND all persistent system vaults.
  */
 function saveLicenseToVaults(record) {
   if (!record) return;
   const jsonStr = JSON.stringify(record, null, 2);
 
-  // 1. Local copy in data/license.json
+  // 1. Local copy in DATA_DIR
   try {
     if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
     fs.writeFileSync(LICENSE_FILE, jsonStr, 'utf-8');
@@ -505,7 +590,16 @@ function saveLicenseToVaults(record) {
     console.warn('[License] Failed to write local license:', e.message);
   }
 
-  // 2. System vaults (ProgramData, AppData, LocalAppData)
+  // 2. Exe portable data directory if available
+  try {
+    const exeDir = path.dirname(process.execPath);
+    const pDataDir = path.join(exeDir, 'data');
+    if (fs.existsSync(pDataDir)) {
+      fs.writeFileSync(path.join(pDataDir, 'license.json'), jsonStr, 'utf-8');
+    }
+  } catch (_) {}
+
+  // 3. System vaults (ProgramData, AppData, LocalAppData)
   for (const vaultPath of getSystemVaultPaths()) {
     try {
       const vDir = path.dirname(vaultPath);
@@ -523,7 +617,7 @@ function saveLicenseToVaults(record) {
 function recoverLicenseFromVaults(targetDeviceId) {
   const cleanId = String(targetDeviceId || getDeviceId()).trim().toUpperCase();
 
-  for (const vaultPath of getSystemVaultPaths()) {
+  for (const vaultPath of getAllPossibleLicensePaths()) {
     try {
       if (fs.existsSync(vaultPath)) {
         const raw = fs.readFileSync(vaultPath, 'utf-8');
@@ -554,13 +648,26 @@ function getLicenseStatus() {
   const currentDevice = getDeviceId();
   let data = null;
 
-  // 1. Try reading local LICENSE_FILE
-  if (fs.existsSync(LICENSE_FILE)) {
-    try {
-      const raw = fs.readFileSync(LICENSE_FILE, 'utf-8');
-      data = JSON.parse(raw);
-    } catch (e) {
-      data = null;
+  // 1. Check all potential license file paths (Local, Portable, UserData, Vaults)
+  for (const licPath of getAllPossibleLicensePaths()) {
+    if (fs.existsSync(licPath)) {
+      try {
+        const raw = fs.readFileSync(licPath, 'utf-8');
+        const parsed = JSON.parse(raw);
+        if (parsed && parsed.key) {
+          if (parsed.type === 'master' || parsed.device_id === currentDevice) {
+            data = parsed;
+            // Restore to current LICENSE_FILE if needed
+            if (licPath !== LICENSE_FILE) {
+              try {
+                if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+                fs.writeFileSync(LICENSE_FILE, JSON.stringify(data, null, 2), 'utf-8');
+              } catch (_) {}
+            }
+            break;
+          }
+        }
+      } catch (e) {}
     }
   }
 
@@ -629,8 +736,8 @@ function getLicenseStatus() {
   const authMap = getAuthorizedDevicesMap();
   const authRecord = authMap[currentDevice];
 
-  // If Admin expired, revoked or transferred this license, apply expired state cleanly
-  if (authRecord && (authRecord.revoked || authRecord.status === 'revoked' || authRecord.status === 'expired')) {
+  // If Admin explicitly revoked or transferred this license, apply revoked state (DO NOT delete file on 'expired')
+  if (authRecord && (authRecord.revoked === true || authRecord.status === 'revoked')) {
     deactivateLicense();
     return {
       activated: false,
@@ -644,7 +751,7 @@ function getLicenseStatus() {
       remaining_minutes: 0,
       custom_name: customName,
       app_version: APP_VERSION,
-      message: 'License របស់អ្នកបានផុតកំណត់ហើយ'
+      message: 'License ត្រូវបានដកហូតដោយ Admin'
     };
   }
 
@@ -1487,9 +1594,19 @@ function getTrackedDevices() {
 
 /**
  * Authorizes a client device for Auto-Activation (when owner enters ID + days in Admin panel).
- * Supports days, hours, extending existing time, and custom names.
+ * Supports days, hours, extending existing time, custom names, and exact custom expiration timestamps.
  */
-function authorizeDevice({ deviceId, days = 0, hours = 0, telegramUser = '', customName = '', extend = false, customLabel = null }) {
+function authorizeDevice({
+  deviceId,
+  days = 0,
+  hours = 0,
+  telegramUser = '',
+  customName = '',
+  extend = false,
+  customLabel = null,
+  customExpiresAt = null,
+  customAuthorizedAt = null
+}) {
   const cleanId = String(deviceId || '').trim().toUpperCase();
   const numDays = Math.max(0, parseInt(days || '0', 10));
   const numHours = Math.max(0, parseInt(hours || '0', 10));
@@ -1502,9 +1619,11 @@ function authorizeDevice({ deviceId, days = 0, hours = 0, telegramUser = '', cus
     } catch (e) { authMap = {}; }
   }
 
+  const existingRecord = authMap[cleanId] || {};
+
   // Calculate duration and expiry
   let durationMs = 0;
-  let label = customLabel || 'Lifetime VIP (ពេញមួយជីវិត)';
+  let label = customLabel || existingRecord.label || 'Lifetime VIP (ពេញមួយជីវិត)';
   let keyDays = 0;
 
   if (numHours > 0) {
@@ -1513,35 +1632,45 @@ function authorizeDevice({ deviceId, days = 0, hours = 0, telegramUser = '', cus
     keyDays = Math.max(1, Math.ceil(numHours / 24));
   } else if (numDays > 0) {
     durationMs = numDays * 86400000;
-    label = numDays >= 365 ? '1 ឆ្នាំ (365 ថ្ងៃ)' : `${numDays} ថ្ងៃ`;
+    label = customLabel || (numDays >= 365 ? '1 ឆ្នាំ (365 ថ្ងៃ)' : `${numDays} ថ្ងៃ`);
     keyDays = numDays;
+  } else if (existingRecord.days > 0) {
+    keyDays = existingRecord.days;
+    label = customLabel || existingRecord.label || `${keyDays} ថ្ងៃ`;
   }
 
   let expiresAt = null;
-  if (durationMs > 0) {
+  if (customExpiresAt) {
+    // Exact expiration timestamp provided (e.g. from Cloud Sync) - preserve it 100%!
+    expiresAt = customExpiresAt;
+  } else if (durationMs > 0) {
     let baseTime = Date.now();
-    if (extend && authMap[cleanId] && authMap[cleanId].expiresAt) {
-      const existingExp = new Date(authMap[cleanId].expiresAt).getTime();
+    if (extend && existingRecord.expiresAt) {
+      const existingExp = new Date(existingRecord.expiresAt).getTime();
       if (existingExp > Date.now()) {
         baseTime = existingExp;
       }
     }
     expiresAt = new Date(baseTime + durationMs).toISOString();
+  } else if (existingRecord.expiresAt && !extend) {
+    // If not extending and no explicit duration given, keep existing expiration!
+    expiresAt = existingRecord.expiresAt;
   }
 
-  // Generate valid key
-  const key = generateLicenseKey(cleanId, keyDays);
+  // Preserve existing key if valid, otherwise generate
+  const key = existingRecord.key || generateLicenseKey(cleanId, keyDays);
 
-  const existingRecord = authMap[cleanId] || {};
+  const authTime = customAuthorizedAt || existingRecord.authorizedAt || new Date().toISOString();
+
   authMap[cleanId] = {
     deviceId: cleanId,
     key: key,
     days: keyDays,
-    hours: numHours,
+    hours: numHours || existingRecord.hours || 0,
     label: label,
     telegramUser: telegramUser || existingRecord.telegramUser || '',
     customName: customName || existingRecord.customName || telegramUser || '',
-    authorizedAt: new Date().toISOString(),
+    authorizedAt: authTime,
     expiresAt: expiresAt,
     status: 'active'
   };

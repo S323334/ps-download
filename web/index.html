@@ -1778,6 +1778,24 @@
                             </button>
                         </div>
 
+                        <!-- Real-time Progress Bar Box (Shown when downloading/updating) -->
+                        <div id="updateProgressBarContainer" style="display:none; margin-top:12px; padding:10px 12px; background:rgba(0,0,0,0.4); border-radius:10px; border:1px solid rgba(59,130,246,0.25);">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; font-size:0.8rem;">
+                                <span id="updateProgressPhaseText" style="color:#93c5fd; font-weight:600; display:flex; align-items:center; gap:6px;">
+                                    <span style="display:inline-block;">📥</span>
+                                    <span>កំពុងទាញយកកូដថ្មី...</span>
+                                </span>
+                                <span id="updateProgressPercentText" style="color:#34d399; font-weight:800; font-size:0.95rem; font-family:Consolas, monospace;">0%</span>
+                            </div>
+                            <div style="width:100%; height:10px; background:rgba(255,255,255,0.08); border-radius:6px; overflow:hidden; position:relative; box-shadow:inset 0 1px 3px rgba(0,0,0,0.5);">
+                                <div id="updateProgressBarFill" style="width:0%; height:100%; background:linear-gradient(90deg, #3b82f6, #06b6d4, #10b981); border-radius:6px; transition:width 0.25s ease; box-shadow:0 0 12px rgba(16,185,129,0.6);"></div>
+                            </div>
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:6px; font-size:0.73rem; color:#94a3b8;">
+                                <span id="updateProgressBytesText">0 MB / 0 MB</span>
+                                <span id="updateProgressSpeedText" style="color:#38bdf8; font-weight:600;">0 KB/s</span>
+                            </div>
+                        </div>
+
                         <!-- Changelog preview (Shown only when update available) -->
                         <div id="updateChangelogBox" style="display:none; margin-top:10px; background:rgba(0,0,0,0.35); border-radius:6px; padding:8px 10px; font-size:0.76rem; color:#e2e8f0; line-height:1.45; max-height:75px; overflow-y:auto; white-space:pre-wrap; border-left:3px solid #10b981;"></div>
                     </div>
