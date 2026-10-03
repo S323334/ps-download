@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+  <defs>
+    <linearGradient id="ksGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FF6B00"/>
+      <stop offset="100%" stop-color="#FF3300"/>
+    </linearGradient>
+  </defs>
+  <rect width="48" height="48" rx="10" fill="url(#ksGrad)"/>
+  <g fill="#FFFFFF">
+    <circle cx="24" cy="14" r="4.5"/>
+    <path fill-rule="evenodd" d="M17.5 20.5c-4.4 0-8 3.4-8 7.8 0 4.3 3.6 7.8 8 7.8 3.5 0 6.5-2.2 7.6-5.4 1.1 3.2 4.1 5.4 7.6 5.4 4.4 0 8-3.5 8-7.8 0-4.4-3.6-7.8-8-7.8-3.5 0-6.5 2.2-7.6 5.3-1.1-3.1-4.1-5.3-7.6-5.3zm-1 4.5c2 0 3.7 1.6 3.7 3.6s-1.7 3.6-3.7 3.6-3.7-1.6-3.7-3.6 1.7-3.6 3.7-3.6zm15 0c2 0 3.7 1.6 3.7 3.6s-1.7 3.6-3.7 3.6-3.7-1.6-3.7-3.6 1.7-3.6 3.7-3.6z"/>
+  </g>
+</svg>

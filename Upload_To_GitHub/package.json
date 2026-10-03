@@ -1,0 +1,82 @@
+{
+  "name": "ps-download",
+  "productName": "PS DOWNLOAD",
+  "version": "3.2.3",
+  "description": "PS DOWNLOAD - All-in-One Short Drama & YouTube Downloader Desktop Application",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron .",
+    "bot": "node src/bot_service.js",
+    "genkey": "node src/license.js",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder"
+  },
+  "build": {
+    "appId": "com.psdownload.desktop",
+    "productName": "PS DOWNLOAD",
+    "asar": false,
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "web/favicon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "PS DOWNLOAD"
+    },
+    "files": [
+      "main.js",
+      "src/**/*",
+      "web/**/*",
+      "lib/**/*",
+      "data/**/*",
+      "!data/settings.json",
+      "!data/library_db.json",
+      "!data/telegram_bot.lock",
+      "!data/license.json",
+      "!data/license.json.bak",
+      "!data/authorized_devices.json",
+      "!data/authorized_devices.json.bak",
+      "!data/devices_tracker.json",
+      "!data/failed_attempts.json",
+      "!data/generated_keys.json",
+      "!data/payments.json",
+      "!data/pending_checkouts.json",
+      "!data/processed_payway_trx.json",
+      "icon.ico",
+      "icon.png",
+      "favicon.ico"
+    ]
+  },
+  "keywords": [
+    "ps-download",
+    "hongguo",
+    "haosou",
+    "mvffm",
+    "youtube",
+    "downloader",
+    "electron"
+  ],
+  "author": "PS DOWNLOAD Team",
+  "license": "MIT",
+  "dependencies": {
+    "semver": "^7.6.3"
+  },
+  "devDependencies": {
+    "electron": "^44.4.5",
+    "electron-builder": "^26.15.3"
+  }
+}

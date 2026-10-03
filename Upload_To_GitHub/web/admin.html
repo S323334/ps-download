@@ -1,0 +1,2684 @@
+<!DOCTYPE html>
+<html lang="km">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔑 PS DOWNLOAD - Admin License & Key Generator</title>
+    <link rel="icon" type="image/png" href="/admin_logo.png">
+    <link rel="shortcut icon" href="/admin_logo.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/main.css">
+    <style>
+        :root {
+            --bg-deep: #07090e;
+            --bg-card: rgba(17, 24, 39, 0.85);
+            --border-glow: rgba(59, 130, 246, 0.25);
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --accent-green: #10b981;
+            --accent-purple: #8b5cf6;
+            --text-main: #f8fafc;
+            --text-sub: #94a3b8;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-deep);
+            color: var(--text-main);
+            font-family: 'Outfit', 'Kantumruy Pro', -apple-system, BlinkMacSystemFont, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            padding: 0 !important;
+            padding-left: 0 !important;
+            margin: 0 !important;
+            width: 100%;
+            background-image: 
+                radial-gradient(circle at 15% 15%, rgba(59, 130, 246, 0.12) 0%, transparent 40%),
+                radial-gradient(circle at 85% 85%, rgba(139, 92, 246, 0.1) 0%, transparent 40%),
+                radial-gradient(circle at 50% 50%, rgba(16, 185, 129, 0.05) 0%, transparent 60%);
+            background-attachment: fixed;
+        }
+
+        .admin-wrapper {
+            max-width: 1400px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 16px 24px 32px 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            box-sizing: border-box;
+        }
+
+        /* Top Header */
+        .admin-top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 14px;
+            padding: 12px 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+        }
+
+        .admin-brand {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .admin-brand img {
+            width: 52px;
+            height: 52px;
+            border-radius: 12px;
+            object-fit: cover;
+            border: 2px solid #f59e0b;
+            box-shadow: 0 0 20px rgba(245, 158, 11, 0.4);
+        }
+
+        .admin-brand-title {
+            font-size: 1.25rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #fbbf24, #f59e0b, #38bdf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: 0.5px;
+        }
+
+        .admin-brand-subtitle {
+            font-size: 0.8rem;
+            color: var(--text-sub);
+            margin-top: 2px;
+        }
+
+        /* Tabs */
+        .admin-tabs {
+            display: flex;
+            gap: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 12px;
+        }
+
+        .admin-tab-btn {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: var(--text-sub);
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-family: inherit;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .admin-tab-btn:hover {
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--text-main);
+        }
+
+        .admin-tab-btn.active {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(37, 99, 235, 0.15));
+            border-color: rgba(59, 130, 246, 0.6);
+            color: #ffffff;
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.3);
+        }
+
+        .tab-badge {
+            background: #ef4444;
+            color: #fff;
+            font-size: 0.72rem;
+            padding: 2px 7px;
+            border-radius: 20px;
+            font-weight: 800;
+        }
+
+        .tab-badge.green {
+            background: #10b981;
+        }
+
+        /* Tab Panels */
+        .tab-panel {
+            display: none;
+            background: var(--bg-card);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 18px;
+            padding: 24px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .tab-panel.active {
+            display: block;
+            animation: fadeIn 0.25s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .panel-heading {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 14px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .panel-title {
+            font-size: 1.15rem;
+            font-weight: 800;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .panel-desc {
+            font-size: 0.8rem;
+            color: var(--text-sub);
+            margin-top: 4px;
+        }
+
+        /* Sleek Compact Metrics Bar (Replaces bulky cards) */
+        .metrics-bar {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 10px;
+            margin-bottom: 14px;
+            flex-wrap: wrap;
+        }
+
+        .metric-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 14px;
+            border-radius: 9px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            font-size: 0.81rem;
+            color: #cbd5e1;
+            transition: all 0.2s;
+        }
+
+        .metric-pill:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.16);
+        }
+
+        .metric-pill.blue { border-left: 3.5px solid #3b82f6; }
+        .metric-pill.green { border-left: 3.5px solid #10b981; }
+        .metric-pill.purple { border-left: 3.5px solid #8b5cf6; }
+        .metric-pill.amber { border-left: 3.5px solid #f59e0b; }
+
+        .metric-pill .m-label {
+            font-weight: 600;
+            color: #94a3b8;
+            font-size: 0.78rem;
+        }
+
+        .metric-pill .m-val {
+            font-size: 1.05rem;
+            font-weight: 800;
+            font-family: 'JetBrains Mono', monospace;
+            color: #ffffff;
+        }
+
+        .metric-pill.blue .m-val { color: #60a5fa; }
+        .metric-pill.green .m-val { color: #34d399; }
+        .metric-pill.purple .m-val { color: #c084fc; }
+        .metric-pill.amber .m-val { color: #fbbf24; }
+
+        /* Forms */
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: #cbd5e1;
+            margin-bottom: 8px;
+        }
+
+        .input-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        .custom-input {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            border-radius: 10px;
+            padding: 12px 16px;
+            color: #ffffff;
+            font-size: 0.95rem;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+
+        .custom-input:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.3);
+            background: rgba(0, 0, 0, 0.55);
+        }
+
+        .custom-input::placeholder {
+            color: #64748b;
+        }
+
+        /* Duration Cards Grid */
+        .duration-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+            gap: 10px;
+        }
+
+        .duration-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 10px;
+            padding: 12px 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .duration-card:hover {
+            background: rgba(255, 255, 255, 0.07);
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .duration-card.active {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.25), rgba(37, 99, 235, 0.15));
+            border-color: #3b82f6;
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.35);
+        }
+
+        .duration-title {
+            font-size: 0.88rem;
+            font-weight: 700;
+            color: #ffffff;
+        }
+
+        .duration-desc {
+            font-size: 0.7rem;
+            color: var(--text-sub);
+            margin-top: 2px;
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px 18px;
+            border-radius: 10px;
+            font-family: inherit;
+            font-size: 0.88rem;
+            font-weight: 700;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: #ffffff;
+            box-shadow: 0 4px 15px rgba(37, 99, 235, 0.35);
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #60a5fa, #3b82f6);
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            color: #ffffff;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.14);
+            border-color: rgba(255, 255, 255, 0.25);
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 0.78rem;
+            border-radius: 8px;
+        }
+
+        .action-buttons-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+            margin-top: 20px;
+        }
+
+        .btn-action-primary {
+            height: 52px;
+            font-size: 1rem;
+            font-weight: 800;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s ease;
+        }
+
+        .btn-auto-auth {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: #ffffff;
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.35);
+        }
+
+        .btn-auto-auth:hover {
+            background: linear-gradient(135deg, #34d399, #10b981);
+            transform: translateY(-2px);
+            box-shadow: 0 0 25px rgba(16, 185, 129, 0.5);
+        }
+
+        .btn-gen-key {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: #ffffff;
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.35);
+        }
+
+        .btn-gen-key:hover {
+            background: linear-gradient(135deg, #60a5fa, #3b82f6);
+            transform: translateY(-2px);
+            box-shadow: 0 0 25px rgba(59, 130, 246, 0.5);
+        }
+
+        /* Result Cards */
+        .result-box {
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 14px;
+            padding: 18px;
+            margin-top: 20px;
+            animation: fadeIn 0.25s ease;
+        }
+
+        .result-box.success {
+            border: 1px solid rgba(16, 185, 129, 0.4);
+            box-shadow: 0 0 25px rgba(16, 185, 129, 0.2);
+        }
+
+        .result-box.blue {
+            border: 1px solid rgba(59, 130, 246, 0.4);
+            box-shadow: 0 0 25px rgba(59, 130, 246, 0.2);
+        }
+
+        .result-key-text {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.45rem;
+            font-weight: 800;
+            color: #38bdf8;
+            letter-spacing: 2px;
+            text-align: center;
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px dashed rgba(56, 189, 248, 0.4);
+            border-radius: 10px;
+            padding: 12px;
+            margin: 14px 0;
+            user-select: all;
+        }
+
+        .result-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        /* Table Styling - 100% Responsive, NO Horizontal Scroll */
+        .tracker-table-wrapper {
+            overflow-x: hidden;
+            width: 100%;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            background: rgba(0, 0, 0, 0.25);
+            margin-top: 10px;
+        }
+
+        .tracker-table {
+            width: 100%;
+            table-layout: fixed;
+            border-collapse: collapse;
+            font-size: 0.81rem;
+        }
+
+        .tracker-table th {
+            background: rgba(255, 255, 255, 0.04);
+            color: #cbd5e1;
+            font-weight: 700;
+            padding: 9px 10px;
+            font-size: 0.77rem;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .tracker-table td {
+            padding: 8px 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            color: #e2e8f0;
+            vertical-align: middle;
+            font-size: 0.80rem;
+            overflow: hidden;
+            word-break: break-word;
+        }
+
+        .tracker-table tr:hover td {
+            background: rgba(255, 255, 255, 0.025);
+        }
+
+        /* Badges & Status */
+        .pulse-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #10b981;
+            box-shadow: 0 0 8px #10b981;
+            animation: pulse 1.8s infinite;
+            margin-right: 5px;
+        }
+
+        .pulse-dot.offline {
+            background-color: #64748b;
+            box-shadow: none;
+            animation: none;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+            70% { transform: scale(1.1); box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+
+        .badge-status {
+            display: inline-flex;
+            align-items: center;
+            padding: 3px 8px;
+            border-radius: 20px;
+            font-size: 0.73rem;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .badge-active {
+            background: rgba(16, 185, 129, 0.15);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.35);
+        }
+
+        .badge-expired {
+            background: rgba(239, 68, 68, 0.15);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.35);
+        }
+
+        .badge-revoked {
+            background: rgba(220, 38, 38, 0.25);
+            color: #fca5a5;
+            border: 1px solid #ef4444;
+            font-weight: 800;
+        }
+
+        .badge-unact {
+            background: rgba(148, 163, 184, 0.12);
+            color: #94a3b8;
+            border: 1px solid rgba(148, 163, 184, 0.25);
+        }
+
+        /* License Key Badge in Table */
+        .key-badge {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.78rem;
+            font-weight: 700;
+            color: #38bdf8;
+            background: rgba(56, 189, 248, 0.08);
+            border: 1px solid rgba(56, 189, 248, 0.28);
+            border-radius: 6px;
+            padding: 3px 7px;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            white-space: nowrap;
+        }
+
+        .btn-table-copy {
+            background: transparent;
+            border: none;
+            color: #94a3b8;
+            cursor: pointer;
+            font-size: 0.75rem;
+            padding: 1px 3px;
+            border-radius: 4px;
+            transition: all 0.15s ease;
+        }
+        .btn-table-copy:hover {
+            color: #38bdf8;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Compact Table Action Buttons */
+        .btn-table {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            padding: 4px 7px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            border-radius: 6px;
+            border: 1px solid transparent;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.18s ease;
+        }
+
+        .btn-table-add {
+            background: rgba(16, 185, 129, 0.15);
+            border-color: rgba(16, 185, 129, 0.4);
+            color: #34d399;
+        }
+        .btn-table-add:hover {
+            background: #10b981;
+            color: #ffffff;
+        }
+
+        .btn-table-sub {
+            background: rgba(245, 158, 11, 0.15);
+            border-color: rgba(245, 158, 11, 0.4);
+            color: #fbbf24;
+        }
+        .btn-table-sub:hover {
+            background: #f59e0b;
+            color: #ffffff;
+        }
+
+        .btn-table-transfer {
+            background: rgba(59, 130, 246, 0.15);
+            border-color: rgba(59, 130, 246, 0.4);
+            color: #60a5fa;
+        }
+        .btn-table-transfer:hover {
+            background: #3b82f6;
+            color: #ffffff;
+        }
+
+        .btn-table-revoke {
+            background: rgba(239, 68, 68, 0.15);
+            border-color: rgba(239, 68, 68, 0.4);
+            color: #f87171;
+        }
+        .btn-table-revoke:hover {
+            background: #ef4444;
+            color: #ffffff;
+        }
+
+        .btn-table-edit {
+            background: transparent;
+            border: none;
+            color: #94a3b8;
+            cursor: pointer;
+            padding: 1px 4px;
+            border-radius: 4px;
+            font-size: 0.78rem;
+        }
+        .btn-table-edit:hover {
+            color: #38bdf8;
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        /* Filter Pills */
+        .filter-pill {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: var(--text-sub);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .filter-pill:hover {
+            background: rgba(255, 255, 255, 0.08);
+            color: #ffffff;
+        }
+        .filter-pill.active {
+            background: rgba(59, 130, 246, 0.25);
+            border-color: #3b82f6;
+            color: #38bdf8;
+        }
+
+        /* Modal Overlay */
+        .admin-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(8px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            padding: 20px;
+        }
+
+        .admin-modal-overlay.active {
+            display: flex;
+            animation: fadeIn 0.2s ease;
+        }
+
+        .admin-modal-card {
+            background: #0f172a;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 16px;
+            max-width: 520px;
+            width: 100%;
+            padding: 24px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.8);
+        }
+
+        .admin-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .admin-modal-title {
+            font-size: 1.1rem;
+            font-weight: 800;
+            color: #ffffff;
+        }
+
+        .admin-modal-close {
+            background: transparent;
+            border: none;
+            color: #94a3b8;
+            font-size: 1.4rem;
+            cursor: pointer;
+        }
+        .admin-modal-close:hover { color: #ffffff; }
+
+        .admin-modal-body {
+            font-size: 0.86rem;
+            color: #cbd5e1;
+            line-height: 1.5;
+            margin-bottom: 20px;
+        }
+
+        .admin-modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        /* Toast Notifications */
+        .toast-container {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 99999;
+        }
+
+        .toast {
+            background: rgba(15, 23, 42, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 10px;
+            padding: 12px 18px;
+            font-size: 0.85rem;
+            color: #ffffff;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            animation: fadeIn 0.25s ease;
+        }
+
+        /* 2-Column Keygen Layout with Instructions Box (Matching Old KeyGen V2.0) */
+        .keygen-layout {
+            display: grid;
+            grid-template-columns: 1fr 340px;
+            gap: 24px;
+            align-items: start;
+        }
+
+        @media (max-width: 1080px) {
+            .keygen-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .instructions-card {
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px solid rgba(56, 189, 248, 0.25);
+            border-radius: 16px;
+            padding: 22px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+            position: sticky;
+            top: 20px;
+        }
+
+        .instructions-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 1.05rem;
+            font-weight: 800;
+            color: #38bdf8;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .instructions-step {
+            font-size: 0.84rem;
+            color: #cbd5e1;
+            margin-bottom: 14px;
+            line-height: 1.6;
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
+        .instructions-step-num {
+            background: rgba(56, 189, 248, 0.15);
+            color: #38bdf8;
+            border: 1px solid rgba(56, 189, 248, 0.35);
+            border-radius: 6px;
+            min-width: 22px;
+            height: 22px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 0.75rem;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+
+        .instructions-tip {
+            margin-top: 18px;
+            padding: 12px 14px;
+            background: rgba(59, 130, 246, 0.08);
+            border: 1px solid rgba(59, 130, 246, 0.25);
+            border-radius: 10px;
+            font-size: 0.78rem;
+            color: #93c5fd;
+            line-height: 1.55;
+        }
+
+        /* Floating Right-Click Context Menu (Matching Old Tool Right-Click) */
+        .context-menu {
+            position: fixed;
+            background: rgba(15, 23, 42, 0.96);
+            backdrop-filter: blur(18px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            padding: 6px;
+            min-width: 230px;
+            box-shadow: 0 20px 45px rgba(0, 0, 0, 0.75), 0 0 15px rgba(56, 189, 248, 0.25);
+            z-index: 999999;
+            animation: fadeIn 0.12s ease;
+        }
+
+        .context-menu-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 14px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: #f1f5f9;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .context-menu-item:hover {
+            background: rgba(56, 189, 248, 0.15);
+            color: #38bdf8;
+            transform: translateX(2px);
+        }
+
+        .context-menu-item.danger:hover {
+            background: rgba(239, 68, 68, 0.2);
+            color: #f87171;
+        }
+
+        .context-menu-divider {
+            height: 1px;
+            background: rgba(255, 255, 255, 0.08);
+            margin: 4px 6px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="admin-wrapper">
+        <!-- Top Header Bar -->
+        <div class="admin-top-bar">
+            <div class="admin-brand">
+                <img src="/admin_logo.png" alt="PS Admin Logo">
+                <div>
+                    <h1 class="admin-brand-title">PS DOWNLOAD - ADMIN CONTROL CENTER</h1>
+                    <p class="admin-brand-subtitle">ប្រព័ន្ធបង្កើត License Key, បើកសិទ្ធិអូតូ និងគ្រប់គ្រងម៉ាស៊ីន (Machine &amp; License Manager)</p>
+                </div>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px;">
+                <button type="button" class="btn btn-primary btn-sm" onclick="scrollToKeygen()" style="background:linear-gradient(135deg, #3b82f6, #2563eb); font-size:0.78rem; height:34px; padding:0 12px;">
+                    <span>⚡</span> <span>បង្កើត Key ថ្មី</span>
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="syncWithCloud()" id="btnSyncCloud" title="ធ្វើសមកាលកម្មទិន្នន័យពី Cloud Render" style="font-size:0.78rem; height:34px; padding:0 12px;">
+                    <span>☁️</span> <span>Sync Cloud</span>
+                </button>
+                <span style="font-size:0.74rem; font-weight:700; color:#34d399; background:rgba(16,185,129,0.15); border:1px solid rgba(16,185,129,0.3); padding:4px 10px; border-radius:20px;">
+                    🛡️ Admin 24/7 (Isolated)
+                </span>
+            </div>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <div class="admin-tabs">
+            <button type="button" class="admin-tab-btn active" onclick="switchTab('tabMain', this)">
+                <span>💻</span> <span>បង្កើត Key &amp; គ្រប់គ្រងម៉ាស៊ីន (Main KeyGen)</span>
+                <span class="tab-badge green" id="trackerOnlineCountBadge">0</span>
+            </button>
+            <button type="button" class="admin-tab-btn" onclick="switchTab('tabCrackTracker', this)">
+                <span>🚨</span> <span>តាមដានអ្នកលួច Crack (Anti-Crack &amp; Maps)</span>
+                <span class="tab-badge" id="crackCountBadge" style="display:none;">0</span>
+            </button>
+            <button type="button" class="admin-tab-btn" onclick="switchTab('tabTelegram', this)">
+                <span>🤖</span> <span>Telegram Bot Alerts &amp; KHQR</span>
+            </button>
+        </div>
+
+        <!-- ============================================== -->
+        <!-- TAB 1: ALL-IN-ONE CONTROL CENTER -->
+        <!-- ============================================== -->
+        <div id="tabMain" class="tab-panel active">
+            <div class="panel-heading" id="sectionKeygen">
+                <div>
+                    <h2 class="panel-title">🛡️ PS DOWNLOAD - KEY GENERATOR &amp; ADMIN</h2>
+                    <p class="panel-desc">បង្កើត License Key តាមម៉ាស៊ីន (HWID) ឬកូដ Universal ប្រើបានគ្រប់ម៉ាស៊ីន ជាមួយជម្រើសចំនួនថ្ងៃច្រើនសំបូរបែប</p>
+                </div>
+            </div>
+
+            <div class="keygen-layout">
+                <!-- Left Column: Form Inputs & Action Buttons -->
+                <div class="keygen-form-col">
+                    <!-- Client Device ID & Universal Option -->
+                    <div class="form-group">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                            <label class="form-label" style="margin-bottom:0;" id="lblAdminDeviceId">💻 លេខសម្គាល់ម៉ាស៊ីនភ្ញៀវ (Client Device ID / HWID):</label>
+                            <label style="display:inline-flex; align-items:center; gap:6px; cursor:pointer; font-size:0.82rem; font-weight:700; color:#38bdf8;">
+                                <input type="checkbox" id="adminIsUniversalCheck" onchange="toggleUniversalMode(this)" style="width:16px; height:16px; cursor:pointer; accent-color:#38bdf8;">
+                                <span>🌐 បង្កើតកូដប្រើបានគ្រប់ម៉ាស៊ីន (Universal)</span>
+                            </label>
+                        </div>
+                        <div class="input-row">
+                            <input type="text" id="adminDeviceId" class="custom-input" placeholder="ឧ. HG-DBC0-79F8-FD0C" autocomplete="off" spellcheck="false" style="font-family:'JetBrains Mono', monospace; font-weight:700;">
+                            <button type="button" class="btn btn-secondary" id="btnPasteDeviceId" onclick="pasteAdminDeviceId()" style="height:46px; padding:0 18px; font-weight:700;">
+                                <span>📋</span> <span>Paste</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Expiry Hours (Claim Window - Only for Universal) -->
+                    <div class="form-group" id="universalHoursGroup" style="display:none; background:rgba(56,189,248,0.08); border:1px solid rgba(56,189,248,0.25); border-radius:12px; padding:12px 16px;">
+                        <label class="form-label" style="color:#38bdf8;">⏱️ រយៈពេលផុតកំណត់ចែក (Claim Window / Expiry Hours):</label>
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <select id="adminClaimHours" class="custom-input" style="height:40px; font-weight:700; cursor:pointer; background:#0f172a; border-color:#38bdf8;">
+                                <option value="1">⏱️ ១ ម៉ោង (1 Hour)</option>
+                                <option value="12">⏱️ ១២ ម៉ោង (12 Hours)</option>
+                                <option value="24" selected>⏱️ ២៤ ម៉ោង (24 Hours - 1 ថ្ងៃ)</option>
+                                <option value="48">⏱️ ៤៨ ម៉ោង (48 Hours - 2 ថ្ងៃ)</option>
+                                <option value="72">⏱️ ៧២ ម៉ោង (72 Hours - 3 ថ្ងៃ)</option>
+                                <option value="168">⏱️ ១៦៨ ម៉ោង (1 Week - 7 ថ្ងៃ)</option>
+                            </select>
+                            <span style="font-size:0.75rem; color:#94a3b8; line-height:1.4;">
+                                💡 បន្ទាប់ពីម៉ោងនេះផុត ភ្ញៀវថ្មីមិនអាចយកកូដនេះទៅ Activate បានទៀតឡើយ!
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Client Nickname / Tag -->
+                    <div class="form-group">
+                        <label class="form-label">👤 ឈ្មោះសម្គាល់ភ្ញៀវ (Customer Name / Nickname - ស្រេចចិត្ត):</label>
+                        <div class="input-row">
+                            <input type="text" id="adminCustomerName" class="custom-input" placeholder="ឧ. CHANTHA, បង សុខ, ភ្ញៀវ VIP..." autocomplete="off">
+                            <input type="text" id="adminTelegramUser" class="custom-input" placeholder="Telegram: @username" style="max-width:200px;" autocomplete="off">
+                        </div>
+                    </div>
+
+                    <!-- Duration Selection Pills (All Presets from Old & New Tools) -->
+                    <div class="form-group">
+                        <label class="form-label">⏱️ ជ្រើសរើសរយៈពេល / សុពលភាព (Duration):</label>
+                        <div class="duration-grid" id="durationGridSingle">
+                            <div class="duration-card" data-val="1" onclick="selectDuration(this, 1)">
+                                <div class="duration-title">⏱️ ១ ថ្ងៃ</div>
+                                <div class="duration-desc">1 Day Trial</div>
+                            </div>
+                            <div class="duration-card" data-val="3" onclick="selectDuration(this, 3)">
+                                <div class="duration-title">⏱️ ៣ ថ្ងៃ</div>
+                                <div class="duration-desc">3 Days</div>
+                            </div>
+                            <div class="duration-card" data-val="7" onclick="selectDuration(this, 7)">
+                                <div class="duration-title">⏱️ ៧ ថ្ងៃ</div>
+                                <div class="duration-desc">1 Week (7d)</div>
+                            </div>
+                            <div class="duration-card" data-val="14" onclick="selectDuration(this, 14)">
+                                <div class="duration-title">⏱️ ១៤ ថ្ងៃ</div>
+                                <div class="duration-desc">2 Weeks (14d)</div>
+                            </div>
+                            <div class="duration-card active" data-val="30" onclick="selectDuration(this, 30)">
+                                <div class="duration-title">🌟 ៣០ ថ្ងៃ</div>
+                                <div class="duration-desc">1 Month (30d)</div>
+                            </div>
+                            <div class="duration-card" data-val="60" onclick="selectDuration(this, 60)">
+                                <div class="duration-title">⏱️ ៦០ ថ្ងៃ</div>
+                                <div class="duration-desc">2 Months (60d)</div>
+                            </div>
+                            <div class="duration-card" data-val="90" onclick="selectDuration(this, 90)">
+                                <div class="duration-title">⏱️ ៩០ ថ្ងៃ</div>
+                                <div class="duration-desc">3 Months (90d)</div>
+                            </div>
+                            <div class="duration-card" data-val="180" onclick="selectDuration(this, 180)">
+                                <div class="duration-title">⏱️ ១៨០ ថ្ងៃ</div>
+                                <div class="duration-desc">6 Months (180d)</div>
+                            </div>
+                            <div class="duration-card" data-val="365" onclick="selectDuration(this, 365)">
+                                <div class="duration-title">⏱️ ៣៦៥ ថ្ងៃ</div>
+                                <div class="duration-desc">1 Year (365d)</div>
+                            </div>
+                            <div class="duration-card" data-val="0" onclick="selectDuration(this, 0)">
+                                <div class="duration-title">👑 ពេញមួយជីវិត</div>
+                                <div class="duration-desc">Lifetime VIP</div>
+                            </div>
+                        </div>
+
+                        <div style="margin-top:12px; display:flex; align-items:center; gap:8px;">
+                            <span style="font-size:0.82rem; color:var(--text-sub);">ឬវាយចំនួនថ្ងៃផ្ទាល់ខ្លួន:</span>
+                            <input type="number" id="customDaysInput" placeholder="ចំនួនថ្ងៃ..." min="1" max="9999" style="width:110px; height:36px; background:rgba(0,0,0,0.5); border:1px solid rgba(255,255,255,0.18); border-radius:8px; color:#fff; padding:0 10px; font-size:0.88rem; font-weight:700;" oninput="onCustomDaysInput()">
+                            <span style="font-size:0.82rem; color:var(--text-sub);">ថ្ងៃ (Days)</span>
+                        </div>
+                    </div>
+
+                    <!-- Two Big Action Buttons -->
+                    <div class="action-buttons-row">
+                        <button type="button" class="btn-action-primary btn-auto-auth" id="btnAutoAuthAction" onclick="executeAutoAuthorize()">
+                            <span>⚡</span> <span>បើកសិទ្ធិអូតូ (Auto Authorize)</span>
+                        </button>
+                        <button type="button" class="btn-action-primary btn-gen-key" id="btnGenKeyAction" onclick="executeGenerateKey()">
+                            <span>🔑</span> <span>បង្កើត License Key</span>
+                        </button>
+                    </div>
+
+                    <!-- Auto-Authorize Success Box -->
+                    <div id="autoAuthResultCard" class="result-box success" style="display:none;">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <div style="font-weight:800; color:#34d399; font-size:1.05rem;">
+                                ✅ បានបើកសិទ្ធិអូតូជូនម៉ាស៊ីនជោគជ័យ!
+                            </div>
+                            <span id="autoAuthDurationTag" class="badge" style="background:#10b981; color:#fff; font-weight:800; padding:4px 10px; border-radius:6px;"></span>
+                        </div>
+                        <p style="font-size:0.85rem; color:#e2e8f0; margin:10px 0 14px; line-height:1.5;">
+                            👉 <b>ឥឡូវនេះ៖</b> ប្រាប់ភ្ញៀវឱ្យចុចពាក្យថា <b>«ផ្ទុកឡើងវិញ (Refresh)»</b> នៅលើផ្ទាំងកម្មវិធីរបស់គាត់ នោះកម្មវិធីនឹងដំណើរការភ្លាមដោយស្វ័យប្រវត្តិ!
+                        </p>
+                        <div class="result-actions">
+                            <button type="button" class="btn btn-primary" onclick="copyAutoAuthTelegramMessage()" style="flex:1; height:42px; font-size:0.85rem; background:#10b981;">
+                                <span>💬</span> <span>ចម្លងសារ Telegram ប្រាប់ភ្ញៀវថាបានបើកសិទ្ធិហើយ</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Key Generation Result Box -->
+                    <div id="keyGenResultCard" class="result-box blue" style="display:none;">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <div style="font-weight:800; color:#38bdf8; font-size:1.05rem;" id="keyGenResultHeading">
+                                ✨ បានបង្កើត License Key ជោគជ័យ!
+                            </div>
+                            <span id="keyGenDurationTag" class="badge" style="background:#2563eb; color:#fff; font-weight:800; padding:4px 10px; border-radius:6px;"></span>
+                        </div>
+                        <div id="keyGenDisplay" class="result-key-text">LIFE-0000-0000-0000</div>
+                        <div class="result-actions">
+                            <button type="button" class="btn btn-primary" onclick="copyResultKeyOnly()" style="flex:1; height:42px; font-size:0.85rem; background:#2563eb;">
+                                <span>📋</span> <span>ចម្លង License Key</span>
+                            </button>
+                            <button type="button" class="btn btn-secondary" onclick="copyTelegramKeyTemplate()" style="flex:1.2; height:42px; font-size:0.85rem;">
+                                <span>💬</span> <span>ចម្លងសារ Telegram សម្រាប់ផ្ញើ</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Instructions / Guide Frame (Matching Previous KeyGen Tool) -->
+                <div class="instructions-card">
+                    <div class="instructions-header">
+                        <span>💡</span>
+                        <span>ការណែនាំ (Instructions):</span>
+                    </div>
+
+                    <div class="instructions-step">
+                        <span class="instructions-step-num">១</span>
+                        <div><b>ដាក់លេខកូដម៉ាស៊ីន (HWID / Device ID):</b> ចម្លងពីភ្ញៀវយកមក Paste ឬធីក <b>«Universal»</b> ដើម្បីបង្កើតកូដចែករំលែកសាកល្បងគ្រប់ម៉ាស៊ីន។</div>
+                    </div>
+
+                    <div class="instructions-step">
+                        <span class="instructions-step-num">២</span>
+                        <div><b>ដាក់ឈ្មោះអតិថិជន (ស្រេចចិត្ត):</b> ដើម្បីងាយស្រួលចំណាំឈ្មោះភ្ញៀវក្នុងតារាងគ្រប់គ្រង។</div>
+                    </div>
+
+                    <div class="instructions-step">
+                        <span class="instructions-step-num">៣</span>
+                        <div><b>ជ្រើសរើសចំនួនថ្ងៃ:</b> ១ ថ្ងៃ, ៣ ថ្ងៃ, ៧ ថ្ងៃ, ១៤ ថ្ងៃ, ៣០ ថ្ងៃ, ៦០ ថ្ងៃ, ៩០ ថ្ងៃ, ៣៦៥ ថ្ងៃ ឬ VIP ពេញមួយជីវិត (Lifetime)។</div>
+                    </div>
+
+                    <div class="instructions-step">
+                        <span class="instructions-step-num">៤</span>
+                        <div><b>ចុច «បង្កើត License Key»:</b> ប្រព័ន្ធនឹងបង្កើតកូដសុវត្ថិភាពមួយជួរភ្លាមៗ។</div>
+                    </div>
+
+                    <div class="instructions-step">
+                        <span class="instructions-step-num">៥</span>
+                        <div><b>ចុច «Copy Key»:</b> ផ្ញើកូដនោះឱ្យភ្ញៀវយកទៅ Paste ក្នុង App របស់គាត់ដើម្បី Activate ក្លាយជា VIP ភ្លាម ១០០%!</div>
+                    </div>
+
+                    <div class="instructions-tip">
+                        👉 <b>គន្លឹះពិសេស (Right-Click Context Menu):</b><br>
+                        នៅក្នុងផ្ទាំង <b>«គ្រប់គ្រងម៉ាស៊ីន &amp; ឡាយសិន»</b> លោកអ្នកអាច<b>ចុចកណ្ដុរស្ដាំ (Right-Click)</b> លើភ្ញៀវក្នុងតារាង ដើម្បី <b>Set Days, Set Name, Set Lifetime, ឬ Lock</b> ដូច Key Admin មុនបេះបិទ!
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================================== -->
+            <!-- SECTION 2: ACTIVE MACHINES & LICENSE MANAGER -->
+            <!-- ============================================== -->
+            <div id="sectionTracker" style="margin-top: 30px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 24px;">
+                <div class="panel-heading" style="margin-bottom: 14px;">
+                    <div>
+                        <h2 class="panel-title">💻 តារាងគ្រប់គ្រងម៉ាស៊ីន &amp; ឡាយសិន (Machines &amp; Licenses Manager)</h2>
+                        <p class="panel-desc">តាមដានម៉ាស៊ីនកំពុង Online/Offline, មើលថ្ងៃសរុប &amp; ថ្ងៃនៅសល់, License Key, កែឈ្មោះ, ថែម/បន្ថយថ្ងៃ (Right-Click), ផ្ទេរ ឬដកហូតភ្លាមៗ</p>
+                    </div>
+                    <div style="display:flex; gap:8px;">
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="loadTrackedDevices(false, true)" style="height:36px; padding:0 14px; font-weight:700;">
+                            <span>🔄</span> <span>ផ្ទុកទិន្នន័យឡើងវិញ</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Sleek Compact Metrics Status Bar -->
+                <div class="metrics-bar">
+                    <div class="metric-pill blue">
+                        <span>👥</span>
+                        <span class="m-label">អ្នកប្រើប្រាស់សរុប (Total):</span>
+                        <span class="m-val" id="metricTotalDevices">0</span>
+                    </div>
+                    <div class="metric-pill green">
+                        <span class="pulse-dot"></span>
+                        <span class="m-label">កំពុងអនឡាញ (Online):</span>
+                        <span class="m-val" id="metricOnlineDevices">0</span>
+                    </div>
+                <div class="metric-pill purple">
+                    <span>✅</span>
+                    <span class="m-label">មាន License:</span>
+                    <span class="m-val" id="metricActiveLicenses">0</span>
+                </div>
+                <div class="metric-pill amber">
+                    <span>⚠️</span>
+                    <span class="m-label">ផុតកំណត់/ដកហូត:</span>
+                    <span class="m-val" id="metricExpiredRevoked">0</span>
+                </div>
+            </div>
+
+            <!-- Search and Filter Bar -->
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:12px;">
+                <div style="display:flex; gap:8px; align-items:center; flex:1; min-width:280px;">
+                    <input type="text" id="trackerSearchInput" class="custom-input" placeholder="🔍 ស្វែងរកតាមឈ្មោះភ្ញៀវ, Telegram, Device ID, ឬ License Key..." style="height:40px; font-size:0.86rem;" oninput="applyFilter()">
+                </div>
+                <div style="display:flex; gap:6px;">
+                    <button type="button" class="filter-pill active" data-filter="all" onclick="setFilter('all', this)">ទាំងអស់</button>
+                    <button type="button" class="filter-pill" data-filter="online" onclick="setFilter('online', this)">🟢 Online</button>
+                    <button type="button" class="filter-pill" data-filter="active" onclick="setFilter('active', this)">⏳ មាន License</button>
+                    <button type="button" class="filter-pill" data-filter="expired" onclick="setFilter('expired', this)">🔴 ផុតកំណត់/ដកហូត</button>
+                </div>
+            </div>
+
+            <!-- Machines Table (100% Fit, Zero Horizontal Scroll) -->
+            <div class="tracker-table-wrapper">
+                <table class="tracker-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 32%;">👤 អតិថិជន &amp; ម៉ាស៊ីន (Customer &amp; Device)</th>
+                            <th style="width: 25%;">🔑 License Key &amp; កញ្ចប់</th>
+                            <th style="width: 21%;">📶 ស្ថានភាព &amp; សុពលភាព</th>
+                            <th style="width: 22%; text-align: right;">⚡ សកម្មភាពគ្រប់គ្រង</th>
+                        </tr>
+                    </thead>
+                    <tbody id="trackerTableBody">
+                        <tr>
+                            <td colspan="4" style="text-align:center; color:var(--text-sub); padding:28px;">កំពុងទាញយកទិន្នន័យ...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Payment Notifications Section -->
+            <div style="margin-top:28px; padding-top:20px; border-top:1px solid rgba(255,255,255,0.08);">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                    <div>
+                        <h3 style="font-size:1.02rem; font-weight:800; color:#34d399; display:flex; align-items:center; gap:8px;">
+                            <span>💰</span> <span>សារជូនដំណឹងការបង់ប្រាក់ពីភ្ញៀវ (Payment Notifications)</span>
+                        </h3>
+                        <p style="font-size:0.75rem; color:var(--text-sub); margin-top:2px;">
+                            បង្ហាញតែការបង់ប្រាក់ដែលបានផ្ទៀងផ្ទាត់ទទួលស្គាល់ដោយ Bot Telegram ឬការទិញស្វ័យប្រវត្តិតែប៉ុណ្ណោះ
+                        </p>
+                    </div>
+                    <div style="display:flex; gap:8px;">
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="loadPayments()">
+                            🔄 ផ្ទុកឡើងវិញ
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="clearPaymentsList()" style="background:rgba(239,68,68,0.18); border-color:#ef4444; color:#fca5a5;">
+                            🧹 សំអាតបញ្ជី
+                        </button>
+                    </div>
+                </div>
+
+                <div class="tracker-table-wrapper">
+                    <table class="tracker-table">
+                        <thead>
+                            <tr>
+                                <th>👤 ឈ្មោះ Telegram</th>
+                                <th>💻 Device ID</th>
+                                <th>📦 កញ្ចប់ទិញ</th>
+                                <th>💵 ចំនួនទឹកប្រាក់</th>
+                                <th>🕒 ម៉ោងបង់ប្រាក់</th>
+                                <th style="text-align:right;">⚡ បើកសិទ្ធិភ្លាមៗ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="paymentsTableBody">
+                            <tr>
+                                <td colspan="6" style="text-align:center; color:var(--text-sub); padding:16px;">មិនទាន់មានការបង់ប្រាក់ថ្មីឡើយ</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+        <!-- ============================================== -->
+        <!-- TAB 3: ANTI-CRACK & MAPS TRACKER -->
+        <!-- ============================================== -->
+        <div id="tabCrackTracker" class="tab-panel">
+            <div class="panel-heading">
+                <div>
+                    <h2 class="panel-title" style="color:#f87171;">🚨 តាមដានអ្នកព្យាយាម Hack / Crack កម្មវិធី (Anti-Crack &amp; Maps Tracker)</h2>
+                    <p class="panel-desc">ចាប់ Device ID, Telegram, កុំព្យូទ័រ, IP, ទីក្រុង និងមានប៊ូតុងចុចមើលទីតាំងលើផែនទី Google Maps ជាក់លាក់</p>
+                </div>
+                <div style="display:flex; gap:8px;">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="loadCrackSuspects()">
+                        🔄 ផ្ទុកឡើងវិញ
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="clearCrackHistory()" style="background:rgba(239,68,68,0.18); border-color:#ef4444; color:#fca5a5;">
+                        🧹 សំអាតប្រវត្តិ Hack
+                    </button>
+                </div>
+            </div>
+
+            <div style="background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.25); border-radius:12px; padding:14px; margin-bottom:18px; font-size:0.82rem; line-height:1.6; color:#fca5a5;">
+                🛡️ <b>ប្រព័ន្ធ Cyber Security ស្វ័យប្រវត្ត ២៤/៧:</b><br>
+                • ម៉ាស៊ីនណាដែលវាយ License Key ខុសលើសពី <b>4 ដង</b> នឹងត្រូវបញ្ជូនទីតាំង Google Maps, IP, និងគណនី Telegram មកកាន់ Admin ភ្លាមៗ<br>
+                • ដល់លើកទី <b>5</b> ប្រព័ន្ធនឹងចាក់សោរ (Auto-Lock) ម៉ាស៊ីននោះភ្លាម មិនឱ្យបន្តវាយ Brute-Force បានឡើយ!
+            </div>
+
+            <div class="tracker-table-wrapper">
+                <table class="tracker-table">
+                    <thead>
+                        <tr>
+                            <th>👤 Telegram / កុំព្យូទ័រ</th>
+                            <th>💻 Device ID ជនសង្ស័យ</th>
+                            <th>❌ ដងវាយខុស</th>
+                            <th>🔑 កូដដែលគេសាកល្បង</th>
+                            <th>🗺️ ទីតាំង &amp; Google Maps</th>
+                            <th>🕒 ម៉ោងព្យាយាមចុងក្រោយ</th>
+                            <th style="text-align:right;">⚡ ចំណាត់ការ</th>
+                        </tr>
+                    </thead>
+                    <tbody id="crackSuspectsTableBody">
+                        <tr>
+                            <td colspan="7" style="text-align:center; color:var(--text-sub); padding:28px;">មិនមានអ្នកព្យាយាម Hack/Crack ឡើយ (ប្រព័ន្ធសុវត្ថិភាពល្អ ១០០%)</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ============================================== -->
+        <!-- TAB 4: TELEGRAM BOT CONFIG -->
+        <!-- ============================================== -->
+        <div id="tabTelegram" class="tab-panel">
+            <div class="panel-heading">
+                <div>
+                    <h2 class="panel-title">🤖 កំណត់ Telegram Bot Alert &amp; KHQR Payment</h2>
+                    <p class="panel-desc">កំណត់ Bot Token, Chat ID, និងរូបភាព KHQR សម្រាប់ភ្ញៀវស្កេនបង់ប្រាក់</p>
+                </div>
+            </div>
+
+            <div style="background:rgba(59,130,246,0.08); border:1px solid rgba(59,130,246,0.25); border-radius:12px; padding:14px; margin-bottom:18px; font-size:0.8rem; line-height:1.6; color:#cbd5e1;">
+                💡 <b>វិធីបង្កើត Telegram Bot ដោយឥតគិតថ្លៃ (១ នាទី):</b><br>
+                1. ចូលទៅកាន់ Telegram រួចស្វែងរក <code>@BotFather</code> ហើយចុច <code>/newbot</code><br>
+                2. ដាក់ឈ្មោះ Bot រួចអ្នកនឹងទទួលបាន <b>HTTP API Bot Token</b><br>
+                3. ដើម្បីដឹង Chat ID របស់អ្នក សូមឆាតទៅកាន់ <code>@userinfobot</code> នោះវានឹងប្រាប់ Id របស់អ្នកភ្លាមៗ!
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">🔑 Telegram Bot Token:</label>
+                <input type="text" id="tgBotTokenInput" class="custom-input" placeholder="ឧ. 7123456789:AAHxxxxx_xxxxxxxxxxxx" autocomplete="off" spellcheck="false" style="font-family:'JetBrains Mono', monospace; font-size:0.85rem;">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">💬 Your Telegram Chat ID (ឬ User ID / Channel ID):</label>
+                <input type="text" id="tgChatIdInput" class="custom-input" placeholder="ឧ. 123456789" autocomplete="off" spellcheck="false" style="font-family:'JetBrains Mono', monospace; font-size:0.85rem;">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">📱 Your Admin Telegram Username (សម្រាប់ភ្ញៀវឆាតមក):</label>
+                <input type="text" id="tgAdminUserInput" class="custom-input" placeholder="ឧ. @Thpisal33" value="@Thpisal33" autocomplete="off" spellcheck="false" style="font-family:'JetBrains Mono', monospace; font-size:0.85rem;">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">🖼️ QR Code Payment Image Path (រូបភាព KHQR):</label>
+                <input type="text" id="tgQrImageInput" class="custom-input" placeholder="ឧ. /qr_payment.svg ឬ /qr_payment.png" autocomplete="off" spellcheck="false" style="font-family:'JetBrains Mono', monospace; font-size:0.85rem;">
+                <div style="font-size:0.72rem; color:var(--text-sub); margin-top:4px;">
+                    💡 អ្នកអាចដាក់ file QR របស់អ្នកទៅក្នុង <code>web\qr_payment.png</code> ឬ <code>web\qr_payment.svg</code>។
+                </div>
+            </div>
+
+            <div style="display:flex; gap:12px; margin-top:22px;">
+                <button type="button" class="btn btn-primary" onclick="saveTelegramSettings()" style="height:44px; padding:0 22px; font-weight:700;">
+                    <span>💾</span> <span>រក្សាទុកការកំណត់ (Save)</span>
+                </button>
+                <button type="button" class="btn btn-secondary" onclick="sendTestTelegramAlert()" style="height:44px; padding:0 18px; font-weight:700;">
+                    <span>🔔</span> <span>ផ្ញើសារសាកល្បង (Test Alert)</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- INTERACTIVE MODALS FOR MACHINE MANAGEMENT -->
+    <!-- ============================================== -->
+
+    <!-- 1. Edit Customer Name Modal -->
+    <div id="modalEditName" class="admin-modal-overlay">
+        <div class="admin-modal-card">
+            <div class="admin-modal-header">
+                <h3 class="admin-modal-title">✏️ កែប្រែឈ្មោះសម្គាល់ភ្ញៀវ</h3>
+                <button type="button" class="admin-modal-close" onclick="closeModal('modalEditName')">&times;</button>
+            </div>
+            <div class="admin-modal-body">
+                <p style="margin-bottom:10px;">លេខម៉ាស៊ីន: <code id="editNameDeviceId" style="color:#38bdf8; font-weight:700;"></code></p>
+                <input type="text" id="editNameInput" class="custom-input" placeholder="វាយឈ្មោះភ្ញៀវ (ឧ. បង សុខ, ភ្ញៀវ VIP)..." style="width:100%;">
+            </div>
+            <div class="admin-modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('modalEditName')">បោះបង់</button>
+                <button type="button" class="btn btn-primary" onclick="submitEditName()">💾 រក្សាទុកឈ្មោះ</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. Adjust Days Modal (+/-) -->
+    <div id="modalAdjustDays" class="admin-modal-overlay">
+        <div class="admin-modal-card">
+            <div class="admin-modal-header">
+                <h3 class="admin-modal-title" id="adjustDaysTitle">⏱️ កែសម្រួលថ្ងៃប្រើប្រាស់</h3>
+                <button type="button" class="admin-modal-close" onclick="closeModal('modalAdjustDays')">&times;</button>
+            </div>
+            <div class="admin-modal-body">
+                <p style="margin-bottom:6px;">ម៉ាស៊ីន: <code id="adjustDaysDeviceId" style="color:#38bdf8; font-weight:700;"></code></p>
+                <p style="margin-bottom:14px; font-size:0.8rem; color:#94a3b8;" id="adjustDaysCurrentInfo"></p>
+                
+                <div style="display:flex; gap:8px; margin-bottom:14px;">
+                    <button type="button" class="filter-pill active" id="btnModeAddDays" onclick="setAdjustMode('add')">➕ បន្ថែមថ្ងៃ (+ Days)</button>
+                    <button type="button" class="filter-pill" id="btnModeSubDays" onclick="setAdjustMode('sub')">➖ បន្ថយថ្ងៃ (- Days)</button>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" id="adjustDaysInputLabel">ចំនួនថ្ងៃត្រូវបន្ថែម:</label>
+                    <div style="display:flex; gap:8px; align-items:center;">
+                        <input type="number" id="adjustDaysCountInput" class="custom-input" min="1" max="9999" value="7" style="font-weight:700; font-size:1.1rem; width:120px;">
+                        <span style="font-size:0.9rem; font-weight:700; color:#cbd5e1;">ថ្ងៃ (Days)</span>
+                    </div>
+                </div>
+
+                <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="setQuickAdjust(1)">1 ថ្ងៃ</button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="setQuickAdjust(7)">7 ថ្ងៃ</button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="setQuickAdjust(15)">15 ថ្ងៃ</button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="setQuickAdjust(30)">30 ថ្ងៃ</button>
+                </div>
+            </div>
+            <div class="admin-modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('modalAdjustDays')">បោះបង់</button>
+                <button type="button" class="btn btn-primary" id="btnSubmitAdjustDays" onclick="submitAdjustDays()">យល់ព្រម</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Transfer License Modal -->
+    <div id="modalTransfer" class="admin-modal-overlay">
+        <div class="admin-modal-card">
+            <div class="admin-modal-header">
+                <h3 class="admin-modal-title" style="color:#38bdf8;">🔄 ផ្ទេរ License ទៅម៉ាស៊ីនថ្មី</h3>
+                <button type="button" class="admin-modal-close" onclick="closeModal('modalTransfer')">&times;</button>
+            </div>
+            <div class="admin-modal-body">
+                <div style="background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); border-radius:10px; padding:12px; margin-bottom:14px; font-size:0.8rem; color:#fca5a5; line-height:1.5;">
+                    ⚠️ <b>ការបញ្ជាក់៖</b> ពេលផ្ទេរជោគជ័យ ម៉ាស៊ីនចាស់ (ទី 1) នឹងត្រូវ<b>ដកហូតថ្ងៃចេញទាំងអស់ភ្លាមៗ</b> មិនអាចលេងបានទៀតទេ ដើម្បីការពារកុំឱ្យភ្ញៀវប្រើបានទាំងពីរម៉ាស៊ីន!
+                </div>
+
+                <p style="margin-bottom:6px;">ម៉ាស៊ីនចាស់ (ទី 1): <code id="transferFromDeviceId" style="color:#f87171; font-weight:700;"></code></p>
+                <p style="margin-bottom:14px; font-size:0.85rem; color:#34d399; font-weight:700;" id="transferRemainingDaysInfo">
+                    ថ្ងៃនៅសល់ត្រូវផ្ទេរ: ...
+                </p>
+
+                <div class="form-group">
+                    <label class="form-label">💻 លេខម៉ាស៊ីនថ្មី (Device ID ទី 2 របស់ភ្ញៀវ):</label>
+                    <input type="text" id="transferToDeviceIdInput" class="custom-input" placeholder="ឧ. HG-XXXX-XXXX-XXXX" style="width:100%; font-family:'JetBrains Mono', monospace; font-weight:700;">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">👤 ឈ្មោះសម្គាល់ម៉ាស៊ីនថ្មី (ស្រេចចិត្ត):</label>
+                    <input type="text" id="transferNewNameInput" class="custom-input" placeholder="ឧ. បង សុខ (ម៉ាស៊ីនថ្មី)..." style="width:100%;">
+                </div>
+            </div>
+            <div class="admin-modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('modalTransfer')">បោះបង់</button>
+                <button type="button" class="btn btn-primary" onclick="submitTransferLicense()" style="background:linear-gradient(135deg, #3b82f6, #1d4ed8);">
+                    🔄 ផ្ទេរ License ឥឡូវនេះ
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Floating Right-Click Context Menu (Matching Old Tool KeyGen V2.0 Context Menu) -->
+    <div id="tableContextMenu" class="context-menu" style="display:none;">
+        <div class="context-menu-item" onclick="contextAction('set_days')">
+            <span>⏱️</span> <span>កំណត់ / បន្ថែមថ្ងៃ (Set Days)</span>
+        </div>
+        <div class="context-menu-item" onclick="contextAction('set_name')">
+            <span>👤</span> <span>កែឈ្មោះភ្ញៀវ (Set Name)</span>
+        </div>
+        <div class="context-menu-item" onclick="contextAction('set_lifetime')">
+            <span>👑</span> <span>Set Lifetime (ពេញមួយជីវិត)</span>
+        </div>
+        <div class="context-menu-divider"></div>
+        <div class="context-menu-item" onclick="contextAction('copy_dev_id')">
+            <span>💻</span> <span>ចម្លង Device ID</span>
+        </div>
+        <div class="context-menu-item" onclick="contextAction('copy_key')">
+            <span>🔑</span> <span>ចម្លង License Key</span>
+        </div>
+        <div class="context-menu-item" onclick="contextAction('transfer')">
+            <span>🔄</span> <span>ផ្ទេរ License ទៅម៉ាស៊ីនថ្មី</span>
+        </div>
+        <div class="context-menu-divider"></div>
+        <div class="context-menu-item danger" onclick="contextAction('lock')">
+            <span>🔒</span> <span>Lock (ចាក់សោ 0 ថ្ងៃ / ដកហូត)</span>
+        </div>
+    </div>
+
+    <!-- Toast Notifications Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script>
+        const SECRET_SALT = 'HONGGUO_VIP_KEYGEN_SECRET_SALT_2026_@AGY';
+        let _selectedDays = 30; // Default 30 days
+        let _currentGeneratedKey = null;
+        let _cachedDevices = [];
+        let _currentFilter = 'all';
+
+        // State for Modals
+        let _activeModalDeviceId = null;
+        let _adjustMode = 'add'; // 'add' or 'sub'
+
+        // Auto-refresh interval for tracker
+        let _trackerTimer = null;
+
+        // Tab Switching
+        function switchTab(tabId, btn) {
+            document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.admin-tab-btn').forEach(b => b.classList.remove('active'));
+            const target = document.getElementById(tabId);
+            if (target) target.classList.add('active');
+            if (btn) btn.classList.add('active');
+
+            if (tabId === 'tabMain' || tabId === 'tabTracker') {
+                loadTrackedDevices();
+                loadPayments();
+                startTrackerAutoRefresh();
+            } else {
+                stopTrackerAutoRefresh();
+                if (tabId === 'tabCrackTracker') {
+                    loadCrackSuspects();
+                } else if (tabId === 'tabTelegram') {
+                    loadTelegramConfig();
+                }
+            }
+        }
+
+        function scrollToKeygen() {
+            const mainTabBtn = document.querySelectorAll('.admin-tab-btn')[0];
+            switchTab('tabMain', mainTabBtn);
+            const inp = document.getElementById('adminDeviceId');
+            if (inp) {
+                inp.focus();
+                inp.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+
+        function startTrackerAutoRefresh() {
+            stopTrackerAutoRefresh();
+            _trackerTimer = setInterval(() => {
+                const mainPanel = document.getElementById('tabMain');
+                if (mainPanel && mainPanel.classList.contains('active')) {
+                    loadTrackedDevices(true, false);
+                }
+            }, 8000); // Live poll every 8 seconds for new machines & real-time status
+        }
+
+        function stopTrackerAutoRefresh() {
+            if (_trackerTimer) {
+                clearInterval(_trackerTimer);
+                _trackerTimer = null;
+            }
+        }
+
+        // ==============================================
+        // TAB 1: KEYGEN & AUTO-AUTHORIZE
+        // ==============================================
+        function selectDuration(el, days) {
+            document.querySelectorAll('#durationGridSingle .duration-card').forEach(c => c.classList.remove('active'));
+            el.classList.add('active');
+            _selectedDays = days;
+            const inp = document.getElementById('customDaysInput');
+            if (inp) inp.value = '';
+        }
+
+        function onCustomDaysInput() {
+            const inp = document.getElementById('customDaysInput');
+            const num = parseInt(inp ? inp.value : '0', 10);
+            if (!isNaN(num) && num > 0) {
+                document.querySelectorAll('#durationGridSingle .duration-card').forEach(c => c.classList.remove('active'));
+                _selectedDays = num;
+            }
+        }
+
+        async function pasteAdminDeviceId() {
+            try {
+                const text = await navigator.clipboard.readText();
+                const clean = (text || '').trim().toUpperCase();
+                const inp = document.getElementById('adminDeviceId');
+                if (inp) {
+                    inp.value = clean;
+                    showToast('📋 បានបិទភ្ជាប់ Device ID រួចរាល់!', '✅');
+                }
+            } catch (err) {
+                showToast('សូមចុច Ctrl + V ដើម្បី Paste ដោយផ្ទាល់', '💡');
+            }
+        }
+
+        async function executeAutoAuthorize() {
+            const devId = (document.getElementById('adminDeviceId').value || '').trim().toUpperCase();
+            const custName = (document.getElementById('adminCustomerName').value || '').trim();
+            const tgUser = (document.getElementById('adminTelegramUser').value || '').trim();
+
+            if (!devId) {
+                showToast('⚠️ សូមបញ្ចូលលេខសម្គាល់ម៉ាស៊ីន (Device ID) ជាមុនសិន!', '❌');
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/license/admin/authorize', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        deviceId: devId,
+                        days: _selectedDays,
+                        telegramUser: tgUser,
+                        customName: custName
+                    })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    // Also save custom name if entered
+                    if (custName) {
+                        await fetch('/api/license/admin/set-name', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ deviceId: devId, customName: custName })
+                        });
+                    }
+
+                    const card = document.getElementById('autoAuthResultCard');
+                    const keyCard = document.getElementById('keyGenResultCard');
+                    const tag = document.getElementById('autoAuthDurationTag');
+
+                    if (keyCard) keyCard.style.display = 'none';
+                    if (card) card.style.display = 'block';
+                    if (tag) tag.innerText = data.label || `${_selectedDays} ថ្ងៃ`;
+
+                    showToast(`🎉 បានបើកសិទ្ធិអូតូជូន ${devId} រួចរាល់!`, '✅');
+                    card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                } else {
+                    showToast('❌ ' + (data.error || 'បរាជ័យ'), '⚠️');
+                }
+            } catch (e) {
+                showToast('Error: ' + e.message, '❌');
+            }
+        }
+
+        function toggleUniversalMode(el) {
+            const isUni = el.checked;
+            const devInp = document.getElementById('adminDeviceId');
+            const pasteBtn = document.getElementById('btnPasteDeviceId');
+            const uniGroup = document.getElementById('universalHoursGroup');
+            const btnAuto = document.getElementById('btnAutoAuthAction');
+            const lblDev = document.getElementById('lblAdminDeviceId');
+
+            if (isUni) {
+                devInp.value = 'UNIVERSAL (សម្រាប់គ្រប់ម៉ាស៊ីន)';
+                devInp.disabled = true;
+                if (pasteBtn) {
+                    pasteBtn.disabled = true;
+                    pasteBtn.style.opacity = '0.4';
+                }
+                if (uniGroup) uniGroup.style.display = 'block';
+                if (btnAuto) {
+                    btnAuto.disabled = true;
+                    btnAuto.style.opacity = '0.35';
+                    btnAuto.title = 'កូដ Universal គឺសម្រាប់ Copy ផ្ញើឱ្យភ្ញៀវយកទៅ Activate ខ្លួនឯង';
+                }
+                if (lblDev) lblDev.innerText = '🌐 ម៉ូដកូដប្រើបានគ្រប់ម៉ាស៊ីន (Universal Mode):';
+            } else {
+                devInp.value = '';
+                devInp.disabled = false;
+                if (pasteBtn) {
+                    pasteBtn.disabled = false;
+                    pasteBtn.style.opacity = '1';
+                }
+                if (uniGroup) uniGroup.style.display = 'none';
+                if (btnAuto) {
+                    btnAuto.disabled = false;
+                    btnAuto.style.opacity = '1';
+                    btnAuto.title = '';
+                }
+                if (lblDev) lblDev.innerText = '💻 លេខសម្គាល់ម៉ាស៊ីនភ្ញៀវ (Client Device ID / HWID):';
+            }
+        }
+
+        async function executeGenerateKey() {
+            const isUni = document.getElementById('adminIsUniversalCheck') && document.getElementById('adminIsUniversalCheck').checked;
+            const custName = (document.getElementById('adminCustomerName').value || '').trim();
+            const devId = (document.getElementById('adminDeviceId').value || '').trim().toUpperCase();
+
+            // Handle Universal Key Generation (For All Machines)
+            if (isUni) {
+                const claimHours = parseInt(document.getElementById('adminClaimHours') ? document.getElementById('adminClaimHours').value : '24', 10) || 24;
+                const accessHours = _selectedDays === 0 ? 36500 * 24 : _selectedDays * 24;
+                const durLabel = _selectedDays === 0 ? 'Lifetime VIP (ពេញមួយជីវិត)' : `${_selectedDays} ថ្ងៃ`;
+
+                try {
+                    const res = await fetch('/api/license/admin/generate-universal', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            accessHours: accessHours,
+                            claimWindowHours: claimHours,
+                            label: `សាកល្បង (${durLabel}) • ផុតកំណត់ចែកក្នុង ${claimHours} ម៉ោង`
+                        })
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        let finalKey = data.key;
+                        if (custName) {
+                            try {
+                                const b64 = btoa(unescape(encodeURIComponent(custName)));
+                                finalKey = `${finalKey}:${b64}`;
+                            } catch (_) {}
+                        }
+
+                        _currentGeneratedKey = {
+                            key: finalKey,
+                            device_id: 'ALL MACHINES (គ្រប់ម៉ាស៊ីន)',
+                            label: data.label,
+                            days: _selectedDays
+                        };
+
+                        const card = document.getElementById('keyGenResultCard');
+                        const autoCard = document.getElementById('autoAuthResultCard');
+                        const keyEl = document.getElementById('keyGenDisplay');
+                        const tag = document.getElementById('keyGenDurationTag');
+                        const heading = document.getElementById('keyGenResultHeading');
+
+                        if (autoCard) autoCard.style.display = 'none';
+                        if (card) card.style.display = 'block';
+                        if (keyEl) keyEl.innerText = finalKey;
+                        if (tag) tag.innerText = data.label || durLabel;
+                        if (heading) heading.innerText = '✨ បានបង្កើត Universal Key (គ្រប់ម៉ាស៊ីន) ជោគជ័យ!';
+
+                        showToast('✨ បានបង្កើត Universal License Key ជោគជ័យ!', '✅');
+                        card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    } else {
+                        showToast('❌ ' + (data.error || 'បរាជ័យក្នុងការបង្កើត Universal Key'), '⚠️');
+                    }
+                } catch (e) {
+                    showToast('Error: ' + e.message, '❌');
+                }
+                return;
+            }
+
+            // Normal Single-Machine Key Generation
+            if (!devId) {
+                showToast('⚠️ សូមបញ្ចូលលេខសម្គាល់ម៉ាស៊ីន (Device ID) ជាមុនសិន!', '❌');
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/license/admin/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        deviceId: devId,
+                        days: _selectedDays,
+                        unit: 'days'
+                    })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    if (custName) {
+                        await fetch('/api/license/admin/set-name', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ deviceId: devId, customName: custName })
+                        });
+                    }
+
+                    _currentGeneratedKey = {
+                        key: data.key,
+                        device_id: devId,
+                        label: data.label,
+                        days: data.days
+                    };
+
+                    const card = document.getElementById('keyGenResultCard');
+                    const autoCard = document.getElementById('autoAuthResultCard');
+                    const keyEl = document.getElementById('keyGenDisplay');
+                    const tag = document.getElementById('keyGenDurationTag');
+                    const heading = document.getElementById('keyGenResultHeading');
+
+                    if (autoCard) autoCard.style.display = 'none';
+                    if (card) card.style.display = 'block';
+                    if (keyEl) keyEl.innerText = data.key;
+                    if (tag) tag.innerText = data.label;
+                    if (heading) heading.innerText = '✨ បានបង្កើត License Key ជោគជ័យ!';
+
+                    showToast('✨ បានបង្កើត License Key ជោគជ័យ!', '✅');
+                    card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                } else {
+                    showToast('❌ ' + (data.error || 'បរាជ័យ'), '⚠️');
+                }
+            } catch (e) {
+                showToast('Error: ' + e.message, '❌');
+            }
+        }
+
+        async function copyResultKeyOnly() {
+            if (!_currentGeneratedKey) return;
+            await copyText(_currentGeneratedKey.key);
+            showToast('📋 បានចម្លង License Key រួចរាល់!', '✅');
+        }
+
+        async function copyTelegramKeyTemplate() {
+            if (!_currentGeneratedKey) return;
+            const msg = `🎉 សួស្តី! នេះជា License Key កម្មវិធី PS DOWNLOAD របស់អ្នក៖\n\n` +
+                        `🔑 License Key: ${_currentGeneratedKey.key}\n` +
+                        `💻 សម្រាប់ម៉ាស៊ីន: ${_currentGeneratedKey.device_id}\n` +
+                        `⏱️ សុពលភាព: ${_currentGeneratedKey.label}\n\n` +
+                        `👉 សូមចម្លង Key ខាងលើនេះ រួច Paste ចូលក្នុងផ្ទាំងកម្មវិធីដើម្បីបើកដំណើរការ! សូមអរគុណ! 🙏`;
+            await copyText(msg);
+            showToast('💬 បានចម្លងសារ Telegram រួចរាល់!', '✅');
+        }
+
+        async function copyAutoAuthTelegramMessage() {
+            const devId = (document.getElementById('adminDeviceId').value || '').trim().toUpperCase();
+            const tag = document.getElementById('autoAuthDurationTag');
+            const dur = tag ? tag.innerText : `${_selectedDays} ថ្ងៃ`;
+            const msg = `🎉 សួស្តី! ម៉ាស៊ីនរបស់អ្នក (${devId}) ត្រូវបានបើកសិទ្ធិប្រើប្រាស់ (${dur}) រួចរាល់ហើយ!\n\n` +
+                        `👉 ឥឡូវនេះ សូមបើកកម្មវិធី PS DOWNLOAD រួចចុចពាក្យថា «ផ្ទុកឡើងវិញ (Refresh)» នោះកម្មវិធីនឹងដំណើរការភ្លាមដោយស្វ័យប្រវត្តិ! សូមរីករាយជាមួយការទស្សនា! 🙏✨`;
+            await copyText(msg);
+            showToast('💬 បានចម្លងសារ Telegram ប្រាប់ភ្ញៀវរួចរាល់!', '✅');
+        }
+
+        // ==============================================
+        // TAB 2: ACTIVE MACHINES & LICENSE MANAGER
+        // ==============================================
+        async function loadTrackedDevices(isSilent = false, syncCloud = false) {
+            const tbody = document.getElementById('trackerTableBody');
+            try {
+                const url = syncCloud ? '/api/license/admin/tracked?sync=true' : '/api/license/admin/tracked';
+                const res = await fetch(url);
+                const data = await res.json();
+                if (data.success && data.devices) {
+                    _cachedDevices = data.devices;
+                    updateMetrics(_cachedDevices);
+                    applyFilter();
+                } else if (!isSilent && tbody) {
+                    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--text-sub); padding:28px;">មិនទាន់មានម៉ាស៊ីនណាបានបើកកម្មវិធីឡើយ</td></tr>`;
+                }
+            } catch (e) {
+                if (!isSilent && tbody) {
+                    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--text-sub); padding:28px;">មិនអាចភ្ជាប់ទៅកាន់ Server បានឡើយ</td></tr>`;
+                }
+            }
+        }
+
+        async function syncWithCloud() {
+            const btn = document.getElementById('btnSyncCloud');
+            if (btn) btn.innerHTML = '<span>⏳</span> <span>Syncing...</span>';
+            showToast('⏳ កំពុងធ្វើសមកាលកម្មទិន្នន័យពី Cloud Render...', '☁️');
+            try {
+                const res = await fetch('/api/license/admin/sync-cloud', { method: 'POST' });
+                const data = await res.json();
+                if (data.success) {
+                    showToast(`🎉 បានធ្វើសមកាលកម្មជោគជ័យ! (Sync បាន ${data.syncedCount || 0} ម៉ាស៊ីន)`, '✅');
+                    if (data.devices) {
+                        _cachedDevices = data.devices;
+                        updateMetrics(_cachedDevices);
+                        applyFilter();
+                    } else {
+                        await loadTrackedDevices(false);
+                    }
+                } else {
+                    showToast('⚠️ Sync បរាជ័យ', '❌');
+                }
+            } catch (e) {
+                showToast('Sync Error: ' + e.message, '❌');
+            } finally {
+                if (btn) btn.innerHTML = '<span>☁️</span> <span>Sync Cloud</span>';
+            }
+        }
+
+        function updateMetrics(list) {
+            let total = list.length;
+            let online = 0;
+            let active = 0;
+            let expiredRevoked = 0;
+
+            for (const d of list) {
+                if (d.isOnline) online++;
+                if (d.isAuthorized && !d.isExpired && !d.isRevoked) active++;
+                if (d.isExpired || d.isRevoked) expiredRevoked++;
+            }
+
+            document.getElementById('metricTotalDevices').innerText = total;
+            document.getElementById('metricOnlineDevices').innerText = online;
+            document.getElementById('metricActiveLicenses').innerText = active;
+            document.getElementById('metricExpiredRevoked').innerText = expiredRevoked;
+
+            const badge = document.getElementById('trackerOnlineCountBadge');
+            if (badge) {
+                badge.innerText = online;
+                badge.style.display = online > 0 ? 'inline-block' : 'none';
+            }
+        }
+
+        function setFilter(filter, btn) {
+            _currentFilter = filter;
+            document.querySelectorAll('.filter-pill').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            applyFilter();
+        }
+
+        function applyFilter() {
+            const q = (document.getElementById('trackerSearchInput').value || '').trim().toLowerCase();
+            let filtered = _cachedDevices;
+
+            if (_currentFilter === 'online') {
+                filtered = filtered.filter(d => d.isOnline);
+            } else if (_currentFilter === 'active') {
+                filtered = filtered.filter(d => d.isAuthorized && !d.isExpired && !d.isRevoked);
+            } else if (_currentFilter === 'expired') {
+                filtered = filtered.filter(d => d.isExpired || d.isRevoked);
+            }
+
+            if (q) {
+                filtered = filtered.filter(d => 
+                    (d.deviceId && d.deviceId.toLowerCase().includes(q)) ||
+                    (d.customName && d.customName.toLowerCase().includes(q)) ||
+                    (d.telegramUser && d.telegramUser.toLowerCase().includes(q)) ||
+                    (d.computerName && d.computerName.toLowerCase().includes(q)) ||
+                    (d.key && d.key.toLowerCase().includes(q))
+                );
+            }
+
+            renderDevicesTable(filtered);
+        }
+
+        function renderDevicesTable(list) {
+            const tbody = document.getElementById('trackerTableBody');
+            if (!tbody) return;
+
+            if (!list || list.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--text-sub); padding:28px;">មិនមានទិន្នន័យត្រូវគ្នានឹងការស្វែងរកឡើយ</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = list.map(item => {
+                const devId = escapeHtml(item.deviceId);
+                const displayName = item.customName || item.telegramUser || 'ភ្ញៀវថ្មី';
+                const nameDisplay = `<span style="font-weight:700; color:#38bdf8; font-size:0.86rem;">${escapeHtml(displayName)}</span>`;
+
+                let subText = '';
+                if (item.telegramUser && item.telegramUser !== item.customName) {
+                    subText += `<div style="font-size:0.71rem; color:#94a3b8; margin-top:1px;">📱 ${escapeHtml(item.telegramUser)}</div>`;
+                }
+                if (item.computerName) {
+                    subText += `<div style="font-size:0.69rem; color:#64748b; margin-top:1px;">🖥️ ${escapeHtml(item.computerName)}${item.osUser ? ' • ' + escapeHtml(item.osUser) : ''}</div>`;
+                }
+
+                // Online status indicator
+                const onlineHtml = item.isOnline
+                    ? `<span style="color:#34d399; font-weight:700; font-size:0.75rem; display:inline-flex; align-items:center;"><span class="pulse-dot"></span> Online</span>`
+                    : `<span style="color:#94a3b8; font-size:0.75rem; display:inline-flex; align-items:center;"><span class="pulse-dot offline"></span> Offline</span>`;
+
+                const lastSeenText = item.lastSeenAgo 
+                    ? `<span style="font-size:0.68rem; color:#64748b; margin-left:4px;">(${item.lastSeenAgo})</span>`
+                    : '';
+
+                // Key display
+                const keyHtml = item.key 
+                    ? `<span class="key-badge" style="padding:2px 6px; font-size:0.76rem;"><code>${escapeHtml(item.key)}</code> <button type="button" class="btn-table-copy" onclick="copyText('${escapeHtml(item.key)}'); showToast('📋 បានចម្លង License Key!', '✅');" title="ចម្លង Key">📋</button></span>`
+                    : `<span class="badge-status badge-unact" style="font-size:0.70rem;">⚪ គ្មាន Key</span>`;
+
+                // Duration badge
+                let durationBadge = '';
+                if (item.isRevoked || item.isExpired) {
+                    durationBadge = `<span class="badge-status badge-expired" style="font-size:0.70rem;">🔴 ផុតកំណត់</span>`;
+                } else if (item.isLifetime) {
+                    durationBadge = `<span class="badge-status badge-active" style="border-color:#8b5cf6; color:#c084fc; background:rgba(139,92,246,0.15); font-size:0.70rem;">👑 ពេញមួយជីវិត</span>`;
+                } else if (item.isAuthorized) {
+                    const days = item.remainingDays || 0;
+                    const hours = item.remainingHours || 0;
+                    const mins = item.remainingMinutes || 0;
+                    let remStr = '';
+                    if (days > 0) {
+                        remStr = `${days} ថ្ងៃ ${hours} ម៉ោង`;
+                    } else if (hours > 0) {
+                        remStr = `${hours} ម៉ោង ${mins} នាទី`;
+                    } else if (mins > 0) {
+                        remStr = `${mins} នាទី`;
+                    } else {
+                        remStr = `តិចជាង ១ នាទី`;
+                    }
+                    durationBadge = `<span class="badge-status badge-active" style="font-size:0.70rem;">⏳ នៅសល់ ${remStr}</span>`;
+                } else {
+                    durationBadge = `<span class="badge-status badge-unact" style="font-size:0.70rem;">⚪ មិនទាន់ Activate</span>`;
+                }
+
+                let grantedText = '';
+                if (item.label && (item.label.includes('ម៉ោង') || item.label.includes('ថ្ងៃ') || item.label.includes('ឆ្នាំ'))) {
+                    grantedText = `<div style="font-size:0.69rem; color:#94a3b8; margin-top:2px;">កញ្ចប់: <b>${escapeHtml(item.label)}</b></div>`;
+                } else if (item.daysGranted > 0) {
+                    grantedText = `<div style="font-size:0.69rem; color:#94a3b8; margin-top:2px;">កញ្ចប់: <b>${item.daysGranted} ថ្ងៃ</b></div>`;
+                } else if (item.isLifetime) {
+                    grantedText = `<div style="font-size:0.69rem; color:#c084fc; margin-top:2px;">VIP ពេញមួយជីវិត</div>`;
+                }
+
+                return `
+                    <tr oncontextmenu="openContextMenu(event, '${devId}'); return false;" style="cursor:context-menu;">
+                        <!-- 1. Customer Name & Device ID -->
+                        <td style="overflow:hidden;">
+                            <div style="display:flex; align-items:center; gap:5px; margin-bottom:2px;">
+                                ${nameDisplay}
+                                <button type="button" class="btn-table-edit" onclick="openEditNameModal('${devId}', '${escapeHtml(item.customName || '')}')" title="កែឈ្មោះសម្គាល់ភ្ញៀវ">✏️</button>
+                            </div>
+                            <div style="display:flex; align-items:center; gap:5px; margin-bottom:1px;">
+                                <code style="font-family:'JetBrains Mono', monospace; color:#94a3b8; font-size:0.75rem; font-weight:700;">${devId}</code>
+                                <button type="button" class="btn-table-edit" style="font-size:0.68rem; padding:1px 3px;" onclick="copyText('${devId}'); showToast('📋 បានចម្លង Device ID!', '✅');" title="ចម្លង Device ID">📋</button>
+                            </div>
+                            ${subText}
+                        </td>
+
+                        <!-- 2. License Key -->
+                        <td style="overflow:hidden;">
+                            ${keyHtml}
+                            ${grantedText}
+                        </td>
+
+                        <!-- 3. Status & Duration -->
+                        <td style="overflow:hidden;">
+                            <div style="margin-bottom:3px;">${onlineHtml} ${lastSeenText}</div>
+                            <div>${durationBadge}</div>
+                        </td>
+
+                        <!-- 4. Compact Actions -->
+                        <td style="text-align:right;">
+                            <div style="display:inline-flex; gap:3px; justify-content:flex-end; flex-wrap:wrap;">
+                                <button type="button" class="btn-table btn-table-add" onclick="openAdjustDaysModal('${devId}', 'add', ${item.remainingDays || 0})" title="បន្ថែមថ្ងៃប្រើប្រាស់">+ ថ្ងៃ</button>
+                                <button type="button" class="btn-table btn-table-sub" onclick="openAdjustDaysModal('${devId}', 'sub', ${item.remainingDays || 0})" title="បន្ថយថ្ងៃប្រើប្រាស់">- ថ្ងៃ</button>
+                                <button type="button" class="btn-table btn-table-transfer" onclick="openTransferModal('${devId}', ${item.remainingDays || 0}, ${item.remainingHours || 0}, ${item.remainingMinutes || 0}, ${item.isLifetime ? 'true' : 'false'}, '${escapeHtml(item.customName || '')}')" title="ផ្ទេរ License ទៅម៉ាស៊ីនថ្មី">🔄 ផ្ទេរ</button>
+                                <button type="button" class="btn-table btn-table-revoke" onclick="confirmRevoke('${devId}')" title="កាត់ License ម៉ាស៊ីននេះឱ្យផុតកំណត់ភ្លាមៗ">🔌 ផ្ដាច់</button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // ==============================================
+        // MODALS & ACTIONS
+        // ==============================================
+
+        // 1. Edit Name Modal
+        function openEditNameModal(deviceId, currentName) {
+            _activeModalDeviceId = deviceId;
+            document.getElementById('editNameDeviceId').innerText = deviceId;
+            const inp = document.getElementById('editNameInput');
+            inp.value = currentName || '';
+            openModal('modalEditName');
+            setTimeout(() => inp.focus(), 150);
+        }
+
+        async function submitEditName() {
+            if (!_activeModalDeviceId) return;
+            const name = (document.getElementById('editNameInput').value || '').trim();
+            try {
+                const res = await fetch('/api/license/admin/set-name', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ deviceId: _activeModalDeviceId, customName: name })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast('💾 បានរក្សាទុកឈ្មោះរួចរាល់!', '✅');
+                    closeModal('modalEditName');
+                    loadTrackedDevices();
+                } else {
+                    showToast('❌ ' + (data.error || 'បរាជ័យ'), '⚠️');
+                }
+            } catch (e) {
+                showToast('Error: ' + e.message, '❌');
+            }
+        }
+
+        // 2. Adjust Days Modal (+/-)
+        function openAdjustDaysModal(deviceId, mode, currentRemaining) {
+            _activeModalDeviceId = deviceId;
+            document.getElementById('adjustDaysDeviceId').innerText = deviceId;
+            document.getElementById('adjustDaysCurrentInfo').innerText = `ថ្ងៃនៅសល់បច្ចុប្បន្ន: ${currentRemaining} ថ្ងៃ`;
+            setAdjustMode(mode);
+            openModal('modalAdjustDays');
+        }
+
+        function setAdjustMode(mode) {
+            _adjustMode = mode;
+            const btnAdd = document.getElementById('btnModeAddDays');
+            const btnSub = document.getElementById('btnModeSubDays');
+            const title = document.getElementById('adjustDaysTitle');
+            const label = document.getElementById('adjustDaysInputLabel');
+            const submitBtn = document.getElementById('btnSubmitAdjustDays');
+
+            if (mode === 'add') {
+                btnAdd.classList.add('active');
+                btnSub.classList.remove('active');
+                title.innerText = '➕ បន្ថែមថ្ងៃប្រើប្រាស់ (+ Days)';
+                label.innerText = 'ចំនួនថ្ងៃត្រូវបន្ថែម:';
+                submitBtn.innerText = '➕ បន្ថែមថ្ងៃ';
+                submitBtn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+            } else {
+                btnSub.classList.add('active');
+                btnAdd.classList.remove('active');
+                title.innerText = '➖ បន្ថយថ្ងៃប្រើប្រាស់ (- Days)';
+                label.innerText = 'ចំនួនថ្ងៃត្រូវបន្ថយ/ដកចេញ:';
+                submitBtn.innerText = '➖ បន្ថយថ្ងៃ';
+                submitBtn.style.background = 'linear-gradient(135deg, #f59e0b, #d97706)';
+            }
+        }
+
+        function setQuickAdjust(days) {
+            const inp = document.getElementById('adjustDaysCountInput');
+            if (inp) inp.value = days;
+        }
+
+        async function submitAdjustDays() {
+            if (!_activeModalDeviceId) return;
+            const count = parseInt(document.getElementById('adjustDaysCountInput').value || '0', 10);
+            if (isNaN(count) || count <= 0) {
+                showToast('⚠️ សូមបញ្ចូលចំនួនថ្ងៃត្រឹមត្រូវ!', '❌');
+                return;
+            }
+
+            const change = _adjustMode === 'add' ? count : -count;
+            try {
+                const res = await fetch('/api/license/admin/adjust-days', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        deviceId: _activeModalDeviceId,
+                        daysChange: change
+                    })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast(`🎉 បាន${_adjustMode === 'add' ? 'បន្ថែម' : 'បន្ថយ'} ${count} ថ្ងៃជោគជ័យ! (នៅសល់ ${data.newDays} ថ្ងៃ)`, '✅');
+                    closeModal('modalAdjustDays');
+                    loadTrackedDevices();
+                } else {
+                    showToast('❌ ' + (data.error || 'បរាជ័យ'), '⚠️');
+                }
+            } catch (e) {
+                showToast('Error: ' + e.message, '❌');
+            }
+        }
+
+        // 3. Transfer License Modal
+        function openTransferModal(deviceId, remainingDays, remainingHours, remainingMinutes, isLifetime, currentName) {
+            _activeModalDeviceId = deviceId;
+            document.getElementById('transferFromDeviceId').innerText = deviceId;
+            const remInfo = document.getElementById('transferRemainingDaysInfo');
+            if (isLifetime) {
+                remInfo.innerText = 'កញ្ចប់ត្រូវផ្ទេរ: 👑 ពេញមួយជីវិត (Lifetime VIP)';
+            } else {
+                let timeStr = `${remainingDays} ថ្ងៃ`;
+                if (remainingHours > 0 || remainingMinutes > 0) {
+                    timeStr = `${remainingDays} ថ្ងៃ ${remainingHours} ម៉ោង ${remainingMinutes} នាទី`;
+                }
+                remInfo.innerText = `ថ្ងៃ & ម៉ោងនៅសល់ត្រូវផ្ទេរ: ⏳ ${timeStr} (រាប់ថយក្រោយតាមពេលវេលាពិត ២៤/៧)`;
+            }
+
+            const toInp = document.getElementById('transferToDeviceIdInput');
+            const nameInp = document.getElementById('transferNewNameInput');
+            toInp.value = '';
+            nameInp.value = currentName ? `${currentName} (ម៉ាស៊ីនថ្មី)` : '';
+
+            openModal('modalTransfer');
+            setTimeout(() => toInp.focus(), 150);
+        }
+
+        async function submitTransferLicense() {
+            if (!_activeModalDeviceId) return;
+            const toDevId = (document.getElementById('transferToDeviceIdInput').value || '').trim().toUpperCase();
+            const newName = (document.getElementById('transferNewNameInput').value || '').trim();
+
+            if (!toDevId) {
+                showToast('⚠️ សូមបញ្ចូលលេខម៉ាស៊ីនថ្មី (Device ID ទី 2)!', '❌');
+                return;
+            }
+            if (toDevId === _activeModalDeviceId) {
+                showToast('⚠️ មិនអាចផ្ទេរទៅម៉ាស៊ីនដដែលបានទេ!', '❌');
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/license/admin/transfer', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        fromDeviceId: _activeModalDeviceId,
+                        toDeviceId: toDevId,
+                        newCustomName: newName
+                    })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    closeModal('modalTransfer');
+                    showToast(`🎉 បានផ្ទេរទៅ ${toDevId} (${data.transferredDays} ថ្ងៃ) រួចរាល់!`, '✅');
+                    
+                    // Show generated key for the new machine
+                    _currentGeneratedKey = {
+                        key: data.newKey,
+                        device_id: toDevId,
+                        label: `${data.transferredDays} ថ្ងៃ (ផ្ទេរពី ${_activeModalDeviceId})`,
+                        days: data.transferredDays
+                    };
+
+                    const keyCard = document.getElementById('keyGenResultCard');
+                    const keyEl = document.getElementById('keyGenDisplay');
+                    const tag = document.getElementById('keyGenDurationTag');
+                    if (keyCard && keyEl) {
+                        keyCard.style.display = 'block';
+                        keyEl.innerText = data.newKey;
+                        if (tag) tag.innerText = `${data.transferredDays} ថ្ងៃ`;
+                        switchTab('tabMain', document.querySelectorAll('.admin-tab-btn')[0]);
+                        keyCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    }
+
+                    loadTrackedDevices();
+                } else {
+                    showToast('❌ ' + (data.error || 'បរាជ័យក្នុងការផ្ទេរ'), '⚠️');
+                }
+            } catch (e) {
+                showToast('Error: ' + e.message, '❌');
+            }
+        }
+
+        // 4. Disconnect (Expire) License
+        async function confirmRevoke(deviceId) {
+            if (!confirm(`⚠️ តើអ្នកពិតជាចង់កាត់ License លើម៉ាស៊ីន ${deviceId} ឱ្យផុតកំណត់ (០ ថ្ងៃ) ភ្លាមៗមែនទេ?\n\n(ម៉ាស៊ីននេះនឹងក្លាយជា «ផុតកំណត់» ភ្លាមៗ ដោយនៅតែអាចបើកកម្មវិធីមើលរូបភាព និងបញ្ចូល Key ថ្មីបានធម្មតា)`)) {
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/license/admin/revoke', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ deviceId: deviceId })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast(`🔌 បានកាត់ License លើ ${deviceId} ឱ្យផុតកំណត់រួចរាល់!`, '✅');
+                    loadTrackedDevices();
+                } else {
+                    showToast('❌ ' + (data.error || 'បរាជ័យ'), '⚠️');
+                }
+            } catch (e) {
+                showToast('Error: ' + e.message, '❌');
+            }
+        }
+
+        // Modal Helpers
+        function openModal(id) {
+            const m = document.getElementById(id);
+            if (m) m.classList.add('active');
+        }
+
+        function closeModal(id) {
+            const m = document.getElementById(id);
+            if (m) m.classList.remove('active');
+            _activeModalDeviceId = null;
+        }
+
+        // ==============================================
+        // PAYMENT REQUESTS & TELEGRAM
+        // ==============================================
+        async function loadPayments() {
+            const tbody = document.getElementById('paymentsTableBody');
+            if (!tbody) return;
+
+            try {
+                const res = await fetch('/api/license/admin/payments');
+                const data = await res.json();
+                if (data.success && data.payments && data.payments.length > 0) {
+                    renderPaymentsTable(data.payments);
+                } else {
+                    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-sub); padding:16px;">មិនទាន់មានការបង់ប្រាក់ដែលបានផ្ទៀងផ្ទាត់ (Verified) ពី Bot ឬការទិញស្វ័យប្រវត្តិនៅឡើយទេ</td></tr>`;
+                }
+            } catch (e) {
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-sub); padding:16px;">មិនអាចទាញយកទិន្នន័យបានឡើយ</td></tr>`;
+            }
+        }
+
+        async function clearPaymentsList() {
+            if (!confirm('⚠️ តើអ្នកពិតជាចង់សំអាត (លុប) បញ្ជីសារបង់ប្រាក់ទាំងអស់នេះមែនទេ?')) return;
+            try {
+                const res = await fetch('/api/license/admin/clear-payments', { method: 'POST' });
+                const data = await res.json();
+                if (data.success) {
+                    showToast('🧹 បានសំអាតបញ្ជីសារបង់ប្រាក់ទាំងអស់រួចរាល់!', '✅');
+                    loadPayments();
+                } else {
+                    showToast('❌ ' + (data.error || 'បរាជ័យ'), '⚠️');
+                }
+            } catch (e) {
+                showToast('Error: ' + e.message, '❌');
+            }
+        }
+
+        function renderPaymentsTable(list) {
+            const tbody = document.getElementById('paymentsTableBody');
+            if (!tbody) return;
+
+            tbody.innerHTML = list.map(item => {
+                const isWeek = item.plan && (item.plan.includes('សប្តាហ៍') || item.plan.includes('Week') || item.amount === '1.50');
+                const days = isWeek ? 7 : 30;
+
+                return `
+                    <tr>
+                        <td>
+                            <span class="user-pill">📱 ${escapeHtml(item.telegramUser || '(មិនបញ្ជាក់)')}</span>
+                        </td>
+                        <td>
+                            <b style="font-family:'JetBrains Mono', monospace; color:#38bdf8; font-size:0.85rem;">${escapeHtml(item.deviceId)}</b>
+                        </td>
+                        <td>
+                            <span style="font-weight:700; color:#e2e8f0;">${escapeHtml(item.plan)}</span>
+                        </td>
+                        <td>
+                            <b style="color:#34d399; font-size:0.95rem;">$${escapeHtml(item.amount)}</b>
+                        </td>
+                        <td>
+                            <div style="font-size:0.75rem; color:#94a3b8;">${new Date(item.createdAt).toLocaleString('en-US', { hour12: true })}</div>
+                        </td>
+                        <td style="text-align:right;">
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="quickAuthorizeDevice('${escapeHtml(item.deviceId)}', ${days}, '${escapeHtml(item.telegramUser || '')}')">
+                                ⚡ បើកសិទ្ធិ ${days} ថ្ងៃ
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        async function quickAuthorizeDevice(deviceId, days, tgUser) {
+            try {
+                const res = await fetch('/api/license/admin/authorize', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ deviceId: deviceId, days: days, telegramUser: tgUser })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast(`🎉 បានបើកសិទ្ធិ ${data.label} ជូន ${deviceId}!`, '✅');
+                    loadTrackedDevices();
+                    loadPayments();
+                } else {
+                    showToast('❌ ' + (data.error || 'បរាជ័យ'), '⚠️');
+                }
+            } catch (e) {
+                showToast('Error: ' + e.message, '❌');
+            }
+        }
+
+        // ==============================================
+        // ANTI-CRACK & MAPS TRACKER
+        // ==============================================
+        async function loadCrackSuspects() {
+            const tbody = document.getElementById('crackSuspectsTableBody');
+            if (!tbody) return;
+            try {
+                const res = await fetch('/api/license/admin/crack-suspects');
+                const data = await res.json();
+                if (data.success && data.suspects) {
+                    renderCrackSuspectsTable(data.suspects);
+                    const badge = document.getElementById('crackCountBadge');
+                    if (badge) {
+                        badge.innerText = data.suspects.length;
+                        badge.style.display = data.suspects.length > 0 ? 'inline-block' : 'none';
+                    }
+                } else {
+                    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--text-sub); padding:28px;">មិនមានអ្នកព្យាយាម Hack/Crack ឡើយ</td></tr>`;
+                }
+            } catch (e) {
+                tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--text-sub); padding:28px;">មិនអាចទាញយកទិន្នន័យបានឡើយ</td></tr>`;
+            }
+        }
+
+        function renderCrackSuspectsTable(list) {
+            const tbody = document.getElementById('crackSuspectsTableBody');
+            if (!tbody) return;
+
+            if (!list || list.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:#34d399; padding:28px; font-weight:700;">✅ មិនមានអ្នកព្យាយាម Hack/Crack ឡើយ (សុវត្ថិភាពល្អ ១០០%)</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = list.map(item => {
+                const devId = escapeHtml(item.deviceId);
+                const tg = item.telegramUser ? escapeHtml(item.telegramUser) : '';
+                const cleanTg = tg.replace(/^@/, '');
+                const tgLink = tg ? `<a href="https://t.me/${cleanTg}" target="_blank" rel="noopener noreferrer" style="color:#38bdf8; font-weight:700; text-decoration:none;">📱 @${cleanTg}</a>` : '<span style="color:#64748b;">(មិនស្គាល់)</span>';
+                const pcInfo = item.computerName ? `<div style="font-size:0.75rem; color:#94a3b8; margin-top:2px;">🖥️ ${escapeHtml(item.computerName)}</div>` : '';
+
+                // Location & Google Maps Link
+                let locDisplay = '<span style="color:#64748b;">មិនមានទីតាំង</span>';
+                if (item.mapsUrl || item.city || item.ip) {
+                    const place = [item.city, item.country].filter(Boolean).join(', ') || 'Cambodia';
+                    const ipDisplay = item.ip ? `<div style="font-size:0.72rem; color:#94a3b8; font-family:monospace;">IP: ${escapeHtml(item.ip)}${item.isp ? ' (' + escapeHtml(item.isp) + ')' : ''}</div>` : '';
+                    const mapBtn = item.mapsUrl ? `
+                        <div style="margin-top:5px;">
+                            <a href="${item.mapsUrl}" target="_blank" rel="noopener noreferrer" style="display:inline-flex; align-items:center; gap:5px; background:linear-gradient(135deg, #2563eb, #1d4ed8); color:#ffffff; text-decoration:none; padding:4px 10px; border-radius:6px; font-size:0.75rem; font-weight:700; box-shadow:0 2px 6px rgba(37,99,235,0.4);">
+                                <span>🗺️</span> <span>បើកមើលលើ Google Maps</span>
+                            </a>
+                        </div>
+                    ` : '';
+                    locDisplay = `
+                        <div>
+                            <span style="font-weight:700; color:#f8fafc;">📍 ${escapeHtml(place)}</span>
+                            ${ipDisplay}
+                            ${mapBtn}
+                        </div>
+                    `;
+                }
+
+                // Attempts keys
+                const attemptsList = item.attempts && item.attempts.length > 0
+                    ? `<div style="font-family:monospace; font-size:0.75rem; color:#fca5a5; max-width:200px; word-break:break-all;">${item.attempts.map(k => escapeHtml(k)).join('<br>')}</div>`
+                    : `<span style="color:#94a3b8; font-size:0.75rem;">${escapeHtml(item.lastFailedKey || '-')}</span>`;
+
+                // Lock badge
+                const lockBadge = item.isLocked
+                    ? `<div style="margin-top:4px;"><span class="badge-status badge-revoked" style="font-size:0.7rem;">🔒 ចាក់សោរ (Locked)</span></div>`
+                    : '';
+
+                const lastTime = item.lastFailedAt
+                    ? new Date(item.lastFailedAt).toLocaleString('en-US', { hour12: true })
+                    : '-';
+
+                return `
+                    <tr>
+                        <td>
+                            ${tgLink}
+                            ${pcInfo}
+                        </td>
+                        <td>
+                            <b style="font-family:'JetBrains Mono', monospace; color:#f87171; font-size:0.86rem;">${devId}</b>
+                            <button type="button" class="btn-table-edit" onclick="copyText('${devId}'); showToast('📋 បានចម្លង Device ID!', '✅');" title="ចម្លង Device ID">📋</button>
+                        </td>
+                        <td>
+                            <span class="badge-status badge-revoked" style="font-size:0.8rem; font-weight:800;">❌ ${item.failedCount} ដង</span>
+                            ${lockBadge}
+                        </td>
+                        <td>
+                            ${attemptsList}
+                        </td>
+                        <td>
+                            ${locDisplay}
+                        </td>
+                        <td>
+                            <div style="font-size:0.75rem; color:#94a3b8;">${lastTime}</div>
+                        </td>
+                        <td style="text-align:right; white-space:nowrap;">
+                            <button type="button" class="btn-table" style="background:rgba(16,185,129,0.15); border-color:rgba(16,185,129,0.4); color:#34d399;" onclick="resetFailedAttempts('${devId}')" title="ដោះសោរម៉ាស៊ីននេះ">
+                                🔓 ដោះសោរ
+                            </button>
+                            <button type="button" class="btn-table btn-table-revoke" onclick="confirmRevoke('${devId}')" title="ផ្ដាច់សិទ្ធិ License">
+                                🔌 ផ្ដាច់ License
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        async function resetFailedAttempts(deviceId) {
+            try {
+                const res = await fetch('/api/license/admin/reset-fails', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ deviceId })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast(`🔓 បានដោះសោរម៉ាស៊ីន ${deviceId} រួចរាល់!`, '✅');
+                    loadCrackSuspects();
+                } else {
+                    showToast('❌ ' + (data.error || 'បរាជ័យ'), '⚠️');
+                }
+            } catch (e) {
+                showToast('Error: ' + e.message, '❌');
+            }
+        }
+
+        async function clearCrackHistory() {
+            if (!confirm('⚠️ តើអ្នកពិតជាចង់សំអាតប្រវត្តិអ្នកព្យាយាម Hack / Crack ទាំងអស់មែនទេ?')) return;
+            try {
+                const res = await fetch('/api/license/admin/clear-crack-history', { method: 'POST' });
+                const data = await res.json();
+                if (data.success) {
+                    showToast('🧹 បានសំអាតប្រវត្តិ Hack រួចរាល់!', '✅');
+                    loadCrackSuspects();
+                } else {
+                    showToast('❌ ' + (data.error || 'បរាជ័យ'), '⚠️');
+                }
+            } catch (e) {
+                showToast('Error: ' + e.message, '❌');
+            }
+        }
+
+        async function loadTelegramConfig() {
+            try {
+                const res = await fetch('/api/license/admin/telegram-config');
+                const data = await res.json();
+                if (data.success && data.config) {
+                    const tokenInp = document.getElementById('tgBotTokenInput');
+                    const chatInp = document.getElementById('tgChatIdInput');
+                    const adminInp = document.getElementById('tgAdminUserInput');
+                    const qrInp = document.getElementById('tgQrImageInput');
+                    if (tokenInp) tokenInp.value = data.config.botToken || '';
+                    if (chatInp) chatInp.value = data.config.chatId || '';
+                    if (adminInp) adminInp.value = data.config.adminTelegram || '@Thpisal33';
+                    if (qrInp) qrInp.value = data.config.qrImageUrl || '';
+                }
+            } catch (e) {}
+        }
+
+        async function saveTelegramSettings() {
+            const tokenInp = document.getElementById('tgBotTokenInput');
+            const chatInp = document.getElementById('tgChatIdInput');
+            const adminInp = document.getElementById('tgAdminUserInput');
+            const qrInp = document.getElementById('tgQrImageInput');
+            const botToken = tokenInp ? tokenInp.value.trim() : '';
+            const chatId = chatInp ? chatInp.value.trim() : '';
+            const adminTelegram = adminInp ? adminInp.value.trim() : '';
+            const qrImageUrl = qrInp ? qrInp.value.trim() : '';
+
+            try {
+                const res = await fetch('/api/license/admin/telegram-config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ botToken, chatId, adminTelegram, qrImageUrl })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast('💾 បានរក្សាទុកការកំណត់រួចរាល់!', '✅');
+                } else {
+                    showToast('❌ ' + (data.error || 'បរាជ័យ'), '⚠️');
+                }
+            } catch (err) {
+                showToast('Error: ' + err.message, '❌');
+            }
+        }
+
+        async function sendTestTelegramAlert() {
+            showToast('⏳ កំពុងផ្ញើសារសាកល្បងទៅ Telegram...', '🔔');
+            try {
+                const res = await fetch('/api/license/admin/telegram-test', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast('🎉 បានផ្ញើសារសាកល្បងជោគជ័យ! សូមពិនិត្យមើល Telegram របស់អ្នក', '✅');
+                } else {
+                    showToast('❌ មិនអាចផ្ញើបាន: សូមពិនិត្យមើល Bot Token & Chat ID', '⚠️');
+                }
+            } catch (err) {
+                showToast('Error: ' + err.message, '❌');
+            }
+        }
+
+        // ==============================================
+        // UTILITY HELPERS
+        // ==============================================
+        async function copyText(str) {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                await navigator.clipboard.writeText(str);
+            } else {
+                const ta = document.createElement('textarea');
+                ta.value = str;
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
+            }
+        }
+
+        function showToast(msg, icon = '💡') {
+            const c = document.getElementById('toastContainer');
+            if (!c) return;
+            const t = document.createElement('div');
+            t.className = 'toast';
+            t.innerHTML = `<span>${icon}</span> <span>${escapeHtml(msg)}</span>`;
+            c.appendChild(t);
+            setTimeout(() => {
+                t.style.opacity = '0';
+                t.style.transform = 'translateY(10px)';
+                setTimeout(() => t.remove(), 300);
+            }, 3200);
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        // ==============================================
+        // RIGHT-CLICK CONTEXT MENU (Matching Previous KeyGen Tool)
+        // ==============================================
+        let _contextSelectedDeviceId = null;
+
+        function openContextMenu(event, deviceId) {
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            _contextSelectedDeviceId = deviceId;
+            const menu = document.getElementById('tableContextMenu');
+            if (!menu) return;
+
+            // Position context menu safely within window boundaries
+            const menuWidth = 240;
+            const menuHeight = 280;
+            let posX = event.clientX;
+            let posY = event.clientY;
+
+            if (posX + menuWidth > window.innerWidth) {
+                posX = window.innerWidth - menuWidth - 10;
+            }
+            if (posY + menuHeight > window.innerHeight) {
+                posY = window.innerHeight - menuHeight - 10;
+            }
+
+            menu.style.left = `${Math.max(10, posX)}px`;
+            menu.style.top = `${Math.max(10, posY)}px`;
+            menu.style.display = 'block';
+        }
+
+        function hideContextMenu() {
+            const menu = document.getElementById('tableContextMenu');
+            if (menu) menu.style.display = 'none';
+        }
+
+        document.addEventListener('click', (e) => {
+            const menu = document.getElementById('tableContextMenu');
+            if (menu && menu.style.display === 'block') {
+                if (!menu.contains(e.target)) {
+                    hideContextMenu();
+                }
+            }
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                hideContextMenu();
+                closeModal('modalEditName');
+                closeModal('modalAdjustDays');
+                closeModal('modalTransfer');
+            }
+        });
+
+        async function contextAction(action) {
+            const devId = _contextSelectedDeviceId;
+            hideContextMenu();
+            if (!devId) return;
+
+            const device = _cachedDevices.find(d => d.deviceId === devId) || {};
+
+            if (action === 'set_days') {
+                openAdjustDaysModal(devId, 'add', device.remainingDays || 0);
+            } else if (action === 'set_name') {
+                openEditNameModal(devId, device.customName || '');
+            } else if (action === 'set_lifetime') {
+                if (!confirm(`👑 តើអ្នកពិតជាចង់កំណត់ម៉ាស៊ីន ${devId} ឱ្យក្លាយជា VIP ពេញមួយជីវិត (Lifetime) មែនទេ?`)) return;
+                try {
+                    const res = await fetch('/api/license/admin/authorize', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ deviceId: devId, days: 0 })
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        showToast(`👑 បានកំណត់ ${devId} ជា VIP ពេញមួយជីវិតរួចរាល់!`, '✅');
+                        loadTrackedDevices();
+                    } else {
+                        showToast('❌ ' + (data.error || 'បរាជ័យ'), '⚠️');
+                    }
+                } catch (e) {
+                    showToast('Error: ' + e.message, '❌');
+                }
+            } else if (action === 'lock') {
+                confirmRevoke(devId);
+            } else if (action === 'copy_dev_id') {
+                copyText(devId);
+                showToast('📋 បានចម្លង Device ID រួចរាល់!', '✅');
+            } else if (action === 'copy_key') {
+                if (device.key) {
+                    copyText(device.key);
+                    showToast('📋 បានចម្លង License Key រួចរាល់!', '✅');
+                } else {
+                    showToast('⚠️ ម៉ាស៊ីននេះមិនទាន់មាន Key ឡើយ', '💡');
+                }
+            } else if (action === 'transfer') {
+                openTransferModal(devId, device.remainingDays || 0, device.remainingHours || 0, device.remainingMinutes || 0, device.isLifetime, device.customName || '');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadTrackedDevices(false, false);
+            startTrackerAutoRefresh();
+            loadPayments();
+            loadCrackSuspects();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+{
+  "output_dir": "D:\\",
+  "concurrency": 5,
+  "threads": 4,
+  "port": 1994,
+  "host": "127.0.0.1",
+  "quality": "1080p",
+  "github_repo": "S323334/ps-download"
+}

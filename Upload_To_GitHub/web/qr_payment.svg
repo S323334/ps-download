@@ -1,0 +1,122 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 480" width="400" height="480">
+  <defs>
+    <linearGradient id="headerGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#e11d48"/>
+      <stop offset="100%" stop-color="#be123c"/>
+    </linearGradient>
+    <filter id="shadow" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+
+  <!-- Background Card -->
+  <rect x="10" y="10" width="380" height="460" rx="24" fill="#ffffff" filter="url(#shadow)"/>
+
+  <!-- KHQR Header Banner -->
+  <path d="M 10 34 Q 10 10 34 10 L 366 10 Q 390 10 390 34 L 390 85 L 10 85 Z" fill="url(#headerGrad)"/>
+  
+  <text x="200" y="58" font-family="'Outfit', 'Inter', sans-serif" font-size="28" font-weight="900" fill="#ffffff" text-anchor="middle" letter-spacing="4">
+    KHQR
+  </text>
+  <text x="200" y="76" font-family="'Outfit', sans-serif" font-size="11" font-weight="600" fill="rgba(255,255,255,0.85)" text-anchor="middle" letter-spacing="1">
+    BAKONG • ALL CAMBODIAN BANKS
+  </text>
+
+  <!-- QR Inner Area Frame -->
+  <rect x="50" y="105" width="300" height="300" rx="16" fill="#f8fafc" stroke="#e2e8f0" stroke-width="2"/>
+
+  <!-- Stylized QR Code Pattern (Scalable Matrix) -->
+  <g fill="#0f172a">
+    <!-- Top-Left Finder Pattern -->
+    <rect x="75" y="130" width="60" height="60" rx="10" fill="#0f172a"/>
+    <rect x="85" y="140" width="40" height="40" rx="6" fill="#ffffff"/>
+    <rect x="95" y="150" width="20" height="20" rx="3" fill="#e11d48"/>
+
+    <!-- Top-Right Finder Pattern -->
+    <rect x="265" y="130" width="60" height="60" rx="10" fill="#0f172a"/>
+    <rect x="275" y="140" width="40" height="40" rx="6" fill="#ffffff"/>
+    <rect x="285" y="150" width="20" height="20" rx="3" fill="#e11d48"/>
+
+    <!-- Bottom-Left Finder Pattern -->
+    <rect x="75" y="320" width="60" height="60" rx="10" fill="#0f172a"/>
+    <rect x="85" y="330" width="40" height="40" rx="6" fill="#ffffff"/>
+    <rect x="95" y="340" width="20" height="20" rx="3" fill="#e11d48"/>
+
+    <!-- Center QR Data Blocks -->
+    <rect x="155" y="130" width="16" height="16" rx="3"/>
+    <rect x="180" y="130" width="16" height="16" rx="3"/>
+    <rect x="210" y="130" width="16" height="16" rx="3"/>
+    <rect x="235" y="130" width="16" height="16" rx="3"/>
+
+    <rect x="155" y="155" width="16" height="16" rx="3"/>
+    <rect x="200" y="155" width="24" height="16" rx="3"/>
+    <rect x="235" y="155" width="16" height="16" rx="3"/>
+
+    <rect x="145" y="180" width="20" height="20" rx="4"/>
+    <rect x="175" y="180" width="25" height="20" rx="4"/>
+    <rect x="210" y="180" width="20" height="20" rx="4"/>
+    <rect x="240" y="180" width="20" height="20" rx="4"/>
+
+    <!-- Middle Cross Rows -->
+    <rect x="75" y="210" width="16" height="16" rx="3"/>
+    <rect x="105" y="210" width="20" height="16" rx="3"/>
+    <rect x="140" y="210" width="24" height="24" rx="4"/>
+    <rect x="175" y="210" width="20" height="20" rx="4"/>
+    <rect x="205" y="210" width="20" height="20" rx="4"/>
+    <rect x="235" y="210" width="30" height="16" rx="3"/>
+    <rect x="275" y="210" width="20" height="20" rx="4"/>
+    <rect x="305" y="210" width="20" height="20" rx="4"/>
+
+    <!-- Center Hub Emblem -->
+    <rect x="170" y="235" width="60" height="60" rx="14" fill="#ffffff" stroke="#e2e8f0" stroke-width="2"/>
+    <circle cx="200" cy="265" r="18" fill="#e11d48"/>
+    <text x="200" y="271" font-family="'Outfit', sans-serif" font-size="14" font-weight="900" fill="#ffffff" text-anchor="middle">
+      $
+    </text>
+
+    <!-- Additional Data Points -->
+    <rect x="75" y="240" width="20" height="20" rx="4"/>
+    <rect x="110" y="240" width="16" height="16" rx="3"/>
+    <rect x="140" y="245" width="16" height="20" rx="3"/>
+    <rect x="245" y="245" width="20" height="16" rx="3"/>
+    <rect x="280" y="240" width="16" height="20" rx="3"/>
+    <rect x="305" y="245" width="20" height="20" rx="4"/>
+
+    <rect x="75" y="270" width="25" height="16" rx="3"/>
+    <rect x="115" y="270" width="16" height="20" rx="3"/>
+    <rect x="140" y="275" width="20" height="20" rx="4"/>
+    <rect x="240" y="275" width="20" height="20" rx="4"/>
+    <rect x="270" y="270" width="25" height="16" rx="3"/>
+    <rect x="305" y="275" width="20" height="16" rx="3"/>
+
+    <!-- Bottom Data Rows -->
+    <rect x="150" y="315" width="20" height="20" rx="4"/>
+    <rect x="180" y="315" width="20" height="20" rx="4"/>
+    <rect x="210" y="315" width="25" height="20" rx="4"/>
+    <rect x="245" y="315" width="20" height="20" rx="4"/>
+    <rect x="280" y="315" width="16" height="16" rx="3"/>
+    <rect x="305" y="315" width="20" height="25" rx="4"/>
+
+    <rect x="150" y="345" width="25" height="16" rx="3"/>
+    <rect x="185" y="345" width="16" height="20" rx="3"/>
+    <rect x="210" y="345" width="20" height="16" rx="3"/>
+    <rect x="240" y="345" width="25" height="20" rx="4"/>
+    <rect x="275" y="345" width="20" height="20" rx="4"/>
+    <rect x="305" y="350" width="20" height="20" rx="4"/>
+
+    <rect x="150" y="375" width="20" height="16" rx="3"/>
+    <rect x="180" y="375" width="25" height="16" rx="3"/>
+    <rect x="215" y="370" width="20" height="20" rx="4"/>
+    <rect x="245" y="375" width="20" height="16" rx="3"/>
+    <rect x="275" y="375" width="20" height="16" rx="3"/>
+    <rect x="305" y="375" width="20" height="16" rx="3"/>
+  </g>
+
+  <!-- Footer Bank Logos Note -->
+  <text x="200" y="430" font-family="'Kantumruy Pro', 'Outfit', sans-serif" font-size="12" font-weight="700" fill="#475569" text-anchor="middle">
+    ស្កេនជាមួយ ABA, ACLEDA, Wing ឬគ្រប់ធនាគារ
+  </text>
+  <text x="200" y="448" font-family="'Outfit', sans-serif" font-size="10" font-weight="600" fill="#94a3b8" text-anchor="middle">
+    Scan with Bakong or Any Mobile Banking
+  </text>
+</svg>

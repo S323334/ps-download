@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: ps-download-bot
+    env: node
+    plan: free
+    buildCommand: npm install --omit=dev
+    startCommand: node src/bot_service.js
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: TELEGRAM_BOT_TOKEN
+        value: 8928655174:AAGpYf-8kHhPCRRBcj21bvJ-sGXtxk5tlUE
+      - key: TELEGRAM_CHAT_ID
+        value: 925539914
