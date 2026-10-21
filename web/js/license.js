@@ -95,11 +95,50 @@ function computeLicenseTimeDetails(data) {
     };
 }
 
+const BADGE_COLOR_THEMES = [
+    'badge-theme-emerald',
+    'badge-theme-cyan',
+    'badge-theme-purple',
+    'badge-theme-amber',
+    'badge-theme-rose'
+];
+
+function handleLicenseBadgeClick(event) {
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+    const badge = document.getElementById('btnHeaderLicenseStatus');
+    const active = isLicenseActive();
+
+    if (active) {
+        // User has active license days: DO NOT open modal! Just cycle/change theme color!
+        let currentIdx = parseInt(localStorage.getItem('badge_color_theme_idx') || '0', 10);
+        currentIdx = (currentIdx + 1) % BADGE_COLOR_THEMES.length;
+        localStorage.setItem('badge_color_theme_idx', currentIdx);
+
+        if (badge) {
+            BADGE_COLOR_THEMES.forEach(cls => badge.classList.remove(cls));
+            badge.classList.add(BADGE_COLOR_THEMES[currentIdx]);
+            badge.classList.add('badge-click-pop');
+            setTimeout(() => badge.classList.remove('badge-click-pop'), 200);
+        }
+        return;
+    }
+
+    // Only if unactivated or expired: open modal so user can copy Device ID or purchase
+    openLicenseActivationModal(true);
+}
+window.handleLicenseBadgeClick = handleLicenseBadgeClick;
+
 function updateHeaderLicenseBadge(data) {
     const badge = document.getElementById('btnHeaderLicenseStatus');
     const icon = document.getElementById('headerLicenseIcon');
     const text = document.getElementById('headerLicenseText');
     if (!badge || !text) return;
+
+    badge.onclick = (e) => handleLicenseBadgeClick(e);
+    badge.style.cursor = 'pointer';
 
     if (icon) {
         icon.style.display = 'none'; // Completely hide the left icon inside the red circle
@@ -144,23 +183,30 @@ function updateHeaderLicenseBadge(data) {
     if (info.status === 'lifetime') {
         badge.classList.add('lifetime-vip');
         text.innerHTML = contentHtml;
-        badge.title = 'License សកម្មពេញមួយជីវិត (Lifetime VIP)';
+        badge.title = '✨ License VIP សកម្មពេញមួយជីវិត (ចុចដើម្បីផ្លាស់ប្តូរពណ៌ Theme ភ្លើង)';
     } else if (info.status === 'active-pro') {
         badge.classList.add('active-pro');
         text.innerHTML = contentHtml;
-        badge.title = `License សកម្ម: ${info.text}${info.expiresAt ? ` (ផុតកំណត់: ${new Date(info.expiresAt).toLocaleString()})` : ''}`;
+        badge.title = `✨ License VIP សកម្ម: ${info.text} (ចុចដើម្បីផ្លាស់ប្តូរពណ៌ Theme ភ្លើង)`;
     } else if (info.status === 'expiring-soon') {
         badge.classList.add('expiring-soon');
         text.innerHTML = contentHtml;
-        badge.title = `License ជិតផុតកំណត់: ${info.text}${info.expiresAt ? ` (ផុតកំណត់: ${new Date(info.expiresAt).toLocaleString()})` : ''}`;
+        badge.title = `⚠️ License ជិតផុតកំណត់: ${info.text} (ចុចដើម្បីផ្លាស់ប្តូរពណ៌ Theme ភ្លើង)`;
     } else if (info.status === 'expired') {
         badge.classList.add('expired');
         text.innerHTML = contentHtml;
-        badge.title = 'License របស់អ្នកបានផុតកំណត់ហើយ! ចុចដើម្បីទិញ ឬបញ្ចូល Key ថ្មី';
+        badge.title = 'License របស់អ្នកបានផុតកំណត់ហើយ! ចុចដើម្បីចម្លងលេខម៉ាស៊ីន ឬទិញបន្ថែម';
     } else {
         badge.classList.add('unactivated');
         text.innerHTML = contentHtml;
-        badge.title = 'កម្មវិធីមិនទាន់មាន License ឡើយ! ចុចដើម្បីទិញ ឬ Activate';
+        badge.title = 'កម្មវិធីមិនទាន់មាន License ឡើយ! ចុចដើម្បីចម្លងលេខម៉ាស៊ីន ឬទិញ VIP';
+    }
+
+    // Apply active color theme variant if active
+    if (info.status === 'active-pro' || info.status === 'lifetime' || info.status === 'expiring-soon') {
+        const savedIdx = parseInt(localStorage.getItem('badge_color_theme_idx') || '0', 10);
+        const themeCls = BADGE_COLOR_THEMES[savedIdx] || BADGE_COLOR_THEMES[0];
+        badge.classList.add(themeCls);
     }
 }
 
@@ -212,6 +258,8 @@ function triggerSuccessfulActivationClose(label = '', message = '', sig = '') {
 }
 
 let _modalFastSyncTimer = null;
+let _openedWhileActive = false;
+
 function startModalFastSync() {
     if (_modalFastSyncTimer) clearInterval(_modalFastSyncTimer);
     _modalFastSyncTimer = setInterval(async () => {
@@ -221,6 +269,7 @@ function startModalFastSync() {
             return;
         }
         if (_isClosingModalSuccess) return;
+        if (_openedWhileActive) return; // NEVER auto-close if user already had active license!
         try {
             const res = await fetch('/api/license/check-auto');
             const data = await res.json();
@@ -267,8 +316,10 @@ function openLicenseActivationModal(force = false) {
     const modal = document.getElementById('licenseActivationModal');
     const notice = document.getElementById('licenseActionNoticeBanner');
     const alertBox = document.getElementById('licenseAlertBox');
+    const activeCard = document.getElementById('licenseActiveInfoCard');
 
     _isClosingModalSuccess = false;
+    _openedWhileActive = isLicenseActive();
 
     if (alertBox && !checkNotifyPaidLock()) {
         alertBox.style.display = 'none';
@@ -278,12 +329,53 @@ function openLicenseActivationModal(force = false) {
     if (notice && force) {
         notice.style.display = 'none';
     }
+
+    // Populate active license info card if user currently has valid days
+    if (activeCard) {
+        if (_openedWhileActive && _currentLicenseData) {
+            const info = computeLicenseTimeDetails(_currentLicenseData);
+            const statusEl = document.getElementById('activeCardStatusLabel');
+            const nameEl = document.getElementById('activeCardCustomerName');
+            const remEl = document.getElementById('activeCardRemainingText');
+            const keyEl = document.getElementById('activeCardKeyText');
+
+            if (statusEl) {
+                statusEl.innerHTML = info.status === 'lifetime' 
+                    ? '👑 អាជ្ញាប័ណ្ណពេញមួយជីវិត (Lifetime VIP)' 
+                    : '🟢 អាជ្ញាប័ណ្ណមានសុពលភាព (Active VIP)';
+            }
+            if (nameEl) {
+                const cName = info.customerName || _currentLicenseData.custom_name || '';
+                nameEl.style.display = cName ? 'inline-block' : 'none';
+                nameEl.innerText = cName ? `👤 ${cName}` : '';
+            }
+            if (remEl) {
+                remEl.innerText = info.status === 'lifetime' 
+                    ? '✨ ប្រើប្រាស់បានជារៀងរហូត គ្មានថ្ងៃផុតកំណត់' 
+                    : `⏳ ${info.timeOnlyStr || info.text}`;
+            }
+            if (keyEl) {
+                const k = _currentLicenseData.key || _currentLicenseData.license_key || '';
+                keyEl.innerText = k ? `🔑 Key: ${k}` : '';
+                keyEl.style.display = k ? 'block' : 'none';
+            }
+            activeCard.style.display = 'block';
+        } else {
+            activeCard.style.display = 'none';
+        }
+    }
+
     if (modal) {
         modal.style.display = 'flex';
         modal.style.opacity = '1';
         modal.classList.add('active');
     }
-    startModalFastSync();
+
+    // Only start background auto-activation sync if NOT already active
+    // Prevents closing immediately when an active user opens the modal!
+    if (!_openedWhileActive) {
+        startModalFastSync();
+    }
 }
 
 /**
@@ -382,7 +474,7 @@ async function checkAppLicenseStatus() {
             }, 120000);
         }
 
-        // Continuous Background Live-Sync: syncs days and names from Telegram Bot every 25 seconds
+        // Continuous Background Live-Sync: syncs days and names from Telegram Bot every 10 seconds
         if (!window._backgroundLiveSyncInterval) {
             window._backgroundLiveSyncInterval = setInterval(async () => {
                 try {
@@ -402,7 +494,7 @@ async function checkAppLicenseStatus() {
                         }
                     }
                 } catch (_) {}
-            }, 25000);
+            }, 10000);
         }
 
         // Update header status badge & start live countdown timer
@@ -509,7 +601,7 @@ async function reportDevicePing(deviceId, tgUser, options = {}) {
                     computerName: '',
                     key: key,
                     status: status,
-                    appVersion: '3.2.2'
+                    appVersion: '3.2.9'
                 })
             });
             clearTimeout(timeoutId);
@@ -530,11 +622,11 @@ async function reportDevicePing(deviceId, tgUser, options = {}) {
     }
 }
 
-// Periodic heartbeat ping every 20s for live tracking & instant name updates
+// Periodic heartbeat ping every 20s for live tracking & instant name updates (always silent heartbeat)
 setInterval(() => {
     try {
         if (_currentLicenseData && _currentLicenseData.device_id) {
-            reportDevicePing(_currentLicenseData.device_id);
+            reportDevicePing(_currentLicenseData.device_id, '', { isHeartbeat: true });
         }
     } catch (_) {}
 }, 20000);
@@ -543,7 +635,7 @@ function onClientTelegramChange(val) {
     const clean = val.trim();
     localStorage.setItem('client_tg_user', clean);
     if (_currentLicenseData && _currentLicenseData.device_id) {
-        reportDevicePing(_currentLicenseData.device_id, clean);
+        reportDevicePing(_currentLicenseData.device_id, clean, { isHeartbeat: true });
     }
 }
 
@@ -595,6 +687,85 @@ async function refreshAndCheckAutoActivation() {
         if (text) text.innerText = 'ផ្ទុកឡើងវិញ (Refresh / Check License)';
     }
 }
+
+/**
+ * Instant License Refresh button in Settings modal:
+ * Reaches out to local vault and Render Cloud, auto-unlocks if authorized,
+ * and immediately updates status without closing/restarting the app!
+ */
+async function refreshLicenseFromSettings(btn = null) {
+    const licText = document.getElementById('settingsLicenseTypeText');
+    const icon = document.getElementById('btnRefreshLicIcon');
+    const text = document.getElementById('btnRefreshLicText');
+
+    if (btn) btn.disabled = true;
+    if (icon) {
+        icon.style.display = 'inline-block';
+        icon.style.animation = 'spin 0.8s linear infinite';
+    }
+    if (text) text.innerText = 'កំពុងពិនិត្យ...';
+    if (licText) {
+        licText.innerHTML = '<span style="color:#60a5fa;">⏳ កំពុងទាញយកទិន្នន័យ License ពី Cloud...</span>';
+    }
+
+    try {
+        // 1. Force check auto-activation from cloud & local vaults
+        const autoRes = await fetch('/api/license/check-auto');
+        const autoData = await autoRes.json().catch(() => ({}));
+
+        // 2. Fetch fresh status
+        const statusRes = await fetch('/api/license/status');
+        const statusData = await statusRes.json().catch(() => ({}));
+        _currentLicenseData = statusData;
+
+        // 3. Update badges, countdown, and custom name
+        updateHeaderLicenseBadge(statusData);
+        startLicenseLiveCountdown();
+
+        if (statusData && statusData.activated) {
+            const typeLabel = statusData.label || 'Lifetime VIP (ពេញមួយជីវិត)';
+            const info = computeLicenseTimeDetails(statusData);
+            const remDays = info.text ? ` - ${info.text}` : '';
+            if (licText) {
+                licText.innerHTML = `✅ បានបើកដំណើរការរួច (${escapeHtml(typeLabel)}${remDays})`;
+            }
+
+            // Close modal if open
+            const modal = document.getElementById('licenseActivationModal');
+            if (modal && modal.classList.contains('active')) {
+                const sig = getLicenseSignature(statusData);
+                triggerSuccessfulActivationClose(statusData.label || 'សកម្ម', '🎉 បានបើកដំណើរការ License ជោគជ័យ!', sig);
+            }
+
+            if (autoData && autoData.authorized) {
+                showToast('🎉 ទទួលបាន License ថ្មីពី Cloud ដោយជោគជ័យ!', '✅');
+            } else {
+                showToast('✓ អាជ្ញាប័ណ្ណមានសុពលភាព និងធ្វើបច្ចុប្បន្នភាពរួចរាល់!', '✅');
+            }
+        } else {
+            if (licText) {
+                const isExp = statusData && statusData.expired;
+                licText.innerHTML = isExp 
+                    ? `<span style="color:#ef4444;">⚠️ License ផុតកំណត់ហើយ</span>` 
+                    : `<span style="color:#ef4444;">❌ មិនទាន់ Activate ឡើយ</span>`;
+            }
+            showToast('ℹ️ មិនទាន់មានការបើកសិទ្ធិ License ថ្មីក្នុង Cloud ឡើយ', '⚠️');
+        }
+    } catch (err) {
+        console.warn('[License] Refresh error:', err);
+        showToast('❌ មិនអាចភ្ជាប់ទៅកាន់ Cloud Server បានឡើយ', '⚠️');
+        if (licText) {
+            licText.innerHTML = `<span style="color:#ef4444;">❌ បរាជ័យក្នុងការភ្ជាប់ Cloud</span>`;
+        }
+    } finally {
+        if (btn) btn.disabled = false;
+        if (icon) {
+            icon.style.animation = '';
+        }
+        if (text) text.innerText = 'Refresh';
+    }
+}
+window.refreshLicenseFromSettings = refreshLicenseFromSettings;
 
 /**
  * Toggle between Auto Mode and Manual Key Entry

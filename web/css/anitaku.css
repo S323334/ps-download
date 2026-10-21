@@ -1,0 +1,739 @@
+/* =========================================================
+   ANITAKU (anitaku.com.ro) Modern Anime Glassmorphism Styling
+   Color Palette: Vibrant Neon Orange / Amber (#f97316, #ea580c, #fb923c) & Cyber Slate
+   ========================================================= */
+
+/* Category Filter Chips */
+.ani-cat-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 4px 2px 14px 2px;
+    margin-bottom: 8px;
+    scrollbar-width: none;
+}
+.ani-cat-bar::-webkit-scrollbar {
+    display: none;
+}
+.ani-cat-chip {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #94a3b8;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.84rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    outline: none;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    user-select: none;
+}
+.ani-cat-chip:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+    transform: translateY(-1px);
+}
+.ani-cat-chip.active {
+    background: linear-gradient(135deg, rgba(249, 115, 22, 0.4), rgba(234, 88, 12, 0.3));
+    border-color: rgba(251, 146, 60, 0.7);
+    color: #ffffff;
+    box-shadow: 0 0 14px rgba(249, 115, 22, 0.4);
+}
+
+/* Container */
+.anitaku-view-container {
+    width: 100%;
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 24px 20px 80px 20px;
+    animation: fadeInAni 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+@keyframes fadeInAni {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.ani-content-wrapper {
+    width: 100%;
+}
+
+/* Hero Banner */
+.ani-hero-banner {
+    position: relative;
+    background: linear-gradient(145deg, rgba(15, 23, 42, 0.95), rgba(67, 20, 7, 0.9));
+    border: 1px solid rgba(249, 115, 22, 0.3);
+    border-radius: 20px;
+    padding: 32px 36px;
+    box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.7), 0 0 35px -5px rgba(249, 115, 22, 0.2);
+    overflow: hidden;
+    margin-bottom: 24px;
+}
+.ani-hero-glow {
+    position: absolute;
+    top: -80px;
+    right: -80px;
+    width: 320px;
+    height: 320px;
+    background: radial-gradient(circle, rgba(249, 115, 22, 0.3) 0%, transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
+    filter: blur(40px);
+}
+.ani-hero-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+}
+.ani-hero-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+.ani-logo-clickable {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #f97316, #ea580c);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 20px rgba(249, 115, 22, 0.4);
+    cursor: pointer;
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    flex-shrink: 0;
+}
+.ani-logo-clickable:hover {
+    transform: scale(1.08) rotate(4deg);
+}
+.ani-hero-title {
+    font-size: 1.55rem;
+    font-weight: 800;
+    color: #ffffff;
+    letter-spacing: -0.02em;
+    margin: 0;
+    line-height: 1.2;
+}
+.ani-hero-desc {
+    color: #94a3b8;
+    font-size: 0.88rem;
+    margin: 4px 0 0 0;
+}
+.ani-hero-badges {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.ani-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.05);
+    color: #cbd5e1;
+}
+.ani-badge.ani-badge-accent {
+    background: rgba(249, 115, 22, 0.15);
+    border-color: rgba(249, 115, 22, 0.4);
+    color: #fb923c;
+}
+
+/* Search Bar */
+.ani-search-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(2, 6, 23, 0.6);
+    border: 1px solid rgba(249, 115, 22, 0.3);
+    border-radius: 14px;
+    padding: 6px 8px 6px 14px;
+    transition: all 0.25s ease;
+}
+.ani-search-container:focus-within {
+    border-color: #f97316;
+    box-shadow: 0 0 16px rgba(249, 115, 22, 0.35);
+    background: rgba(2, 6, 23, 0.85);
+}
+.ani-search-icon {
+    font-size: 1.1rem;
+    color: #f97316;
+    flex-shrink: 0;
+}
+.ani-search-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #f8fafc;
+    font-size: 0.95rem;
+    padding: 8px 4px;
+}
+.ani-search-input::placeholder {
+    color: #64748b;
+}
+.ani-search-btn-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+/* =========================================================
+   Active Anime Detail & Player Card (HaoSou 2-Column UX)
+   ========================================================= */
+.ani-detail-card {
+    background: linear-gradient(145deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.8));
+    border: 1px solid rgba(249, 115, 22, 0.4);
+    border-radius: 20px;
+    padding: 24px;
+    margin-bottom: 26px;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6), 0 0 25px rgba(249, 115, 22, 0.15);
+    animation: fadeInAni 0.28s ease;
+    display: grid;
+    grid-template-columns: 460px 1fr;
+    gap: 24px;
+}
+@media (max-width: 980px) {
+    .ani-detail-card {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Left Column: Player & Controls */
+.ani-detail-player-col {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.ani-player-header-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+    min-height: 28px;
+}
+.ani-player-ep-title {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: #fb923c;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.ani-player-servers {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+.ani-server-btn {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #cbd5e1;
+    padding: 3px 9px;
+    border-radius: 6px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.ani-server-btn:hover {
+    background: rgba(249, 115, 22, 0.2);
+    border-color: rgba(249, 115, 22, 0.5);
+    color: #ffffff;
+}
+.ani-server-btn.active {
+    background: linear-gradient(135deg, #f97316, #ea580c);
+    border-color: #fb923c;
+    color: #ffffff;
+    box-shadow: 0 0 10px rgba(249, 115, 22, 0.5);
+}
+.ani-player-wrapper {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    background: #000000;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.75);
+    border: 1px solid rgba(249, 115, 22, 0.35);
+}
+.ani-video-player {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    background: #000000;
+}
+.ani-player-iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: none;
+    background: #000000;
+}
+.ani-player-action-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 2px;
+}
+.ani-btn-action {
+    flex: 1;
+    font-size: 0.8rem;
+    padding: 7px 10px;
+    border-radius: 8px;
+    text-align: center;
+    white-space: nowrap;
+}
+
+/* Right Column: Info & Episodes */
+.ani-card-info-col {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+.ani-info-header-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+.ani-detail-title {
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: #ffffff;
+    margin: 0;
+    line-height: 1.25;
+}
+.ani-detail-alt-title {
+    color: #94a3b8;
+    font-size: 0.84rem;
+    font-style: italic;
+    margin-top: 3px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.ani-card-close-btn {
+    padding: 5px 12px;
+    border-radius: 8px;
+    font-size: 0.84rem;
+    cursor: pointer;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #cbd5e1;
+    transition: all 0.2s;
+}
+.ani-card-close-btn:hover {
+    background: rgba(239, 68, 68, 0.2);
+    border-color: rgba(239, 68, 68, 0.5);
+    color: #ffffff;
+}
+.ani-tags-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+.ani-tag-pill {
+    background: rgba(249, 115, 22, 0.12);
+    border: 1px solid rgba(249, 115, 22, 0.28);
+    color: #fed7aa;
+    font-size: 0.74rem;
+    font-weight: 600;
+    padding: 3px 9px;
+    border-radius: 6px;
+}
+.ani-synopsis {
+    color: #cbd5e1;
+    font-size: 0.88rem;
+    line-height: 1.65;
+    background: rgba(0, 0, 0, 0.35);
+    padding: 12px 14px;
+    border-radius: 10px;
+    border-left: 3px solid #f97316;
+    max-height: 125px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    word-break: break-word;
+}
+
+/* Episodes Section & Grid */
+.ani-episodes-section {
+    margin-top: 10px;
+}
+.ani-ep-header-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.ani-batch-sel-group {
+    display: inline-flex;
+    gap: 6px;
+    align-items: center;
+}
+.ani-batch-sel-group .btn-xs {
+    padding: 3px 9px;
+    font-size: 0.75rem;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: #cbd5e1;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.ani-batch-sel-group .btn-xs:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: #ffffff;
+}
+.ani-selected-count-badge {
+    font-size: 0.76rem;
+    color: #fb923c;
+    font-weight: 700;
+    padding: 3px 8px;
+    background: rgba(249, 115, 22, 0.15);
+    border-radius: 6px;
+    border: 1px solid rgba(249, 115, 22, 0.3);
+}
+
+.ani-ep-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
+    gap: 8px;
+    max-height: 175px;
+    overflow-y: auto;
+    padding: 4px 2px;
+    scrollbar-width: thin;
+}
+.ani-ep-chip {
+    position: relative;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #cbd5e1;
+    padding: 7px 4px 7px 18px;
+    text-align: center;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.ani-ep-chip:hover {
+    background: rgba(249, 115, 22, 0.2);
+    border-color: rgba(249, 115, 22, 0.5);
+    color: #ffffff;
+    transform: translateY(-1px);
+}
+.ani-ep-chip.selected {
+    background: rgba(249, 115, 22, 0.25);
+    border-color: rgba(249, 115, 22, 0.6);
+    color: #ffedd5;
+}
+.ani-ep-chip.playing {
+    background: linear-gradient(135deg, #f97316, #ea580c) !important;
+    border-color: #fb923c !important;
+    color: #ffffff !important;
+    box-shadow: 0 0 14px rgba(249, 115, 22, 0.6) !important;
+}
+.ani-ep-chip-check {
+    position: absolute;
+    left: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 13px;
+    height: 13px;
+    accent-color: #f97316;
+    cursor: pointer;
+}
+
+/* Download Bar */
+.ani-download-bar {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+.ani-download-mode-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.ani-mode-chip {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #94a3b8;
+    padding: 5px 11px;
+    border-radius: 8px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.ani-mode-chip:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.12);
+}
+.ani-mode-chip.active {
+    background: rgba(249, 115, 22, 0.25);
+    border-color: #f97316;
+    color: #fb923c;
+    box-shadow: 0 0 8px rgba(249, 115, 22, 0.3);
+}
+.ani-dl-btn {
+    padding: 7px 16px;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 0.84rem;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(249, 115, 22, 0.4);
+    transition: all 0.2s;
+    color: #ffffff;
+}
+.ani-dl-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(249, 115, 22, 0.6);
+}
+
+/* Catalog / Recommendation Grid */
+.ani-grid-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+.ani-grid-title {
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+}
+.ani-card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 16px;
+    margin-bottom: 30px;
+}
+@media (max-width: 640px) {
+    .ani-card-grid {
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 12px;
+    }
+}
+.ani-card {
+    position: relative;
+    background: rgba(15, 23, 42, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 14px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+    display: flex;
+    flex-direction: column;
+}
+.ani-card:hover {
+    border-color: rgba(249, 115, 22, 0.6);
+    transform: translateY(-4px) scale(1.02);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6), 0 0 20px rgba(249, 115, 22, 0.25);
+}
+.ani-card.active-pinned {
+    border-color: #f97316 !important;
+    box-shadow: 0 0 20px rgba(249, 115, 22, 0.5) !important;
+}
+.ani-card-poster-wrap {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 2 / 3;
+    overflow: hidden;
+    background: #090d16;
+}
+.ani-card-poster {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+.ani-card:hover .ani-card-poster {
+    transform: scale(1.06);
+}
+.ani-card-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, transparent 60%);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 8px;
+    pointer-events: none;
+}
+.ani-card-ep-badge {
+    align-self: flex-start;
+    background: rgba(249, 115, 22, 0.9);
+    color: #ffffff;
+    font-size: 0.68rem;
+    font-weight: 800;
+    padding: 2px 7px;
+    border-radius: 6px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+.ani-card-sub-badge {
+    align-self: flex-end;
+    background: rgba(15, 23, 42, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #fed7aa;
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+.ani-card-pinned-tag {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    background: #dc2626;
+    color: #ffffff;
+    font-size: 0.65rem;
+    font-weight: 800;
+    padding: 2px 6px;
+    border-radius: 4px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+}
+.ani-card-star-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(15, 23, 42, 0.75);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    color: #e2e8f0;
+    cursor: pointer;
+    z-index: 4;
+    transition: all 0.2s ease;
+}
+.ani-card-star-btn:hover {
+    transform: scale(1.15);
+    background: rgba(249, 115, 22, 0.9);
+    color: #fff;
+}
+.ani-card-star-btn.starred {
+    background: rgba(249, 115, 22, 0.95);
+    color: #fff;
+    box-shadow: 0 0 10px rgba(249, 115, 22, 0.5);
+}
+.ani-card-info {
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+}
+.ani-card-title {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: #f1f5f9;
+    line-height: 1.3;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    margin: 0;
+}
+.ani-card-meta {
+    font-size: 0.72rem;
+    color: #94a3b8;
+    margin-top: auto;
+}
+
+/* Tasks & Queue Section */
+.ani-tasks-card {
+    background: rgba(15, 23, 42, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 20px;
+    margin-top: 24px;
+}
+.ani-task-item {
+    background: rgba(2, 6, 23, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.ani-task-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+.ani-task-title {
+    font-weight: 700;
+    font-size: 0.92rem;
+    color: #ffffff;
+}
+.ani-task-progress-bar {
+    width: 100%;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+    overflow: hidden;
+}
+.ani-task-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #f97316, #ea580c);
+    border-radius: 3px;
+    transition: width 0.3s ease;
+}
+.ani-task-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.76rem;
+    color: #94a3b8;
+}

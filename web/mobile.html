@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="km">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>PS DOWNLOAD - Short Drama & Video Pro Mobile</title>
+    
+    <!-- PWA & Mobile Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="PS DOWNLOAD">
+    <meta name="theme-color" content="#070a13">
+    <meta name="description" content="ទាញយករឿងភាគខ្លីចិន Hongguo, HaoSou, TikTok, Douyin, YouTube, Facebook កម្រិតច្បាស់ Full HD 1080p គ្មាន Watermark">
+    
+    <link rel="icon" href="/ps_logo.jpg">
+    <link rel="apple-touch-icon" href="/ps_logo.jpg">
+    <link rel="manifest" href="/manifest.json">
+
+    <!-- Google Fonts: Kantumruy Pro (Khmer), Outfit & Plus Jakarta Sans -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Mobile App Stylesheet -->
+    <link rel="stylesheet" href="/css/mobile.css">
+</head>
+<body>
+
+    <div class="app-container">
+        <!-- Top App Bar -->
+        <header class="mobile-header">
+            <div class="brand-wrapper" onclick="handleBrandTap()">
+                <img src="/ps_logo.jpg" alt="PS DOWNLOAD" class="brand-logo">
+                <div class="brand-info">
+                    <span class="brand-name">PS DOWNLOAD</span>
+                    <span class="brand-badge"><span class="dot"></span> MOBILE PRO</span>
+                </div>
+            </div>
+
+            <button type="button" class="lang-cycle-btn" id="langCycleBtn" onclick="cycleLanguage()" title="ប្តូរភាសា (Switch Language)">
+                <span id="langCycleFlag">🇰🇭</span>
+                <span id="langCycleText">KH</span>
+            </button>
+
+            <div class="license-chip unlicensed" id="licenseChip" onclick="handleVipChipTap()">
+                <span id="licenseChipText">🔒 No Key</span>
+            </div>
+        </header>
+
+        <!-- PWA Install Banner (Shown on phone browser) -->
+        <div id="pwaInstallBanner" style="display: none; background: linear-gradient(135deg, rgba(2, 132, 199, 0.25), rgba(56, 189, 248, 0.15)); border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 10px; margin: 8px 12px 4px; padding: 8px 12px; align-items: center; justify-content: space-between; gap: 8px;">
+            <div style="display: flex; align-items: center; gap: 8px; font-size: 0.82rem; color: #f8fafc;">
+                <span style="font-size: 1.1rem;">📲</span>
+                <span><b>ដំឡើងកម្មវិធី PS DOWNLOAD</b> លើទូរសព្ទដៃ</span>
+            </div>
+            <div style="display: flex; gap: 6px;">
+                <button type="button" id="btnPwaInstall" onclick="triggerPwaInstall()" style="padding: 5px 12px; background: #38bdf8; border: none; border-radius: 6px; color: #070a13; font-weight: 800; font-size: 0.76rem; cursor: pointer;">
+                    ដំឡើង
+                </button>
+                <button type="button" onclick="dismissPwaInstall()" style="padding: 5px 8px; background: rgba(255,255,255,0.1); border: none; border-radius: 6px; color: #94a3b8; font-size: 0.76rem; cursor: pointer;">
+                    ✕
+                </button>
+            </div>
+        </div>
+
+        <!-- Platform Pills (Horizontal Scroll Carousel) - Compact & Complete -->
+        <div class="platforms-scroll-wrapper" id="platformsWrapper">
+            <button class="platform-pill active" data-platform="hongguo">
+                <img src="/hongguo_icon.svg" class="platform-icon" alt="Hongguo">
+                <span>HONGGUO</span>
+            </button>
+            <button class="platform-pill" data-platform="haosou">
+                <span class="platform-pill-emoji">⚡</span>
+                <span>HAOSOU</span>
+            </button>
+            <button class="platform-pill" data-platform="beeplaylet">
+                <span class="platform-pill-emoji">🐝</span>
+                <span>BEEPLAYLET</span>
+            </button>
+            <button class="platform-pill" data-platform="anitaku">
+                <img src="/anitaku_logo.png" class="platform-icon" alt="Anitaku">
+                <span>ANITAKU</span>
+            </button>
+            <button class="platform-pill" data-platform="animexin">
+                <img src="/animexin_logo.png" class="platform-icon" alt="Animexin">
+                <span>ANIMEXIN</span>
+            </button>
+            <button class="platform-pill" data-platform="mvffm">
+                <span class="platform-pill-emoji">🎬</span>
+                <span>MVFFM</span>
+            </button>
+            <button class="platform-pill" data-platform="dailymotion">
+                <img src="/dailymotion_icon.svg" class="platform-icon" alt="Dailymotion">
+                <span>DAILYMOTION</span>
+            </button>
+            <button class="platform-pill" data-platform="youtube">
+                <span class="platform-pill-emoji">🔴</span>
+                <span>YOUTUBE</span>
+            </button>
+            <button class="platform-pill" data-platform="tiktok">
+                <img src="/tiktok_icon.svg" class="platform-icon" alt="TikTok">
+                <span>TIKTOK</span>
+            </button>
+            <button class="platform-pill" data-platform="douyin">
+                <img src="/douyin_icon.svg" class="platform-icon" alt="Douyin">
+                <span>DOUYIN</span>
+            </button>
+            <button class="platform-pill" data-platform="kuaishou">
+                <img src="/kuaishou_icon.svg" class="platform-icon" alt="Kuaishou">
+                <span>KUAISHOU</span>
+            </button>
+            <button class="platform-pill" data-platform="facebook">
+                <span class="platform-pill-emoji">📘</span>
+                <span>FACEBOOK</span>
+            </button>
+        </div>
+
+        <!-- Smart Search & Link Downloader Bar (Compact & Sleek) -->
+        <section class="hero-section" id="heroSearchSection">
+            <div class="search-box-wrapper">
+                <div class="search-icon">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                </div>
+                <input 
+                    type="text" 
+                    id="mobileSearchInput" 
+                    class="search-input" 
+                    placeholder="វាយឈ្មោះរឿង (ចុច 🔍 ស្វែងរក) ឬ បិទភ្ជាប់ Link (ចុច ⚡ Fetch)..."
+                    autocomplete="off"
+                    autocorrect="off"
+                    spellcheck="false"
+                >
+                <button type="button" class="btn-clear-search" id="btnClearSearch" title="Clear input" style="display: none;">✕</button>
+            </div>
+
+            <!-- 3 Desktop-Style Pro Action Buttons: 📋 Paste, 🔍 ស្វែងរក (Title), ⚡ Fetch (Link) -->
+            <div class="search-actions-bar">
+                <button type="button" class="btn-action-tab btn-paste-action" id="btnPaste" title="Paste from clipboard">
+                    <span>📋</span>
+                    <span id="btnPasteText">Paste</span>
+                </button>
+                <button type="button" class="btn-action-tab btn-search-title-action" id="btnSearchTitle" title="ស្វែងរកតាមឈ្មោះរឿង (Search Drama Title)">
+                    <span>🔍</span>
+                    <span id="btnSearchTitleText">ស្វែងរក</span>
+                </button>
+                <button type="button" class="btn-action-tab btn-fetch-link-action" id="btnFetchLink" title="ទាញយកតាម Link ឬ Series ID (Fetch via Link / Series ID)">
+                    <span>⚡</span>
+                    <span id="btnFetchLinkText">Fetch</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- Live Download Progress Banner -->
+        <div class="live-progress-card" id="liveProgressCard">
+            <div class="progress-header">
+                <span class="progress-title" id="progressTitle">កំពុងទាញយក...</span>
+                <span class="progress-percentage" id="progressPercentage">0%</span>
+            </div>
+            <div class="progress-bar-track">
+                <div class="progress-bar-fill" id="progressBarFill"></div>
+            </div>
+            <div class="progress-meta-row">
+                <span id="progressMeta">សូមរង់ចាំបន្តិច...</span>
+                <button type="button" class="btn-cancel-dl" id="btnCancelDl" onclick="cancelActiveDownload()">បញ្ឈប់</button>
+            </div>
+        </div>
+
+        <!-- Analyzed Single Video Card (TikTok, YouTube, etc.) -->
+        <div class="analyzed-video-card" id="analyzedCard" style="display: none;"></div>
+
+        <!-- Section Header (Clicking title opens original platform website directly) -->
+        <div class="section-header">
+            <div class="section-title-wrap">
+                <div class="section-title" id="sectionTitle" onclick="openCurrentOriginalWebsite()" title="ចុចដើម្បីចូលទៅកាន់វេបសាយដើម">
+                    <span id="sectionTitleText">🔥 HONGGUO - ហុងគ័រ</span>
+                    <span class="site-arrow">↗</span>
+                </div>
+            </div>
+            <div class="section-actions">
+                <button class="btn-back-all" id="btnBackAll" onclick="resetToAllDramas()" style="display: none;" title="ត្រឡប់ទៅរឿងទាំងអស់">
+                    <span id="btnBackAllText">🔙 ទាំងអស់</span>
+                </button>
+                <button type="button" class="btn-refresh-section" id="btnToggleSearch" onclick="toggleSearchSection()" title="ស្វែងរករឿង ឬ Link" style="background: rgba(56, 189, 248, 0.15); border-color: rgba(56, 189, 248, 0.35); color: #38bdf8;">
+                    <span>🔍</span> <span id="btnToggleSearchText">ស្វែងរក</span>
+                </button>
+                <button class="btn-refresh-section" id="btnRefreshSection" onclick="refreshCurrentPlatform()" title="Refresh Feed & Shuffle">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="23 4 23 10 17 10"></polyline>
+                        <polyline points="1 20 1 14 7 14"></polyline>
+                        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                    </svg>
+                    <span id="btnRefreshText">Refresh</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Drama Cards Grid -->
+        <main class="drama-grid" id="dramaGrid"></main>
+
+        <!-- Load More Dramas & Infinite Scroll Sentinel -->
+        <!-- Load More Dramas & Infinite Scroll Sentinel -->
+        <div class="load-more-container" id="loadMoreContainer" style="display: none;">
+            <button type="button" class="btn-load-more" id="btnLoadMore" onclick="loadMoreDramas()">
+                <span class="load-more-spinner" id="loadMoreSpinner" style="display: none;"></span>
+                <span class="load-more-icon" id="loadMoreIcon">✨</span>
+                <span id="btnLoadMoreText">ទាញយករឿងបន្ថែម... (Load More)</span>
+            </button>
+        </div>
+        <div id="infiniteScrollSentinel" style="height: 10px;"></div>
+
+        <!-- Bottom Navigation Bar (Modern Fixed Glass App Bar) -->
+        <nav class="bottom-nav">
+            <button class="nav-item active" id="navHomeBtn" onclick="goHomeView()">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+                </svg>
+                <span class="nav-label">ទំព័រដើម</span>
+            </button>
+
+            <button class="nav-item" id="navLicenseBtn" onclick="openLicenseModal()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
+                <span class="nav-label">License VIP</span>
+            </button>
+
+            <button class="nav-item" id="navSettingsBtn" onclick="openMobileSettingsModal()" style="position: relative;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                    <circle cx="12" cy="12" r="3"></circle>
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                </svg>
+                <span id="settingsUpdateDot" class="nav-update-dot" style="display: none;"></span>
+                <span class="nav-label">ការកំណត់</span>
+            </button>
+
+            <button class="nav-item" onclick="window.open('https://t.me/Thpisal33', '_blank')">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 0 0-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.75-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/>
+                </svg>
+                <span class="nav-label">ជំនួយ Admin</span>
+            </button>
+        </nav>
+    </div>
+
+    <!-- ======================================================================
+         Interactive Bottom Sheet Modal (Drama Detail & Downloader)
+         ====================================================================== -->
+    <div class="modal-overlay" id="dramaSheetModal">
+        <div class="bottom-sheet">
+            <div class="sheet-handle-bar"></div>
+            
+            <div class="sheet-header">
+                <div class="sheet-title-info">
+                    <img class="sheet-poster-thumb" id="sheetPoster" src="/ps_logo.jpg" alt="Poster">
+                    <div class="sheet-text-details">
+                        <div class="sheet-drama-title" id="sheetTitle">Drama Title</div>
+                        <div class="sheet-tags-row">
+                            <span class="sheet-tag" id="sheetEpBadge">-- ភាគ</span>
+                            <span class="sheet-tag" id="sheetSourceTag">HONGGUO</span>
+                            <span class="sheet-tag" style="background: rgba(16, 185, 129, 0.15); color: #34d399;">1080p Full HD</span>
+                        </div>
+                    </div>
+                </div>
+                <button type="button" class="btn-close-sheet" onclick="closeDramaSheet()">✕</button>
+            </div>
+
+            <div class="sheet-body">
+                <!-- In-Sheet Video Player (Play & Preview) -->
+                <div class="sheet-player-wrapper" id="sheetPlayerWrapper">
+                    <video id="sheetVideo" class="sheet-video-elem" controls playsinline preload="metadata"></video>
+                </div>
+
+                <!-- 1. Download All Full Series -->
+                <div class="dl-options-block">
+                    <button type="button" class="btn-dl-all" id="btnDlAll">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7 10 12 15 17 10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                        <span>📦 ទាញយកទាំងអស់ (Full Series)</span>
+                    </button>
+                </div>
+
+                <!-- 2. Download Range Packs -->
+                <div class="dl-options-block">
+                    <div class="block-label">⚡ ទាញយកជាកញ្ចប់ (Episode Packs):</div>
+                    <div class="packs-grid" id="packsGrid"></div>
+                </div>
+
+                <!-- 3. Custom Range Form -->
+                <div class="dl-options-block">
+                    <div class="block-label">🎯 កំណត់ភាគតាមចិត្ត (Custom Range):</div>
+                    <div class="custom-range-card">
+                        <div class="range-inputs">
+                            <span style="font-size: 0.85rem; color: #94a3b8;">ពីភាគ</span>
+                            <input type="number" id="rangeFrom" class="range-input" min="1" value="1">
+                            <span style="font-size: 0.85rem; color: #94a3b8;">ដល់</span>
+                            <input type="number" id="rangeTo" class="range-input" min="1" value="10">
+                        </div>
+                        <button type="button" class="btn-range-dl" id="btnCustomDl">ទាញយក</button>
+                    </div>
+                </div>
+
+                <!-- 4. Individual Episode Grid -->
+                <div class="dl-options-block">
+                    <div class="block-label">📋 ចាក់មើល ឬរើសទាញយកម្តងមួយភាគ:</div>
+                    <div class="episodes-selector-grid" id="episodesSelectorGrid"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ======================================================================
+         Mobile Settings & Update Modal (ស៊ីធី & Update ប្រព័ន្ធ)
+         ====================================================================== -->
+    <div class="modal-overlay" id="mobileSettingsModal">
+        <div class="license-modal-box" style="max-width: 440px; border-color: rgba(56, 189, 248, 0.4); box-shadow: 0 15px 50px rgba(0, 0, 0, 0.85), 0 0 30px rgba(56, 189, 248, 0.2);">
+            <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 12px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 1.3rem;">⚙️</span>
+                    <span style="font-size: 1.1rem; font-weight: 800; color: #fff;">ការកំណត់ប្រព័ន្ធ (Settings)</span>
+                </div>
+                <button type="button" onclick="closeMobileSettingsModal()" style="background: none; border: none; color: #94a3b8; font-size: 1.2rem; cursor: pointer; padding: 4px 8px;">✕</button>
+            </div>
+
+            <!-- Version & Status Card -->
+            <div style="background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 10px; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <div style="font-size: 0.92rem; font-weight: 800; color: #38bdf8;">PS DOWNLOAD MOBILE</div>
+                    <div id="settingsServerStatus" style="font-size: 0.74rem; color: #34d399; margin-top: 2px;">🟢 ម៉ាស៊ីនដំណើរការល្អ (Port 1994)</div>
+                </div>
+                <div style="display: flex; align-items: center;">
+                    <span id="settingsVersionBadge" style="padding: 3px 9px; background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 20px; font-size: 0.76rem; font-weight: 800; color: #38bdf8; font-family: monospace;">v3.3.0</span>
+                </div>
+            </div>
+
+            <!-- Software Update Card (Dimmed & non-clickable when up to date, glows & active when update available) -->
+            <div id="mobileUpdateBox" onclick="handleMobileUpdateBoxClick()" style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 10px; padding: 12px 14px; display: flex; align-items: center; justify-content: space-between; opacity: 0.45; pointer-events: none; transition: all 0.3s ease;">
+                <div style="display: flex; align-items: center; gap: 9px;">
+                    <span id="mobileUpdateIcon" style="font-size: 1.15rem; color: #64748b;">🔄</span>
+                    <div>
+                        <div id="mobileUpdateTitle" style="font-size: 0.82rem; font-weight: 700; color: #94a3b8;">កំណែចុងក្រោយបំផុត (Up to Date)</div>
+                        <div id="mobileUpdateSub" style="font-size: 0.7rem; color: #64748b;">គ្មានកូដថ្មីត្រូវ Update ឡើយ</div>
+                    </div>
+                </div>
+                <span id="mobileUpdateActionBtn" style="font-size: 0.76rem; font-weight: 700; color: #64748b; padding: 6px 12px; border-radius: 6px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.08);">Update</span>
+            </div>
+
+            <!-- Day / Night Mode Section -->
+            <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 10px; padding: 12px 14px; display: flex; align-items: center; justify-content: space-between;">
+                <span style="font-size: 0.84rem; font-weight: 700; color: #fff;">🌓 ទម្រង់ពន្លឺ (Day & Night)</span>
+                <div style="display: flex; background: rgba(0, 0, 0, 0.3); border-radius: 20px; padding: 2px; border: 1px solid rgba(255, 255, 255, 0.1);">
+                    <button type="button" id="themeBtnDark" onclick="setAppTheme('dark')" style="padding: 4px 12px; border-radius: 16px; border: none; background: #38bdf8; color: #070a13; font-weight: 800; font-size: 0.72rem; cursor: pointer;">🌙 យប់</button>
+                    <button type="button" id="themeBtnLight" onclick="setAppTheme('light')" style="padding: 4px 12px; border-radius: 16px; border: none; background: transparent; color: #94a3b8; font-weight: 700; font-size: 0.72rem; cursor: pointer;">☀️ ថ្ងៃ</button>
+                </div>
+            </div>
+
+            <!-- Install App Shortcut -->
+            <button type="button" onclick="triggerPwaInstall()" style="width: 100%; padding: 11px; background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 8px; color: #fff; font-size: 0.8rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 7px;">
+                <span>📲</span>
+                <span>ដំឡើងជា App លើអេក្រង់ទូរសព្ទ</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- ======================================================================
+         License & Activation Modal (ស្ថានភាព License VIP)
+         ====================================================================== -->
+    <div class="modal-overlay" id="licenseModal">
+        <div class="license-modal-box">
+            <div class="license-modal-title" id="licenseModalTitle">🔑 ស្ថានភាព License VIP</div>
+            
+            <!-- VIEW A: ACTIVE VIP (Only for users with active License - Countdown & Customer info) -->
+            <div id="licenseActiveSection" style="display: none; flex-direction: column; gap: 12px;">
+                <div style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(56, 189, 248, 0.15)); border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 12px; padding: 12px 14px; text-align: center;">
+                    <div id="vipCustomerName" style="font-size: 1.1rem; font-weight: 800; color: #34d399;">👑 VIP Active</div>
+                    <div style="font-size: 0.74rem; color: #94a3b8; margin-top: 2px;">គណនីមានសុពលភាពពេញលេញ (Full Access)</div>
+                </div>
+
+                <!-- Live Countdown Cards: [Days] [Hours] [Minutes] [Seconds] -->
+                <div id="vipCountdownContainer">
+                    <div style="font-size: 0.76rem; color: #94a3b8; text-align: center; margin-bottom: 6px;">⏱️ សុពលភាពនៅសល់ (រាប់ថយក្រោយ)៖</div>
+                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; text-align: center;">
+                        <div class="countdown-box">
+                            <div id="cntDays" class="countdown-num">00</div>
+                            <div class="countdown-label">ថ្ងៃ</div>
+                        </div>
+                        <div class="countdown-box">
+                            <div id="cntHours" class="countdown-num">00</div>
+                            <div class="countdown-label">ម៉ោង</div>
+                        </div>
+                        <div class="countdown-box">
+                            <div id="cntMins" class="countdown-num">00</div>
+                            <div class="countdown-label">នាទី</div>
+                        </div>
+                        <div class="countdown-box">
+                            <div id="cntSecs" class="countdown-num" style="color: #34d399;">00</div>
+                            <div class="countdown-label">វិនាទី</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="vipLifetimeNotice" style="display: none; padding: 12px; background: rgba(245, 158, 11, 0.15); border: 1px solid #fbbf24; border-radius: 8px; text-align: center; color: #fbbf24; font-weight: 800; font-size: 0.95rem;">
+                    👑 សុពលភាព VIP ពេញមួយជីវិត (Lifetime Access)
+                </div>
+
+                <div style="font-size: 0.72rem; color: #64748b; text-align: center; margin-top: 2px;">
+                    (ប្រសិនបើចង់បន្ថែមថ្ងៃ សូមទាក់ទង Admin តាម Telegram)
+                </div>
+            </div>
+
+            <!-- VIEW B: UNLICENSED (Only for users without License - Device ID copy & Key Input) -->
+            <div id="licenseUnlicensedSection" style="display: flex; flex-direction: column; gap: 10px;">
+                <p style="font-size: 0.85rem; color: #94a3b8; text-align: center; margin: 0;">
+                    លេខកូដសម្គាល់ម៉ាស៊ីន (Device ID) របស់អ្នក៖
+                </p>
+
+                <div class="device-id-box" onclick="copyDeviceId()" title="ចុចដើម្បី Copy">
+                    <span id="modalDeviceId">HG-XXXX-XXXX-XXXX</span>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                    </svg>
+                </div>
+                <small style="text-align: center; color: #64748b; font-size: 0.72rem; margin-top: -6px;">(ចុចលើកូដខាងលើដើម្បី Copy ផ្ញើទៅ Admin)</small>
+
+                <div class="license-input-row" style="margin-top: 4px;">
+                    <input type="text" id="licenseKeyInput" class="license-input" placeholder="បញ្ចូល License Key...">
+                    <button type="button" class="btn-activate" onclick="activateKey()">Activate</button>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 8px; margin-top: 4px;">
+                <button type="button" onclick="window.open('https://t.me/Thpisal33', '_blank')" style="flex: 1; padding: 10px; background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 8px; color: #38bdf8; font-weight: 700; font-size: 0.8rem; cursor: pointer;">
+                    💬 ឆាតទៅ Admin
+                </button>
+                <button type="button" onclick="closeLicenseModal()" style="padding: 10px 16px; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 8px; color: #fff; font-size: 0.8rem; cursor: pointer;">
+                    បិទ
+                </button>
+            </div>
+
+            <!-- Secret Admin Key Generator Panel (Hidden by default, shown ONLY for Admin) -->
+            <div id="adminKeyGenPanel" style="display: none; margin-top: 14px; padding: 14px; background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(245, 158, 11, 0.4); border-radius: 12px; text-align: left;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+                    <span style="font-size: 0.82rem; font-weight: 800; color: #fbbf24;">👑 PS ADMIN KEYGEN PRO</span>
+                    <button type="button" onclick="toggleAdminMode(false)" style="background: none; border: none; color: #94a3b8; font-size: 0.72rem; cursor: pointer; text-decoration: underline;">🔒 ចាកចេញ</button>
+                </div>
+                
+                <div style="margin-bottom: 8px;">
+                    <label style="font-size: 0.72rem; color: #94a3b8; display: block; margin-bottom: 4px;">លេខកូដម៉ាស៊ីនភ្ញៀវ (Customer HWID):</label>
+                    <div style="display: flex; gap: 6px;">
+                        <input type="text" id="adminCustDevId" placeholder="HG-M... ឬ HG-..." style="flex: 1; padding: 8px 10px; background: #070a13; border: 1px solid #334155; border-radius: 6px; color: #fff; font-size: 0.8rem; font-family: monospace;">
+                        <button type="button" onclick="pasteCustomerDevId()" style="padding: 8px 10px; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 6px; color: #fff; font-size: 0.75rem; cursor: pointer;">📋 Paste</button>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 8px;">
+                    <label style="font-size: 0.72rem; color: #94a3b8; display: block; margin-bottom: 4px;">ឈ្មោះភ្ញៀវ / Telegram (Optional):</label>
+                    <input type="text" id="adminCustName" placeholder="ឈ្មោះភ្ញៀវ (ឧ. CHANTHA)" style="width: 100%; box-sizing: border-box; padding: 7px 10px; background: #070a13; border: 1px solid #334155; border-radius: 6px; color: #fff; font-size: 0.8rem;">
+                </div>
+
+                <div style="margin-bottom: 10px;">
+                    <label style="font-size: 0.72rem; color: #94a3b8; display: block; margin-bottom: 4px;">ចំនួនថ្ងៃ (Duration):</label>
+                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px;">
+                        <button type="button" class="btn-admin-dur" data-days="1" onclick="selectAdminDuration(1, this)">1 ថ្ងៃ</button>
+                        <button type="button" class="btn-admin-dur" data-days="3" onclick="selectAdminDuration(3, this)">3 ថ្ងៃ</button>
+                        <button type="button" class="btn-admin-dur active" data-days="7" onclick="selectAdminDuration(7, this)">7 ថ្ងៃ</button>
+                        <button type="button" class="btn-admin-dur" data-days="14" onclick="selectAdminDuration(14, this)">14 ថ្ងៃ</button>
+                        <button type="button" class="btn-admin-dur" data-days="30" onclick="selectAdminDuration(30, this)">30 ថ្ងៃ</button>
+                        <button type="button" class="btn-admin-dur" data-days="90" onclick="selectAdminDuration(90, this)">90 ថ្ងៃ</button>
+                        <button type="button" class="btn-admin-dur" data-days="365" onclick="selectAdminDuration(365, this)">1 ឆ្នាំ</button>
+                        <button type="button" class="btn-admin-dur" data-days="0" onclick="selectAdminDuration(0, this)">👑 ជីវិត</button>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 6px; margin-bottom: 8px;">
+                    <button type="button" onclick="adminExecuteAutoAuthorize()" style="flex: 1; padding: 9px 8px; background: linear-gradient(135deg, #059669, #10b981); border: none; border-radius: 6px; color: #fff; font-weight: 700; font-size: 0.75rem; cursor: pointer;">
+                        ⚡ បើកសោរអូតូ (Auto Unlock)
+                    </button>
+                    <button type="button" onclick="adminExecuteGenerateKey()" style="flex: 1; padding: 9px 8px; background: linear-gradient(135deg, #d97706, #f59e0b); border: none; border-radius: 6px; color: #070a13; font-weight: 800; font-size: 0.75rem; cursor: pointer;">
+                        🔑 បង្កើត Key
+                    </button>
+                </div>
+
+                <div id="adminGenResultBox" style="display: none; margin-top: 6px; padding: 10px; background: #070a13; border: 1px dashed rgba(56, 189, 248, 0.4); border-radius: 6px; text-align: center;">
+                    <div style="font-size: 0.72rem; color: #94a3b8; margin-bottom: 4px;">License Key ដែលបានបង្កើត៖</div>
+                    <div id="adminGenKeyText" style="font-family: monospace; font-size: 0.95rem; font-weight: 800; color: #38bdf8; word-break: break-all; margin-bottom: 6px;"></div>
+                    <button type="button" onclick="copyAdminGeneratedKey()" style="padding: 6px 14px; background: rgba(56, 189, 248, 0.2); border: 1px solid rgba(56, 189, 248, 0.5); border-radius: 6px; color: #38bdf8; font-weight: 700; font-size: 0.74rem; cursor: pointer;">
+                        📋 ចម្លង Key ផ្ញើទៅភ្ញៀវ
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile App Script -->
+    <script src="/js/mobile.js"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').catch(() => {});
+        });
+      }
+    </script>
+</body>
+</html>

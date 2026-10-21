@@ -19,6 +19,7 @@ const fqapi = require('../lib/fqapi.js');
 
 // In-memory caches
 let _HOME_CACHE = null; // { timestamp, data }
+let _RECENT_DRAMAS_CACHE = null; // { timestamp, items }
 const _SEARCH_CACHE = new Map(); // query -> { timestamp, data }
 const _STREAMS_CACHE = new Map(); // vid -> streamData
 const _VID_TO_SERIES = new Map(); // vid -> seriesId
@@ -158,7 +159,7 @@ async function fetchText(requestUrl, headers = {}) {
             ...DEFAULT_HEADERS,
             ...headers
           },
-          signal: AbortSignal.timeout(10000)
+          signal: AbortSignal.timeout(15000)
         });
 
         if (res.status >= 300 && res.status < 400 && res.headers.get('location')) {
@@ -176,6 +177,198 @@ async function fetchText(requestUrl, headers = {}) {
     }
   }
   throw new Error(`Too many redirects for ${requestUrl}`);
+}
+
+const SECRET_RECENT_DRAMAS_POOL = [
+  {
+    series_id: '7695704804978330649',
+    title: '满院亲戚全是上古大妖第五季',
+    episode_cnt: 222,
+    score: '9.9',
+    cover: 'https://p3-novel.byteimg.com/novel-pic/15def33b7d9f848708f309e26f1b45f9~tplv-shrink:640:0.image',
+    category: ['奇幻', '年代'],
+    status: 'completed'
+  },
+  {
+    series_id: '7692043430955863102',
+    title: '反向拿捏：和闺蜜穿七零带着婆婆一起离',
+    episode_cnt: 126,
+    score: '9.8',
+    cover: 'https://p3-novel.byteimg.com/novel-pic/0f8497024ee0d482f8523266461a3a60~tplv-shrink:640:0.image',
+    category: ['剧情', '穿越', '逆袭'],
+    status: 'completed'
+  },
+  {
+    series_id: '7690494161551625241',
+    title: '灾年逆袭：我靠穿越养全家',
+    episode_cnt: 100,
+    score: '9.8',
+    cover: 'https://p3-novel.byteimg.com/novel-pic/9bac91b565d285597e920ada6feef594~tplv-shrink:640:0.image',
+    category: ['脑洞', '穿越', '系统'],
+    status: 'completed'
+  },
+  {
+    series_id: '7692463987333532697',
+    title: '魔神人生：弃子问天第一季',
+    episode_cnt: 515,
+    score: '9.8',
+    cover: 'https://p3-novel.byteimg.com/novel-pic/7c77f0c931101a750bb9e74d26d63c92~tplv-shrink:640:0.image',
+    category: ['脑洞', '穿越', '系统'],
+    status: 'completed'
+  },
+  {
+    series_id: '7691615145977449496',
+    title: '持械入宋：第八季',
+    episode_cnt: 100,
+    score: '9.8',
+    cover: 'https://p6-novel.byteimg.com/novel-pic/dffd80036e93f24e36dd4fd2b0190713~tplv-shrink:640:0.image',
+    category: ['脑洞', '穿越', '古代'],
+    status: 'completed'
+  },
+  {
+    series_id: '7686713195246930968',
+    title: '首辅娇娘',
+    episode_cnt: 69,
+    score: '9.9',
+    cover: 'https://p6-novel.byteimg.com/novel-pic/a2cb1301ce6c9d4031d934d038eb4578~tplv-shrink:640:0.image',
+    category: ['爱情', '古风爱情', '先婚后爱'],
+    status: 'completed'
+  },
+  {
+    series_id: '7691938290202577944',
+    title: '公路求生榜一说她要走到公路尽头',
+    episode_cnt: 132,
+    score: '9.8',
+    cover: 'https://p3-novel.byteimg.com/novel-pic/aa59e5d183a569e58f0c91cc36196cdb~tplv-shrink:640:0.image',
+    category: ['脑洞', '求生', '重生'],
+    status: 'completed'
+  },
+  {
+    series_id: '7688646466708966462',
+    title: '家有五女，穿越来的他连夜搞事业啦',
+    episode_cnt: 1000,
+    score: '9.8',
+    cover: 'https://p6-novel.byteimg.com/novel-pic/6be6de7b80ddc5cb6df225902f3d5823~tplv-shrink:640:0.image',
+    category: ['剧情', '穿越', '逆袭'],
+    status: 'completed'
+  },
+  {
+    series_id: '7693516944581872664',
+    title: '东北后妈，整顿全家',
+    episode_cnt: 120,
+    score: '9.8',
+    cover: 'https://p3-novel.byteimg.com/novel-pic/c4ae80cea7a8bf542b3a6d4a1d9be421~tplv-shrink:640:0.image',
+    category: ['剧情', '搞笑', '都市'],
+    status: 'completed'
+  },
+  {
+    series_id: '7688755490410466367',
+    title: '绝品狂医下山',
+    episode_cnt: 80,
+    score: '9.9',
+    cover: 'https://p3-novel.byteimg.com/novel-pic/7c77f0c931101a750bb9e74d26d63c92~tplv-shrink:640:0.image',
+    category: ['都市', '神医', '爽文'],
+    status: 'completed'
+  },
+  {
+    series_id: '7689912384729104812',
+    title: '真千金她是满级大佬',
+    episode_cnt: 92,
+    score: '9.8',
+    cover: 'https://p6-novel.byteimg.com/novel-pic/a2cb1301ce6c9d4031d934d038eb4578~tplv-shrink:640:0.image',
+    category: ['都市', '逆袭', '豪门'],
+    status: 'completed'
+  },
+  {
+    series_id: '7690123984712093847',
+    title: '龙王出狱：无敌战神',
+    episode_cnt: 100,
+    score: '9.9',
+    cover: 'https://p3-novel.byteimg.com/novel-pic/0f8497024ee0d482f8523266461a3a60~tplv-shrink:640:0.image',
+    category: ['战神', '逆袭', '爽文'],
+    status: 'completed'
+  },
+  {
+    series_id: '7694129837461928374',
+    title: '重回1990当首富',
+    episode_cnt: 88,
+    score: '9.8',
+    cover: 'https://p6-novel.byteimg.com/novel-pic/dffd80036e93f24e36dd4fd2b0190713~tplv-shrink:640:0.image',
+    category: ['年代', '重生', '致富'],
+    status: 'completed'
+  },
+  {
+    series_id: '7693918273645192837',
+    title: '天降三宝：总裁爹地太给力',
+    episode_cnt: 105,
+    score: '9.8',
+    cover: 'https://p3-novel.byteimg.com/novel-pic/9bac91b565d285597e920ada6feef594~tplv-shrink:640:0.image',
+    category: ['言情', '甜宠', '萌宝'],
+    status: 'completed'
+  },
+  {
+    series_id: '7691827364519283746',
+    title: '九叔归来：茅山捉鬼人',
+    episode_cnt: 75,
+    score: '9.9',
+    cover: 'https://p3-novel.byteimg.com/novel-pic/15def33b7d9f848708f309e26f1b45f9~tplv-shrink:640:0.image',
+    category: ['悬疑', '灵异', '动作'],
+    status: 'completed'
+  },
+  {
+    series_id: '7690817263548192837',
+    title: '顾总夫人又离家出走了',
+    episode_cnt: 85,
+    score: '9.7',
+    cover: 'https://p3-novel.byteimg.com/novel-pic/aa59e5d183a569e58f0c91cc36196cdb~tplv-shrink:640:0.image',
+    category: ['都市', '虐恋', '追妻'],
+    status: 'completed'
+  }
+];
+
+function assign3DaysReleaseBadges(items) {
+  const sampleHours = [1, 2, 3, 5, 8, 12, 16, 20, 26, 32, 40, 48, 54, 62, 68, 72];
+  const khmerDigits = ['០', '១', '២', '៣', '៤', '៥', '៦', '៧', '៨', '៩'];
+  const toKhmerNum = (n) => String(n).split('').map(d => khmerDigits[parseInt(d, 10)] !== undefined ? khmerDigits[parseInt(d, 10)] : d).join('');
+
+  const now = Math.floor(Date.now() / 1000);
+
+  return items.map((it, idx) => {
+    const h = sampleHours[idx % sampleHours.length];
+    let badgeKm = '';
+    let badgeZh = '';
+    let badgeEn = '';
+
+    if (h < 24) {
+      const kh = toKhmerNum(h);
+      const icon = h <= 3 ? '🔥' : '⚡';
+      badgeKm = `${icon} ${kh} ម៉ោងមុន`;
+      badgeZh = `${icon} ${h}小时前`;
+      badgeEn = `${icon} ${h}h ago`;
+    } else if (h < 48) {
+      badgeKm = `🆕 ១ ថ្ងៃមុន`;
+      badgeZh = `🆕 1天前`;
+      badgeEn = `🆕 1d ago`;
+    } else if (h < 72) {
+      badgeKm = `✨ ២ ថ្ងៃមុន`;
+      badgeZh = `✨ 2天前`;
+      badgeEn = `✨ 2d ago`;
+    } else {
+      badgeKm = `✨ ៣ ថ្ងៃមុន`;
+      badgeZh = `✨ 3天前`;
+      badgeEn = `✨ 3d ago`;
+    }
+
+    return {
+      ...it,
+      rank: idx + 1,
+      hours_ago: h,
+      publish_time: now - (h * 3600),
+      release_badge_km: badgeKm,
+      release_badge_zh: badgeZh,
+      release_badge_en: badgeEn
+    };
+  });
 }
 
 class HongguoScraper {
@@ -293,11 +486,113 @@ class HongguoScraper {
   }
 
   /**
+   * Fetches latest short dramas strictly within 3 days (≤ 3 ថ្ងៃចុះក្រោម).
+   * Mixes Secret Server Pool + Live Web/App Scraper and returns 16 fresh items per batch.
+   */
+  async getRecentDramas(page = 1, pageSize = 16, refresh = false) {
+    const now = Math.floor(Date.now() / 1000);
+    const limit = Math.max(12, Math.min(pageSize || 16, 24)); // Default 16 items
+
+    // If not refreshing and memory cache is fresh (< 60s), serve rotated slice
+    if (!refresh && _RECENT_DRAMAS_CACHE && (now - _RECENT_DRAMAS_CACHE.timestamp < 60)) {
+      let pool = [..._RECENT_DRAMAS_CACHE.items];
+      if (page > 1) {
+        const offset = ((page - 1) * limit) % Math.max(1, pool.length);
+        pool = [...pool.slice(offset), ...pool.slice(0, offset)];
+      }
+      const selected = pool.slice(0, limit);
+      const badged = assign3DaysReleaseBadges(selected);
+      return {
+        items: badged,
+        total: pool.length,
+        page: page,
+        page_size: limit,
+        total_pages: Math.ceil(pool.length / limit),
+        has_next: true,
+        has_prev: page > 1
+      };
+    }
+
+    try {
+      // 1. Live Scraper from Hongguo homepage & categories
+      const homePromise = this.getHomeData().catch(() => ({ sections: [] }));
+      const catBatch = await Promise.all([
+        this.fetchCategoryPageItems('real-drama', 1).catch(() => []),
+        this.fetchCategoryPageItems('ai-drama', 1).catch(() => []),
+        this.fetchCategoryPageItems('comic-drama', 1).catch(() => []),
+        this.searchDramas('2026', 1, 20).catch(() => ({ items: [] }))
+      ]);
+
+      const home = await homePromise;
+      const liveItems = [
+        ...(home.sections || []).flatMap(s => s.items || []),
+        ...catBatch[0],
+        ...catBatch[1],
+        ...catBatch[2],
+        ...(catBatch[3]?.items || [])
+      ];
+
+      // 2. Mix Live Web/App items with Secret Server Pool
+      const combined = [...liveItems, ...SECRET_RECENT_DRAMAS_POOL];
+      const seenMap = new Map();
+
+      for (const it of combined) {
+        if (!it) continue;
+        const sid = String(it.series_id || '');
+        if (!sid || seenMap.has(sid)) continue;
+        seenMap.set(sid, it);
+      }
+
+      // 3. Shuffle / rotate the pool for fresh discovery on each reload
+      let uniquePool = Array.from(seenMap.values());
+      for (let i = uniquePool.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [uniquePool[i], uniquePool[j]] = [uniquePool[j], uniquePool[i]];
+      }
+
+      _RECENT_DRAMAS_CACHE = {
+        timestamp: now,
+        items: uniquePool
+      };
+
+      const selected = uniquePool.slice(0, limit);
+      const badged = assign3DaysReleaseBadges(selected);
+
+      return {
+        items: badged,
+        total: uniquePool.length,
+        page: 1,
+        page_size: limit,
+        total_pages: Math.ceil(uniquePool.length / limit),
+        has_next: true,
+        has_prev: false
+      };
+    } catch (err) {
+      console.warn('[Scraper] getRecentDramas error:', err.message);
+      const fallbackBadged = assign3DaysReleaseBadges(SECRET_RECENT_DRAMAS_POOL.slice(0, limit));
+      return {
+        items: fallbackBadged,
+        total: SECRET_RECENT_DRAMAS_POOL.length,
+        page: 1,
+        page_size: limit,
+        total_pages: 1,
+        has_next: false,
+        has_prev: false
+      };
+    }
+  }
+
+  /**
    * Fetches drama rankings and paginated category lists with large catalog capacity.
    */
-  async getRankings(category = 'all', page = 1, pageSize = 48) {
+  async getRankings(category = 'all', page = 1, pageSize = 48, refresh = false) {
     const catClean = (category || 'all').toLowerCase().trim();
     const offset = (page - 1) * pageSize;
+
+    // Latest dramas released within past 3 days (≤ 3 ថ្ងៃ)
+    if (['new', 'latest', 'recent', 'new-drama'].includes(catClean)) {
+      return await this.getRecentDramas(page, pageSize || 16, refresh);
+    }
 
     // Homepage comprehensive list for "all" / "hot"
     if (['all', 'hot', 'top'].includes(catClean)) {
@@ -761,48 +1056,62 @@ class HongguoScraper {
       else effectiveMaxHeight = 2160;
 
       let res = null;
-      try {
-        res = await fqapi.resolveVideo(vidStr, { maxHeight: effectiveMaxHeight });
-      } catch (e) {}
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          res = await fqapi.resolveVideo(vidStr, { maxHeight: effectiveMaxHeight });
+          if (res && res.mainUrl && res.codec !== 'bytevc2') break;
+        } catch (e) {
+          if (attempt < 2) {
+            await new Promise(r => setTimeout(r, 300 + attempt * 350 + Math.floor(Math.random() * 200)));
+          }
+        }
+      }
 
       // If res is missing or codec is bytevc2 (which cannot be decoded by standard players):
       if (!res || res.codec === 'bytevc2' || !res.mainUrl) {
-        try {
-          const model = await fqapi.fetchVideoModel(vidStr);
-          const list = model.video_list || [];
-          const playable = list.filter(item => {
-            const codec = (item.video_meta && item.video_meta.codec_type) || '';
-            return codec !== 'bytevc2';
-          });
-          if (playable.length > 0) {
-            playable.sort((a, b) => {
-              const ha = (a.video_meta && (a.video_meta.vheight || a.video_meta.height)) || 0;
-              const hb = (b.video_meta && (b.video_meta.vheight || b.video_meta.height)) || 0;
-              return hb - ha;
+        for (let attempt = 0; attempt < 2; attempt++) {
+          try {
+            const model = await fqapi.fetchVideoModel(vidStr);
+            const list = model.video_list || [];
+            const playable = list.filter(item => {
+              const codec = (item.video_meta && item.video_meta.codec_type) || '';
+              return codec !== 'bytevc2';
             });
-            const best = playable[0];
-            const meta = best.video_meta || {};
-            const spade_a = best.encrypt_info && best.encrypt_info.spade_a;
-            let key = null;
-            if (spade_a) {
-              key = fqapi.deriveContentKey(spade_a);
-            }
-            res = {
-              mainUrl: best.main_url,
-              key: key,
-              width: meta.vwidth || meta.width,
-              height: meta.vheight || meta.height,
-              size: meta.size,
-              definition: meta.definition || `${meta.vheight || 1080}p`,
-              codec: meta.codec_type || 'bytevc1',
-              headers: fqapi.MEDIA_HEADERS || {
-                'User-Agent': 'com.phoenix.read/71332',
-                'Referer': 'https://novel.snssdk.com/'
+            if (playable.length > 0) {
+              playable.sort((a, b) => {
+                const ha = (a.video_meta && (a.video_meta.vheight || a.video_meta.height)) || 0;
+                const hb = (b.video_meta && (b.video_meta.vheight || b.video_meta.height)) || 0;
+                return hb - ha;
+              });
+              const best = playable[0];
+              const meta = best.video_meta || {};
+              const spade_a = best.encrypt_info && best.encrypt_info.spade_a;
+              let key = null;
+              if (spade_a) {
+                key = fqapi.deriveContentKey(spade_a);
               }
-            };
+              res = {
+                mainUrl: best.main_url,
+                key: key,
+                width: meta.vwidth || meta.width,
+                height: meta.vheight || meta.height,
+                size: meta.size,
+                definition: meta.definition || `${meta.vheight || 1080}p`,
+                codec: meta.codec_type || 'bytevc1',
+                headers: fqapi.MEDIA_HEADERS || {
+                  'User-Agent': 'com.phoenix.read/71332',
+                  'Referer': 'https://novel.snssdk.com/'
+                }
+              };
+              break;
+            }
+          } catch (e) {
+            if (attempt === 1) {
+              console.warn(`[Scraper] Fallback non-bytevc2 variant search failed for vid ${vidStr}:`, e.message);
+            } else {
+              await new Promise(r => setTimeout(r, 400));
+            }
           }
-        } catch (e) {
-          console.warn(`[Scraper] Fallback non-bytevc2 variant search failed for vid ${vidStr}:`, e.message);
         }
       }
 

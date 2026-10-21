@@ -141,7 +141,7 @@ function isMvffmUrl(str) {
 function initPlatformSwitcher() {
     try {
         const saved = localStorage.getItem('hongguo_preferred_platform');
-        if (['youtube', 'haosou', 'mvffm', 'dailymotion', 'tiktok', 'douyin', 'kuaishou', 'hongguo'].includes(saved)) {
+        if (['youtube', 'haosou', 'beeplaylet', 'anitaku', 'mvffm', 'dailymotion', 'tiktok', 'douyin', 'kuaishou', 'hongguo'].includes(saved)) {
             switchPlatform(saved, false);
             return;
         }
@@ -150,7 +150,7 @@ function initPlatformSwitcher() {
 }
 
 function switchPlatform(platformId, persist = true) {
-    const validPlatforms = ['hongguo', 'haosou', 'mvffm', 'dailymotion', 'youtube', 'tiktok', 'douyin', 'kuaishou', 'starred'];
+    const validPlatforms = ['hongguo', 'haosou', 'beeplaylet', 'anitaku', 'animexin', 'mvffm', 'dailymotion', 'youtube', 'tiktok', 'douyin', 'kuaishou', 'starred'];
     if (!validPlatforms.includes(platformId)) {
         platformId = 'hongguo';
     }
@@ -163,7 +163,7 @@ function switchPlatform(platformId, persist = true) {
     }
 
     // Auto-pause video players to prevent hidden background CPU & decoding load
-    ['videoPlayer', 'hsVideoPlayer', 'mvVideoPlayer', 'dmVideoPlayer', 'ttVideoPlayer'].forEach(id => {
+    ['videoPlayer', 'hsVideoPlayer', 'aniVideoPlayer', 'axVideoPlayer', 'bpVideoPlayer', 'mvVideoPlayer', 'dmVideoPlayer', 'ttVideoPlayer'].forEach(id => {
         const vEl = document.getElementById(id);
         if (vEl && !vEl.paused) {
             try { vEl.pause(); } catch (_) {}
@@ -172,6 +172,9 @@ function switchPlatform(platformId, persist = true) {
 
     const btnHg = document.getElementById('tabPlatformHongguo');
     const btnHs = document.getElementById('tabPlatformHaosou');
+    const btnBp = document.getElementById('tabPlatformBeeplaylet');
+    const btnAni = document.getElementById('tabPlatformAnitaku');
+    const btnAx = document.getElementById('tabPlatformAnimexin');
     const btnMv = document.getElementById('tabPlatformMvffm');
     const btnDm = document.getElementById('tabPlatformDailymotion');
     const btnYt = document.getElementById('tabPlatformYoutube');
@@ -182,6 +185,9 @@ function switchPlatform(platformId, persist = true) {
 
     const viewHg = document.getElementById('hongguoView');
     const viewHs = document.getElementById('haosouView');
+    const viewBp = document.getElementById('beeplayletView');
+    const viewAni = document.getElementById('anitakuView');
+    const viewAx = document.getElementById('animexinView');
     const viewMv = document.getElementById('mvffmView');
     const viewDm = document.getElementById('dailymotionView');
     const viewYt = document.getElementById('youtubeView');
@@ -190,6 +196,9 @@ function switchPlatform(platformId, persist = true) {
 
     if (btnHg) btnHg.classList.toggle('active', platformId === 'hongguo');
     if (btnHs) btnHs.classList.toggle('active', platformId === 'haosou');
+    if (btnBp) btnBp.classList.toggle('active', platformId === 'beeplaylet');
+    if (btnAni) btnAni.classList.toggle('active', platformId === 'anitaku');
+    if (btnAx) btnAx.classList.toggle('active', platformId === 'animexin');
     if (btnMv) btnMv.classList.toggle('active', platformId === 'mvffm');
     if (btnDm) btnDm.classList.toggle('active', platformId === 'dailymotion');
     if (btnYt) btnYt.classList.toggle('active', platformId === 'youtube');
@@ -202,6 +211,9 @@ function switchPlatform(platformId, persist = true) {
 
     if (viewHg) viewHg.style.display = platformId === 'hongguo' ? 'block' : 'none';
     if (viewHs) viewHs.style.display = platformId === 'haosou' ? 'block' : 'none';
+    if (viewBp) viewBp.style.display = platformId === 'beeplaylet' ? 'block' : 'none';
+    if (viewAni) viewAni.style.display = platformId === 'anitaku' ? 'block' : 'none';
+    if (viewAx) viewAx.style.display = platformId === 'animexin' ? 'block' : 'none';
     if (viewMv) viewMv.style.display = platformId === 'mvffm' ? 'block' : 'none';
     if (viewDm) viewDm.style.display = platformId === 'dailymotion' ? 'block' : 'none';
     if (viewYt) viewYt.style.display = platformId === 'youtube' ? 'block' : 'none';
@@ -221,6 +233,15 @@ function switchPlatform(platformId, persist = true) {
         if (platformId === 'haosou') {
             bcIcon.innerText = '⚡';
             bcName.innerText = 'HAOSOU (1DFX.com) SHORT DRAMA';
+        } else if (platformId === 'beeplaylet') {
+            bcIcon.innerText = '🐝';
+            bcName.innerText = 'BEEPLAYLET (beeplaylet.com) SHORT DRAMA';
+        } else if (platformId === 'anitaku') {
+            bcIcon.innerText = '🍥';
+            bcName.innerText = curLang === 'km' ? 'ANITAKU (Anime ជប៉ុន & សកល)' : 'ANITAKU (anitaku.com.ro) ANIME HUB';
+        } else if (platformId === 'animexin') {
+            bcIcon.innerText = '🐉';
+            bcName.innerText = curLang === 'km' ? 'ANIMEXIN (Donghua 3D & Anime)' : 'ANIMEXIN (animexin.dev) DONGHUA HUB';
         } else if (platformId === 'mvffm') {
             bcIcon.innerText = '🎥';
             bcName.innerText = 'MVFFM (21K+ Short Dramas)';
@@ -243,7 +264,7 @@ function switchPlatform(platformId, persist = true) {
             bcIcon.innerText = '⭐';
             bcName.innerText = 'PINNED WATCHLIST (រឿងបានចំណាំ)';
         } else {
-            bcIcon.innerText = '🎬';
+            bcIcon.innerHTML = '<img src="/hongguo_icon.svg" alt="Hongguo" style="width:20px; height:20px; object-fit:contain; border-radius:5px; vertical-align:middle;">';
             bcName.innerText = 'HONGGUO SHORT DRAMA';
         }
     }
@@ -271,9 +292,53 @@ function switchPlatform(platformId, persist = true) {
         }
         const hsInp = document.getElementById('hsDramaInput');
         if (hsInp) hsInp.focus();
+    } else if (platformId === 'beeplaylet') {
+        stopYouTubeTasksPolling();
+        stopHaoSouTasksPolling();
+        if (typeof stopMvffmTasksPolling === 'function') stopMvffmTasksPolling();
+        if (typeof stopDmTasksPolling === 'function') stopDmTasksPolling();
+        if (typeof fetchBeeplayletTasks === 'function') fetchBeeplayletTasks();
+        const bpLoaded = (typeof window._bpRecsLoaded !== 'undefined' ? window._bpRecsLoaded : false);
+        if (!bpLoaded && typeof loadBeeplayletRecommendations === 'function') {
+            loadBeeplayletRecommendations();
+        }
+        const bpInp = document.getElementById('bpDramaInput');
+        if (bpInp) bpInp.focus();
+    } else if (platformId === 'anitaku') {
+        stopYouTubeTasksPolling();
+        stopHaoSouTasksPolling();
+        if (typeof stopMvffmTasksPolling === 'function') stopMvffmTasksPolling();
+        if (typeof stopDmTasksPolling === 'function') stopDmTasksPolling();
+        if (typeof stopTtTasksPolling === 'function') stopTtTasksPolling();
+        if (typeof startAnitakuTasksPolling === 'function') {
+            startAnitakuTasksPolling();
+            fetchAnitakuTasks();
+        }
+        if (typeof loadAnitakuRecommendations === 'function') {
+            loadAnitakuRecommendations(typeof _aniCurrentCategory !== 'undefined' ? _aniCurrentCategory : 'all', true);
+        }
+        const aniInp = document.getElementById('aniInput');
+        if (aniInp) aniInp.focus();
+    } else if (platformId === 'animexin') {
+        stopYouTubeTasksPolling();
+        stopHaoSouTasksPolling();
+        if (typeof stopMvffmTasksPolling === 'function') stopMvffmTasksPolling();
+        if (typeof stopDmTasksPolling === 'function') stopDmTasksPolling();
+        if (typeof stopTtTasksPolling === 'function') stopTtTasksPolling();
+        if (typeof stopAnitakuTasksPolling === 'function') stopAnitakuTasksPolling();
+        if (typeof startAnimexinTasksPolling === 'function') {
+            startAnimexinTasksPolling();
+            fetchAnimexinTasks();
+        }
+        if (typeof loadAnimexinRecommendations === 'function') {
+            loadAnimexinRecommendations(typeof _axCurrentCategory !== 'undefined' ? _axCurrentCategory : 'all', true);
+        }
+        const axInp = document.getElementById('axInput');
+        if (axInp) axInp.focus();
     } else if (platformId === 'mvffm') {
         stopYouTubeTasksPolling();
         stopHaoSouTasksPolling();
+        if (typeof stopAnitakuTasksPolling === 'function') stopAnitakuTasksPolling();
         if (typeof stopDmTasksPolling === 'function') stopDmTasksPolling();
         if (typeof startMvffmTasksPolling === 'function') {
             startMvffmTasksPolling();
@@ -290,6 +355,7 @@ function switchPlatform(platformId, persist = true) {
         stopYouTubeTasksPolling();
         stopHaoSouTasksPolling();
         if (typeof stopMvffmTasksPolling === 'function') stopMvffmTasksPolling();
+        if (typeof stopAnitakuTasksPolling === 'function') stopAnitakuTasksPolling();
         if (typeof startDmTasksPolling === 'function') {
             startDmTasksPolling();
             fetchDmTasks();
@@ -305,6 +371,7 @@ function switchPlatform(platformId, persist = true) {
         stopHaoSouTasksPolling();
         if (typeof stopMvffmTasksPolling === 'function') stopMvffmTasksPolling();
         if (typeof stopDmTasksPolling === 'function') stopDmTasksPolling();
+        if (typeof stopAnitakuTasksPolling === 'function') stopAnitakuTasksPolling();
         if (typeof fetchTikTokTasks === 'function') fetchTikTokTasks();
         const ttInp = document.getElementById('ttUrlInput');
         if (ttInp) ttInp.focus();
@@ -314,12 +381,14 @@ function switchPlatform(platformId, persist = true) {
         if (typeof stopMvffmTasksPolling === 'function') stopMvffmTasksPolling();
         if (typeof stopDmTasksPolling === 'function') stopDmTasksPolling();
         if (typeof stopTtTasksPolling === 'function') stopTtTasksPolling();
+        if (typeof stopAnitakuTasksPolling === 'function') stopAnitakuTasksPolling();
         if (typeof renderGlobalStarredGrid === 'function') renderGlobalStarredGrid();
     } else {
         stopYouTubeTasksPolling();
         stopHaoSouTasksPolling();
         if (typeof stopMvffmTasksPolling === 'function') stopMvffmTasksPolling();
         if (typeof stopDmTasksPolling === 'function') stopDmTasksPolling();
+        if (typeof stopAnitakuTasksPolling === 'function') stopAnitakuTasksPolling();
         // Keep Hongguo feed as-is when switching back. Only load if empty.
         const hasDramas = (typeof window.allDramas !== 'undefined' && window.allDramas && window.allDramas.length > 0)
             || (typeof allDramas !== 'undefined' && allDramas && allDramas.length > 0);
@@ -329,36 +398,76 @@ function switchPlatform(platformId, persist = true) {
     }
 }
 
-// Manual Refresh handler for topbar Refresh button
-function refreshCurrentPlatform() {
-    const refreshIcon = document.getElementById('topbarRefreshIcon');
-    if (refreshIcon) {
-        refreshIcon.classList.remove('spinning');
-        void refreshIcon.offsetWidth; // force reflow
-        refreshIcon.classList.add('spinning');
-        setTimeout(() => {
-            if (refreshIcon) refreshIcon.classList.remove('spinning');
-        }, 750);
-    }
-
+// Universal feed shuffler across ALL drama platforms (Hongguo, HaoSou, MVFFM, Dailymotion)
+function shuffleCurrentPlatformFeed() {
     const p = currentPlatform || 'hongguo';
     if (p === 'haosou') {
-        const cat = (typeof _currentHaoSouCategory !== 'undefined') ? _currentHaoSouCategory : 'all';
-        if (typeof loadHaoSouRecommendations === 'function') {
+        if (typeof shuffleHaoSouFeed === 'function') {
+            shuffleHaoSouFeed();
+        } else if (typeof _allHaoSouItems !== 'undefined' && Array.isArray(_allHaoSouItems) && _allHaoSouItems.length > 0) {
+            const activeId = (window.currentHsDrama && window.currentHsDrama.id) ? String(window.currentHsDrama.id) : null;
+            if (activeId) {
+                const activeItem = _allHaoSouItems.find(x => String(x.id) === activeId) || _allHaoSouItems[0];
+                const others = _allHaoSouItems.filter(x => String(x.id) !== String(activeItem.id));
+                _allHaoSouItems = [activeItem, ...shuffleArray(others)];
+            } else {
+                _allHaoSouItems = shuffleArray(_allHaoSouItems);
+            }
+            _haosouRenderLimit = 60;
+            if (typeof renderHaoSouCards === 'function') renderHaoSouCards(_allHaoSouItems.slice(0, _haosouRenderLimit));
+        } else if (typeof loadHaoSouRecommendations === 'function') {
+            const cat = (typeof _currentHaoSouCategory !== 'undefined') ? _currentHaoSouCategory : 'all';
             loadHaoSouRecommendations(cat);
         }
         if (typeof fetchHaoSouTasks === 'function') fetchHaoSouTasks();
     } else if (p === 'mvffm') {
-        const cat = (typeof _currentMvCategory !== 'undefined') ? _currentMvCategory : 'hot';
-        if (typeof loadMvffmRecommendations === 'function') {
+        if (typeof shuffleMvffmFeed === 'function') {
+            shuffleMvffmFeed();
+        } else if (typeof _allMvItems !== 'undefined' && Array.isArray(_allMvItems) && _allMvItems.length > 0) {
+            const activeId = (window.currentMvDrama && window.currentMvDrama.id) ? String(window.currentMvDrama.id) : null;
+            if (activeId) {
+                const activeItem = _allMvItems.find(x => String(x.id) === activeId) || _allMvItems[0];
+                const others = _allMvItems.filter(x => String(x.id) !== String(activeItem.id));
+                _allMvItems = [activeItem, ...shuffleArray(others)];
+            } else {
+                _allMvItems = shuffleArray(_allMvItems);
+            }
+            _mvRenderLimit = 60;
+            if (typeof renderMvffmCards === 'function') renderMvffmCards(_allMvItems.slice(0, _mvRenderLimit));
+        } else if (typeof loadMvffmRecommendations === 'function') {
+            const cat = (typeof _currentMvCategory !== 'undefined') ? _currentMvCategory : 'hot';
             loadMvffmRecommendations(cat);
         }
         if (typeof fetchMvffmTasks === 'function') fetchMvffmTasks();
     } else if (p === 'dailymotion') {
-        if (typeof loadDailymotionFeed === 'function') {
-            loadDailymotionFeed(1);
+        if (typeof shuffleDailymotionFeed === 'function') {
+            shuffleDailymotionFeed();
+        } else if (typeof _dmItems !== 'undefined' && Array.isArray(_dmItems) && _dmItems.length > 0) {
+            if (window._dmActiveVideoId) {
+                const activeItem = _dmItems.find(x => x.id === window._dmActiveVideoId) || _dmItems[0];
+                const others = _dmItems.filter(x => x.id !== activeItem.id);
+                _dmItems = [activeItem, ...shuffleArray(others)];
+            } else {
+                _dmItems = shuffleArray(_dmItems);
+            }
+            if (typeof renderDailymotionCards === 'function') renderDailymotionCards(_dmItems);
+        } else if (typeof loadDailymotionFeed === 'function') {
+            loadDailymotionFeed(1, false);
         }
-        if (typeof fetchDmTasks === 'function') fetchDmTasks();
+    } else if (p === 'anitaku') {
+        if (typeof refreshAnitakuFeed === 'function') {
+            refreshAnitakuFeed();
+        }
+        if (typeof fetchAnitakuTasks === 'function') {
+            fetchAnitakuTasks();
+        }
+    } else if (p === 'animexin') {
+        if (typeof refreshAnimexinFeed === 'function') {
+            refreshAnimexinFeed();
+        }
+        if (typeof fetchAnimexinTasks === 'function') {
+            fetchAnimexinTasks();
+        }
     } else if (p === 'youtube') {
         if (typeof fetchYouTubeTasks === 'function') fetchYouTubeTasks();
     } else if (p === 'starred') {
@@ -370,21 +479,76 @@ function refreshCurrentPlatform() {
             if (typeof renderStarredDramasView === 'function') renderStarredDramasView();
         } else if (cat === 'library') {
             if (typeof renderLibraryView === 'function') renderLibraryView();
-        } else if (typeof loadCategory === 'function') {
-            loadCategory(cat, 1);
+        } else {
+            if (typeof shuffleHongguoFeed === 'function') {
+                shuffleHongguoFeed();
+            } else if (typeof allDramas !== 'undefined' && Array.isArray(allDramas) && allDramas.length > 0) {
+                const activeSid = (window.currentSeries && window.currentSeries.series_id) ? String(window.currentSeries.series_id) : null;
+                if (activeSid) {
+                    const activeItem = allDramas.find(x => String(x.series_id) === activeSid) || allDramas[0];
+                    const others = allDramas.filter(x => String(x.series_id) !== String(activeItem.series_id));
+                    allDramas = [activeItem, ...shuffleArray(others)];
+                } else {
+                    allDramas = shuffleArray(allDramas);
+                }
+                if (typeof renderDramaGrid === 'function') renderDramaGrid(allDramas);
+            } else if (typeof loadCategory === 'function') {
+                loadCategory(cat, 1);
+            }
         }
     }
+}
+window.shuffleCurrentPlatformFeed = shuffleCurrentPlatformFeed;
+
+// Manual Refresh handler for topbar Refresh button (Instantly shuffles and reloads)
+function refreshCurrentPlatform() {
+    const refreshIcon = document.getElementById('topbarRefreshIcon');
+    if (refreshIcon) {
+        refreshIcon.classList.remove('spinning');
+        void refreshIcon.offsetWidth; // force reflow
+        refreshIcon.classList.add('spinning');
+        setTimeout(() => {
+            if (refreshIcon) refreshIcon.classList.remove('spinning');
+        }, 750);
+    }
+
+    shuffleCurrentPlatformFeed();
 
     if (typeof showToast === 'function') {
         const lang = window.currentLang || (typeof currentLang !== 'undefined' ? currentLang : 'km');
         const msg = (lang === 'zh')
-            ? '已刷新短剧 🔄'
+            ? '已刷新并随机排序 🔄'
             : ((lang === 'km')
-                ? 'បាន Refresh រឿងរួចរាល់ 🔄'
-                : 'Feed refreshed 🔄');
+                ? 'បាន Refresh & ច្របល់រឿងថ្មីៗរួចរាល់ 🔄'
+                : 'Feed refreshed & shuffled 🔄');
         showToast(msg);
     }
 }
+
+// Auto-shuffle hook to guarantee all platforms (especially Dailymotion) are shuffled when opened/loaded
+(function hookPlatformAutoShuffle() {
+    function tryHook() {
+        if (typeof window.renderDailymotionCards === 'function' && !window._dmShuffleHooked) {
+            window._dmShuffleHooked = true;
+            const originalRender = window.renderDailymotionCards;
+            window.renderDailymotionCards = function(items) {
+                if (Array.isArray(items) && items.length > 0 && !items._shuffledOnce) {
+                    items._shuffledOnce = true;
+                    items = shuffleArray(items);
+                    if (typeof _dmItems !== 'undefined') _dmItems = items;
+                }
+                return originalRender.call(this, items);
+            };
+        }
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', tryHook);
+    } else {
+        setTimeout(tryHook, 50);
+        setTimeout(tryHook, 300);
+        setTimeout(tryHook, 1000);
+    }
+})();
 
 window.openHongguoWebsite = openHongguoWebsite;
 window.onHongguoLogoClick = onHongguoLogoClick;
@@ -393,6 +557,8 @@ window.openMvffmWebsite = openMvffmWebsite;
 window.onMvffmLogoClick = onMvffmLogoClick;
 window.openDailymotionWebsite = openDailymotionWebsite;
 window.onDailymotionLogoClick = onDailymotionLogoClick;
+window.openAnimexinWebsite = openAnimexinWebsite;
+window.onAnimexinLogoClick = onAnimexinLogoClick;
 window.switchPlatform = switchPlatform;
 window.refreshCurrentPlatform = refreshCurrentPlatform;
 window.showToast = showToast;

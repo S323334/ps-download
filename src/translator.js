@@ -138,6 +138,52 @@ const CATEGORY_MAP = {
 
 // Curated high-impact short drama title replacements
 const SPECIFIC_TITLES = {
+  'Renegade Immortal': { zh: '仙逆', km: 'សៀននី (Renegade Immortal)', en: 'Renegade Immortal' },
+  '仙逆': { zh: '仙逆', km: 'សៀននី (Renegade Immortal)', en: 'Renegade Immortal' },
+  'Swallowed Star': { zh: '吞噬星空', km: 'លេបត្របាក់ផ្កាយ (Swallowed Star)', en: 'Swallowed Star' },
+  '吞噬星空': { zh: '吞噬星空', km: 'លេបត្របាក់ផ្កាយ (Swallowed Star)', en: 'Swallowed Star' },
+  'Battle Through the Heavens': { zh: '斗破苍穹', km: 'ប្រយុទ្ធលើមេឃា (BTTH)', en: 'Battle Through the Heavens' },
+  '斗破苍穹': { zh: '斗破苍穹', km: 'ប្រយុទ្ធលើមេឃា (BTTH)', en: 'Battle Through the Heavens' },
+  'Soul Land': { zh: '斗罗大陆', km: 'ដីគោកដូឡូ (Soul Land)', en: 'Soul Land' },
+  '斗罗大陆': { zh: '斗罗大陆', km: 'ដីគោកដូឡូ (Soul Land)', en: 'Soul Land' },
+  'Perfect World': { zh: '完美世界', km: 'ពិភពលោកឥតខ្ចោះ (Perfect World)', en: 'Perfect World' },
+  '完美世界': { zh: '完美世界', km: 'ពិភពលោកឥតខ្ចោះ (Perfect World)', en: 'Perfect World' },
+  'A Will Eternal': { zh: '一念永恒', km: 'ឆន្ទៈអមតៈ (A Will Eternal)', en: 'A Will Eternal' },
+  '一念永恒': { zh: '一念永恒', km: 'ឆន្ទៈអមតៈ (A Will Eternal)', en: 'A Will Eternal' },
+  'Shrouding the Heavens': { zh: '遮天', km: 'បិទបាំងមេឃា (Shrouding the Heavens)', en: 'Shrouding the Heavens' },
+  '遮天': { zh: '遮天', km: 'បិទបាំងមេឃា (Shrouding the Heavens)', en: 'Shrouding the Heavens' },
+  'Martial Universe': { zh: '武动乾坤', km: 'យុទ្ធសិល្ប៍កក្រើកចក្រវាល', en: 'Martial Universe' },
+  '武动乾坤': { zh: '武动乾坤', km: 'យុទ្ធសិល្ប៍កក្រើកចក្រវាល', en: 'Martial Universe' },
+  'The Great Ruler': { zh: '大主宰', km: 'មហាចៅហ្វាយនាយ', en: 'The Great Ruler' },
+  '大主宰': { zh: '大主宰', km: 'មហាចៅហ្វាយនាយ', en: 'The Great Ruler' },
+  'Against the Gods': { zh: '逆天邪神', km: 'ព្រះអាក្រក់ប្រឆាំងមេឃ', en: 'Against the Gods' },
+  '逆天邪神': { zh: '逆天邪神', km: 'ព្រះអាក្រក់ប្រឆាំងមេឃ', en: 'Against the Gods' },
+  'Throne of Seal': { zh: '神印王座', km: 'រាជបល្ល័ង្កត្រាទេព', en: 'Throne of Seal' },
+  '神印王座': { zh: '神印王座', km: 'រាជបល្ល័ង្កត្រាទេព', en: 'Throne of Seal' },
+  'Tales of Demons and Gods': { zh: '妖神记', km: 'កំណត់ហេតុបិសាចទេព', en: 'Tales of Demons and Gods' },
+  '妖神记': { zh: '妖神记', km: 'កំណត់ហេតុបិសាចទេព', en: 'Tales of Demons and Gods' },
+  'Record of a Mortal\'s Journey to Immortality': { zh: '凡人修仙传', km: 'ដំណើរមនុស្សសាមញ្ញក្លាយជាទេព', en: 'Record of a Mortal\'s Journey to Immortality' },
+  '凡人修仙传': { zh: '凡人修仙传', km: 'ដំណើរមនុស្សសាមញ្ញក្លាយជាទេព', en: 'Record of a Mortal\'s Journey to Immortality' },
+  'The Demon Hunter': { zh: '沧元图', km: 'ផែនទីឆាងយាន (The Demon Hunter)', en: 'The Demon Hunter' },
+  '沧元图': { zh: '沧元图', km: 'ផែនទីឆាងយាន (The Demon Hunter)', en: 'The Demon Hunter' },
+  'Peerless Martial Spirit': { zh: '绝世武魂', km: 'ក្បាច់គុនគ្មានគូប្រៀប', en: 'Peerless Martial Spirit' },
+  '绝世武魂': { zh: '绝世武魂', km: 'ក្បាច់គុនគ្មានគូប្រៀប', en: 'Peerless Martial Spirit' },
+  'Martial Master': { zh: '武神主宰', km: 'មហាចៅហ្វាយនាយក្បាច់គុន', en: 'Martial Master' },
+  '武神主宰': { zh: '武神主宰', km: 'មហាចៅហ្វាយនាយក្បាច់គុន', en: 'Martial Master' },
+  'Spirit Sword Sovereign': { zh: '灵剑尊', km: 'ដាវទេពស៊ូព្រីម', en: 'Spirit Sword Sovereign' },
+  '灵剑尊': { zh: '灵剑尊', km: 'ដាវទេពស៊ូព្រីម', en: 'Spirit Sword Sovereign' },
+  'Lord of the Universe': { zh: '万界独尊', km: 'ស្ដេចលើសព្វលោក', en: 'Lord of the Universe' },
+  '万界独尊': { zh: '万界独尊', km: 'ស្ដេចលើសព្វលោក', en: 'Lord of the Universe' },
+  'Ten Thousand Worlds': { zh: '万界仙踪', km: 'ដានទេពម៉ឺនពិភព', en: 'Ten Thousand Worlds' },
+  '万界仙踪': { zh: '万界仙踪', km: 'ដានទេពម៉ឺនពិភព', en: 'Ten Thousand Worlds' },
+  'One Piece': { zh: '海贼王', km: 'ស្ដេចចោរសមុទ្រ (One Piece)', en: 'One Piece' },
+  'Bleach': { zh: '死神', km: 'ទេវទូតមរណៈ (Bleach)', en: 'Bleach' },
+  'Naruto': { zh: '火影忍者', km: 'ណាអ៊ុយតូ (Naruto)', en: 'Naruto' },
+  'Demon Slayer': { zh: '鬼灭之刃', km: 'ដាវពិឃាតបិសាច (Demon Slayer)', en: 'Demon Slayer' },
+  'Jujutsu Kaisen': { zh: '咒术回战', km: 'សង្គ្រាមអាគម (Jujutsu Kaisen)', en: 'Jujutsu Kaisen' },
+  'Solo Leveling': { zh: '我独自升级', km: 'ឡើងកម្រិតតែម្នាក់ឯង (Solo Leveling)', en: 'Solo Leveling' },
+  'Attack on Titan': { zh: '进击的巨人', km: 'ការវាយលុកយក្ស (Attack on Titan)', en: 'Attack on Titan' },
+  'Hunter x Hunter': { zh: '全职猎人', km: 'ព្រានប្រមាញ់ (Hunter x Hunter)', en: 'Hunter x Hunter' },
   '聚宝仙盆之杂灵根才是真BOSS第十二季': {
     km: 'ឆ្នាំងទិព្វវិសេស៖ កំពូលស្ដេចមេធំឫសទេព (វគ្គ ១២)',
     en: 'The Real Boss: Hybrid Spiritual Roots (Season 12)'
@@ -480,10 +526,15 @@ async function translateDramaTitle(title, targetLang = 'km') {
   const lang = (targetLang === 'zh' || targetLang === 'zh-CN') ? 'zh' : ((targetLang === 'en') ? 'en' : 'km');
   const cleanTitle = title.trim();
 
+  // 1. Direct hit in curated titles
+  if (SPECIFIC_TITLES[cleanTitle] && SPECIFIC_TITLES[cleanTitle][lang]) {
+    return SPECIFIC_TITLES[cleanTitle][lang];
+  }
+
   // If target is Chinese (zh)
   if (lang === 'zh') {
     // If it is already purely Chinese, return directly
-    if (/[\u4e00-\u9fa5]/.test(cleanTitle) && !/[\u1780-\u17ff]/.test(cleanTitle)) {
+    if (/[\u4e00-\u9fa5]/.test(cleanTitle) && !/[\u1780-\u17ff]/.test(cleanTitle) && !/[a-zA-Z]{3,}/.test(cleanTitle)) {
       return cleanTitle;
     }
     const cacheKey = `zh:${cleanTitle}`;
@@ -496,11 +547,6 @@ async function translateDramaTitle(title, targetLang = 'km') {
       return gt;
     }
     return cleanTitle;
-  }
-
-  // 1. Direct hit in curated titles
-  if (SPECIFIC_TITLES[cleanTitle] && SPECIFIC_TITLES[cleanTitle][lang]) {
-    return SPECIFIC_TITLES[cleanTitle][lang];
   }
 
   // 2. Check persistent cache (reject bad punctuation or placeholder entries)
@@ -597,7 +643,23 @@ async function translateBatchTitles(titles, targetLang = 'km') {
  * Translates category / tag into Khmer or English (never returns raw Chinese).
  */
 function translateCategory(catName, targetLang = 'km') {
-  if (!catName) return targetLang === 'en' ? 'Drama' : 'រឿងភាគ';
+  if (!catName) return targetLang === 'en' ? 'Drama' : (targetLang === 'zh' ? '短剧' : 'រឿងភាគ');
+  if (targetLang === 'zh') {
+    if (/[\u4e00-\u9fa5]/.test(catName)) return catName;
+    const enToZh = {
+      'action': '动作', 'martial arts': '武侠', 'fantasy': '玄幻', 'cultivation': '修仙',
+      'adventure': '冒险', 'comedy': '喜剧', 'romance': '恋爱', 'drama': '剧情',
+      'supernatural': '异能', 'sci-fi': '科幻', 'historical': '古装', 'rebirth': '重生',
+      'urban': '都市', 'ceo': '总裁', 'billionaire': '豪门', 'mystery': '悬疑', 'thriller': '惊悚',
+      'donghua': '动画', 'anime': '动漫'
+    };
+    const lower = String(catName).toLowerCase().trim();
+    if (enToZh[lower]) return enToZh[lower];
+    for (const [k, v] of Object.entries(enToZh)) {
+      if (lower.includes(k)) return v;
+    }
+    return catName;
+  }
   const lang = (targetLang === 'en') ? 'en' : 'km';
   const map = CATEGORY_MAP[lang] || CATEGORY_MAP.km;
   
@@ -615,21 +677,31 @@ function translateCategory(catName, targetLang = 'km') {
 }
 
 /**
- * Translates general text (such as synopsis/description) into fluent Khmer or English.
+ * Translates general text (such as synopsis/description) into fluent Khmer, Chinese, or English.
  */
 async function translateGeneralText(text, targetLang = 'km') {
   if (!text) return '';
-  const lang = (targetLang === 'en') ? 'en' : 'km';
+  const lang = (targetLang === 'zh' || targetLang === 'zh-CN') ? 'zh-CN' : ((targetLang === 'en') ? 'en' : 'km');
   const clean = text.trim();
+
+  // If target is zh-CN and text is already purely Chinese, return directly
+  if (lang === 'zh-CN' && /^[\u4e00-\u9fa5\s0-9\p{P}]+$/u.test(clean)) {
+    return clean;
+  }
+  // If target is km and text is already purely Khmer, return directly
+  if (lang === 'km' && /^[\u1780-\u17ff\s0-9\p{P}]+$/u.test(clean)) {
+    return clean;
+  }
+
   const cacheKey = `synopsis:${lang}:${clean}`;
   if (_CACHE.has(cacheKey)) return _CACHE.get(cacheKey);
 
   // If short (<= 30 chars), try translateDramaTitle
-  if (clean.length <= 30) {
+  if (clean.length <= 30 && lang !== 'zh-CN') {
     return translateDramaTitle(clean, lang);
   }
 
-  // Use Google Translate for longer text
+  // Use Google Translate for text
   let gt = await fetchGoogleTranslate(clean, lang);
   if (gt) {
     _CACHE.set(cacheKey, gt);

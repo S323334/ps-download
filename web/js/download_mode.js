@@ -56,10 +56,7 @@
     }
 
     function confirmDownloadModeSelection() {
-        const chk = document.getElementById('chkRememberDlMode');
-        if (chk && chk.checked) {
-            localStorage.setItem('hg_drama_dl_mode', _selectedDownloadMode);
-        }
+        localStorage.setItem('hg_drama_dl_mode', _selectedDownloadMode);
         const cb = _pendingDownloadModeCallback;
         closeDownloadModeModal();
         if (typeof cb === 'function') {
@@ -69,18 +66,13 @@
 
     /**
      * Smart prompt:
-     * - If single video (<= 1 ep), execute directly without dialog
-     * - If multi-episode drama (> 1 ep), prompt user or use active mode
+     * Executes download with active user mode (default: merged full video)
      */
     function promptDownloadMode({ title, episodeCount = 1, onConfirm }) {
-        if (!episodeCount || episodeCount <= 1) {
-            return onConfirm('separate');
-        }
         const active = getActiveDownloadMode() || 'merged';
         if (typeof onConfirm === 'function') {
             return onConfirm(active);
         }
-        openDownloadModeModal({ title, episodeCount, onConfirm });
     }
 
     function getActiveDownloadMode() {
@@ -109,6 +101,8 @@
             if (hsChip) hsChip.classList.toggle('active', isAct);
             const mvChip = document.getElementById(`mvChipMode${m}`);
             if (mvChip) mvChip.classList.toggle('active', isAct);
+            const bpChip = document.getElementById(`bpChipMode${m}`);
+            if (bpChip) bpChip.classList.toggle('active', isAct);
         });
     }
 
@@ -124,6 +118,8 @@
         if (hsBar) hsBar.style.display = isSeries ? 'flex' : 'none';
         const mvBar = document.getElementById('mvDownloadModeBar');
         if (mvBar) mvBar.style.display = isSeries ? 'flex' : 'none';
+        const bpBar = document.getElementById('bpDownloadModeBar');
+        if (bpBar) bpBar.style.display = isSeries ? 'flex' : 'none';
         if (isSeries) {
             updateModeChipsUI();
         }

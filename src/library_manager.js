@@ -176,6 +176,10 @@ class LibraryManager {
       const rootDir = getOutputDir();
       if (platform === 'haosou') seriesPath = path.join(rootDir, 'HaoSou', folderName);
       else if (platform === 'mvffm') seriesPath = path.join(rootDir, 'MVFFM', folderName);
+      else if (platform === 'beeplaylet') seriesPath = path.join(rootDir, 'Beeplaylet', folderName);
+      else if (platform === 'animexin') seriesPath = path.join(rootDir, 'Animexin', folderName);
+      else if (platform === 'anitaku') seriesPath = path.join(rootDir, 'Anitaku', folderName);
+      else if (platform === 'dailymotion') seriesPath = path.join(rootDir, 'Dailymotion', folderName);
       else seriesPath = path.join(rootDir, folderName);
     }
 
@@ -272,7 +276,7 @@ class LibraryManager {
         const rootEntries = fs.readdirSync(outRoot, { withFileTypes: true });
         for (const ent of rootEntries) {
           if (!ent.isDirectory()) continue;
-          if (ent.name === 'HaoSou' || ent.name === 'MVFFM' || ent.name === 'YouTube' || ent.name.startsWith('.')) continue;
+          if (['HaoSou', 'MVFFM', 'Beeplaylet', 'Animexin', 'Anitaku', 'Dailymotion', 'TikTok', 'YouTube'].includes(ent.name) || ent.name.startsWith('.')) continue;
           candidateDirs.push({ folderPath: path.join(outRoot, ent.name), folderName: ent.name, defaultPlatform: 'hongguo' });
         }
       } catch (e) {}
@@ -284,7 +288,7 @@ class LibraryManager {
           const hsEntries = fs.readdirSync(hsRoot, { withFileTypes: true });
           for (const ent of hsEntries) {
             if (ent.isDirectory() && !ent.name.startsWith('.')) {
-              candidateDirs.push({ folderPath: path.join(hsRoot, ent.name), folderName: ent.name, defaultPlatform: 'haosou' });
+              candidateDirs.push({ folderPath: path.join(hsRoot, ent.name), folderName: path.join('HaoSou', ent.name), defaultPlatform: 'haosou' });
             }
           }
         } catch (e) {}
@@ -297,7 +301,59 @@ class LibraryManager {
           const mvEntries = fs.readdirSync(mvRoot, { withFileTypes: true });
           for (const ent of mvEntries) {
             if (ent.isDirectory() && !ent.name.startsWith('.')) {
-              candidateDirs.push({ folderPath: path.join(mvRoot, ent.name), folderName: ent.name, defaultPlatform: 'mvffm' });
+              candidateDirs.push({ folderPath: path.join(mvRoot, ent.name), folderName: path.join('MVFFM', ent.name), defaultPlatform: 'mvffm' });
+            }
+          }
+        } catch (e) {}
+      }
+
+      // 4. Beeplaylet subfolders
+      const bpRoot = path.join(outRoot, 'Beeplaylet');
+      if (fs.existsSync(bpRoot)) {
+        try {
+          const bpEntries = fs.readdirSync(bpRoot, { withFileTypes: true });
+          for (const ent of bpEntries) {
+            if (ent.isDirectory() && !ent.name.startsWith('.')) {
+              candidateDirs.push({ folderPath: path.join(bpRoot, ent.name), folderName: path.join('Beeplaylet', ent.name), defaultPlatform: 'beeplaylet' });
+            }
+          }
+        } catch (e) {}
+      }
+
+      // 5. Animexin subfolders
+      const axRoot = path.join(outRoot, 'Animexin');
+      if (fs.existsSync(axRoot)) {
+        try {
+          const axEntries = fs.readdirSync(axRoot, { withFileTypes: true });
+          for (const ent of axEntries) {
+            if (ent.isDirectory() && !ent.name.startsWith('.')) {
+              candidateDirs.push({ folderPath: path.join(axRoot, ent.name), folderName: path.join('Animexin', ent.name), defaultPlatform: 'animexin' });
+            }
+          }
+        } catch (e) {}
+      }
+
+      // 6. Anitaku subfolders
+      const aniRoot = path.join(outRoot, 'Anitaku');
+      if (fs.existsSync(aniRoot)) {
+        try {
+          const aniEntries = fs.readdirSync(aniRoot, { withFileTypes: true });
+          for (const ent of aniEntries) {
+            if (ent.isDirectory() && !ent.name.startsWith('.')) {
+              candidateDirs.push({ folderPath: path.join(aniRoot, ent.name), folderName: path.join('Anitaku', ent.name), defaultPlatform: 'anitaku' });
+            }
+          }
+        } catch (e) {}
+      }
+
+      // 7. Dailymotion subfolders
+      const dmRoot = path.join(outRoot, 'Dailymotion');
+      if (fs.existsSync(dmRoot)) {
+        try {
+          const dmEntries = fs.readdirSync(dmRoot, { withFileTypes: true });
+          for (const ent of dmEntries) {
+            if (ent.isDirectory() && !ent.name.startsWith('.')) {
+              candidateDirs.push({ folderPath: path.join(dmRoot, ent.name), folderName: path.join('Dailymotion', ent.name), defaultPlatform: 'dailymotion' });
             }
           }
         } catch (e) {}
@@ -694,26 +750,19 @@ class LibraryManager {
       if (fs.existsSync(outRoot)) {
         const ents = fs.readdirSync(outRoot, { withFileTypes: true });
         for (const e of ents) {
-          if (e.isDirectory() && !['HaoSou', 'MVFFM', 'YouTube'].includes(e.name) && !e.name.startsWith('.')) {
+          if (e.isDirectory() && !['HaoSou', 'MVFFM', 'Beeplaylet', 'Animexin', 'Anitaku', 'Dailymotion', 'TikTok', 'YouTube'].includes(e.name) && !e.name.startsWith('.')) {
             checkFolders.push({ folder: e.name, p: path.join(outRoot, e.name) });
           }
         }
       }
-      const hsRoot = path.join(outRoot, 'HaoSou');
-      if (fs.existsSync(hsRoot)) {
-        const ents = fs.readdirSync(hsRoot, { withFileTypes: true });
-        for (const e of ents) {
-          if (e.isDirectory() && !e.name.startsWith('.')) {
-            checkFolders.push({ folder: e.name, p: path.join(hsRoot, e.name) });
-          }
-        }
-      }
-      const mvRoot = path.join(outRoot, 'MVFFM');
-      if (fs.existsSync(mvRoot)) {
-        const ents = fs.readdirSync(mvRoot, { withFileTypes: true });
-        for (const e of ents) {
-          if (e.isDirectory() && !e.name.startsWith('.')) {
-            checkFolders.push({ folder: e.name, p: path.join(mvRoot, e.name) });
+      for (const sub of ['HaoSou', 'MVFFM', 'Beeplaylet', 'Animexin', 'Anitaku', 'Dailymotion']) {
+        const subRoot = path.join(outRoot, sub);
+        if (fs.existsSync(subRoot)) {
+          const ents = fs.readdirSync(subRoot, { withFileTypes: true });
+          for (const e of ents) {
+            if (e.isDirectory() && !e.name.startsWith('.')) {
+              checkFolders.push({ folder: e.name, p: path.join(subRoot, e.name) });
+            }
           }
         }
       }
@@ -767,8 +816,85 @@ class LibraryManager {
   }
 }
 
+/**
+ * Universal helper to download and save poster / cover image locally in drama/anime folder
+ * Saves both poster.jpg and cover.jpg for 100% offline library compatibility
+ */
+async function downloadAndSaveCover(imgUrl, targetDir, baseName = null) {
+  if (!imgUrl || !targetDir) return false;
+  try {
+    if (!fs.existsSync(targetDir)) {
+      try { fs.mkdirSync(targetDir, { recursive: true }); } catch (_) {}
+    }
+    const posterPath = path.join(targetDir, 'poster.jpg');
+    const coverPath = path.join(targetDir, 'cover.jpg');
+
+    // If both poster.jpg and cover.jpg exist, create companion name if needed and return
+    if (fs.existsSync(posterPath) && fs.existsSync(coverPath)) {
+      if (baseName) {
+        const namedPath = path.join(targetDir, `${baseName}.jpg`);
+        if (!fs.existsSync(namedPath)) {
+          try { fs.copyFileSync(posterPath, namedPath); } catch (_) {}
+        }
+      }
+      return true;
+    }
+
+    const res = await fetch(imgUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+        'Referer': imgUrl
+      },
+      signal: AbortSignal.timeout(12000)
+    });
+
+    if (!res.ok) return false;
+    const buf = Buffer.from(await res.arrayBuffer());
+    if (buf && buf.length > 500) {
+      fs.writeFileSync(posterPath, buf);
+      fs.writeFileSync(coverPath, buf);
+      if (baseName) {
+        try { fs.writeFileSync(path.join(targetDir, `${baseName}.jpg`), buf); } catch (_) {}
+      }
+      return true;
+    }
+  } catch (_) {}
+  return false;
+}
+
+/**
+ * Universal helper to save .series.json metadata file in drama/anime folder
+ */
+function saveSeriesMetadata(targetDir, meta = {}) {
+  try {
+    if (!targetDir) return;
+    if (!fs.existsSync(targetDir)) {
+      try { fs.mkdirSync(targetDir, { recursive: true }); } catch (_) {}
+    }
+    const metaFile = path.join(targetDir, '.series.json');
+    let existing = {};
+    if (fs.existsSync(metaFile)) {
+      try { existing = JSON.parse(fs.readFileSync(metaFile, 'utf-8')); } catch (_) {}
+    }
+    const data = {
+      ...existing,
+      series_id: String(meta.series_id || meta.id || existing.series_id || ''),
+      platform: meta.platform || existing.platform || 'general',
+      title: meta.title || existing.title || 'Drama',
+      cover: meta.cover || existing.cover || '',
+      total_episodes: meta.total_episodes || meta.episode_cnt || existing.total_episodes || 0,
+      saved_at: new Date().toISOString()
+    };
+    fs.writeFileSync(metaFile, JSON.stringify(data, null, 2), 'utf-8');
+  } catch (_) {}
+}
+
 const libraryManager = new LibraryManager();
 
 module.exports = {
-  libraryManager
+  libraryManager,
+  downloadAndSaveCover,
+  saveSeriesMetadata
 };
+

@@ -590,7 +590,6 @@
             background: rgba(255, 255, 255, 0.1);
         }
 
-        /* Compact Table Action Buttons */
         .btn-table {
             display: inline-flex;
             align-items: center;
@@ -604,6 +603,16 @@
             cursor: pointer;
             white-space: nowrap;
             transition: all 0.18s ease;
+        }
+
+        .btn-table-sync {
+            background: rgba(56, 189, 248, 0.18);
+            border-color: rgba(56, 189, 248, 0.45);
+            color: #38bdf8;
+        }
+        .btn-table-sync:hover {
+            background: #0284c7;
+            color: #ffffff;
         }
 
         .btn-table-add {
@@ -1142,6 +1151,9 @@
                         <button type="button" class="btn btn-secondary btn-sm" onclick="loadTrackedDevices(false, true)" style="height:36px; padding:0 14px; font-weight:700;">
                             <span>🔄</span> <span>ផ្ទុកទិន្នន័យឡើងវិញ</span>
                         </button>
+                        <button type="button" id="btnSyncCloud" class="btn btn-secondary btn-sm" onclick="syncWithCloud()" style="height:36px; padding:0 14px; font-weight:700; background:rgba(56,189,248,0.15); border-color:rgba(56,189,248,0.4); color:#38bdf8;">
+                            <span>☁️</span> <span>Sync ទៅ Cloud &amp; ធូល</span>
+                        </button>
                     </div>
                 </div>
 
@@ -1377,15 +1389,16 @@
                 <p style="margin-bottom:6px;">ម៉ាស៊ីន: <code id="adjustDaysDeviceId" style="color:#38bdf8; font-weight:700;"></code></p>
                 <p style="margin-bottom:14px; font-size:0.8rem; color:#94a3b8;" id="adjustDaysCurrentInfo"></p>
                 
-                <div style="display:flex; gap:8px; margin-bottom:14px;">
+                <div style="display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap;">
                     <button type="button" class="filter-pill active" id="btnModeAddDays" onclick="setAdjustMode('add')">➕ បន្ថែមថ្ងៃ (+ Days)</button>
+                    <button type="button" class="filter-pill" id="btnModeSetDays" onclick="setAdjustMode('set')">🎯 កំណត់ថ្ងៃជាក់លាក់ (Set Days)</button>
                     <button type="button" class="filter-pill" id="btnModeSubDays" onclick="setAdjustMode('sub')">➖ បន្ថយថ្ងៃ (- Days)</button>
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label" id="adjustDaysInputLabel">ចំនួនថ្ងៃត្រូវបន្ថែម:</label>
+                    <label class="form-label" id="adjustDaysInputLabel">ចំនួនថ្ងៃត្រូវបន្ថែមលើថ្ងៃចាស់:</label>
                     <div style="display:flex; gap:8px; align-items:center;">
-                        <input type="number" id="adjustDaysCountInput" class="custom-input" min="1" max="9999" value="7" style="font-weight:700; font-size:1.1rem; width:120px;">
+                        <input type="number" id="adjustDaysCountInput" class="custom-input" min="0" max="9999" value="7" style="font-weight:700; font-size:1.1rem; width:120px;">
                         <span style="font-size:0.9rem; font-weight:700; color:#cbd5e1;">ថ្ងៃ (Days)</span>
                     </div>
                 </div>
@@ -1395,6 +1408,8 @@
                     <button type="button" class="btn btn-secondary btn-sm" onclick="setQuickAdjust(7)">7 ថ្ងៃ</button>
                     <button type="button" class="btn btn-secondary btn-sm" onclick="setQuickAdjust(15)">15 ថ្ងៃ</button>
                     <button type="button" class="btn btn-secondary btn-sm" onclick="setQuickAdjust(30)">30 ថ្ងៃ</button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="setQuickAdjust(35)">35 ថ្ងៃ</button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="setQuickAdjust(60)">60 ថ្ងៃ</button>
                 </div>
             </div>
             <div class="admin-modal-footer">
@@ -1442,6 +1457,9 @@
 
     <!-- Floating Right-Click Context Menu (Matching Old Tool KeyGen V2.0 Context Menu) -->
     <div id="tableContextMenu" class="context-menu" style="display:none;">
+        <div class="context-menu-item" onclick="contextAction('sync_cloud')">
+            <span>☁️</span> <span>Sync ទៅ Cloud (Sync User)</span>
+        </div>
         <div class="context-menu-item" onclick="contextAction('set_days')">
             <span>⏱️</span> <span>កំណត់ / បន្ថែមថ្ងៃ (Set Days)</span>
         </div>
@@ -1464,6 +1482,9 @@
         <div class="context-menu-divider"></div>
         <div class="context-menu-item danger" onclick="contextAction('lock')">
             <span>🔒</span> <span>Lock (ចាក់សោ 0 ថ្ងៃ / ដកហូត)</span>
+        </div>
+        <div class="context-menu-item danger" onclick="contextAction('delete')" style="color:#f87171;">
+            <span>🗑️</span> <span>លុបម៉ាស៊ីនចេញពីបញ្ជី (Delete Machine)</span>
         </div>
     </div>
 
@@ -1809,7 +1830,8 @@
                 const res = await fetch(url);
                 const data = await res.json();
                 if (data.success && data.devices) {
-                    _cachedDevices = data.devices;
+                    const deleted = Array.isArray(data.deletedDevices) ? data.deletedDevices : [];
+                    _cachedDevices = data.devices.filter(d => d.deviceId && !deleted.includes(d.deviceId));
                     updateMetrics(_cachedDevices);
                     applyFilter();
                 } else if (!isSilent && tbody) {
@@ -2004,10 +2026,12 @@
                         <!-- 4. Compact Actions -->
                         <td style="text-align:right;">
                             <div style="display:inline-flex; gap:3px; justify-content:flex-end; flex-wrap:wrap;">
+                                <button type="button" class="btn-table btn-table-sync" onclick="syncSingleCustomerToCloud('${devId}')" title="Sync ឈ្មោះ និង License ភ្ញៀវនេះទៅ Cloud ភ្លាមៗ">☁️ Sync</button>
                                 <button type="button" class="btn-table btn-table-add" onclick="openAdjustDaysModal('${devId}', 'add', ${item.remainingDays || 0})" title="បន្ថែមថ្ងៃប្រើប្រាស់">+ ថ្ងៃ</button>
                                 <button type="button" class="btn-table btn-table-sub" onclick="openAdjustDaysModal('${devId}', 'sub', ${item.remainingDays || 0})" title="បន្ថយថ្ងៃប្រើប្រាស់">- ថ្ងៃ</button>
                                 <button type="button" class="btn-table btn-table-transfer" onclick="openTransferModal('${devId}', ${item.remainingDays || 0}, ${item.remainingHours || 0}, ${item.remainingMinutes || 0}, ${item.isLifetime ? 'true' : 'false'}, '${escapeHtml(item.customName || '')}')" title="ផ្ទេរ License ទៅម៉ាស៊ីនថ្មី">🔄 ផ្ទេរ</button>
                                 <button type="button" class="btn-table btn-table-revoke" onclick="confirmRevoke('${devId}')" title="កាត់ License ម៉ាស៊ីននេះឱ្យផុតកំណត់ភ្លាមៗ">🔌 ផ្ដាច់</button>
+                                <button type="button" class="btn-table btn-table-revoke" style="background:rgba(239,68,68,0.18); border-color:rgba(239,68,68,0.45); color:#fca5a5;" onclick="confirmDeleteDevice('${devId}')" title="លុបម៉ាស៊ីននេះចេញពីបញ្ជី">🗑️</button>
                             </div>
                         </td>
                     </tr>
@@ -2041,8 +2065,10 @@
                 const data = await res.json();
                 if (data.success) {
                     showToast('💾 បានរក្សាទុកឈ្មោះរួចរាល់!', '✅');
+                    const savedDevId = _activeModalDeviceId;
                     closeModal('modalEditName');
                     loadTrackedDevices();
+                    syncSingleCustomerToCloud(savedDevId);
                 } else {
                     showToast('❌ ' + (data.error || 'បរាជ័យ'), '⚠️');
                 }
@@ -2063,21 +2089,30 @@
         function setAdjustMode(mode) {
             _adjustMode = mode;
             const btnAdd = document.getElementById('btnModeAddDays');
+            const btnSet = document.getElementById('btnModeSetDays');
             const btnSub = document.getElementById('btnModeSubDays');
             const title = document.getElementById('adjustDaysTitle');
             const label = document.getElementById('adjustDaysInputLabel');
             const submitBtn = document.getElementById('btnSubmitAdjustDays');
 
+            if (btnAdd) btnAdd.classList.remove('active');
+            if (btnSet) btnSet.classList.remove('active');
+            if (btnSub) btnSub.classList.remove('active');
+
             if (mode === 'add') {
-                btnAdd.classList.add('active');
-                btnSub.classList.remove('active');
+                if (btnAdd) btnAdd.classList.add('active');
                 title.innerText = '➕ បន្ថែមថ្ងៃប្រើប្រាស់ (+ Days)';
-                label.innerText = 'ចំនួនថ្ងៃត្រូវបន្ថែម:';
+                label.innerText = 'ចំនួនថ្ងៃត្រូវបន្ថែមលើថ្ងៃចាស់:';
                 submitBtn.innerText = '➕ បន្ថែមថ្ងៃ';
                 submitBtn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+            } else if (mode === 'set') {
+                if (btnSet) btnSet.classList.add('active');
+                title.innerText = '🎯 កំណត់ចំនួនថ្ងៃជាក់លាក់ (Set Exact Days)';
+                label.innerText = 'កំណត់ចំនួនថ្ងៃថ្មីផ្ទាល់ (ឧ. 35 ថ្ងៃ គឺចេញ 35 ថ្ងៃភ្លាម):';
+                submitBtn.innerText = '🎯 កំណត់ថ្ងៃ';
+                submitBtn.style.background = 'linear-gradient(135deg, #0284c7, #0369a1)';
             } else {
-                btnSub.classList.add('active');
-                btnAdd.classList.remove('active');
+                if (btnSub) btnSub.classList.add('active');
                 title.innerText = '➖ បន្ថយថ្ងៃប្រើប្រាស់ (- Days)';
                 label.innerText = 'ចំនួនថ្ងៃត្រូវបន្ថយ/ដកចេញ:';
                 submitBtn.innerText = '➖ បន្ថយថ្ងៃ';
@@ -2093,26 +2128,32 @@
         async function submitAdjustDays() {
             if (!_activeModalDeviceId) return;
             const count = parseInt(document.getElementById('adjustDaysCountInput').value || '0', 10);
-            if (isNaN(count) || count <= 0) {
+            if (isNaN(count) || count < 0) {
                 showToast('⚠️ សូមបញ្ចូលចំនួនថ្ងៃត្រឹមត្រូវ!', '❌');
                 return;
             }
 
-            const change = _adjustMode === 'add' ? count : -count;
+            const payload = { deviceId: _activeModalDeviceId };
+            if (_adjustMode === 'set') {
+                payload.setDays = count;
+            } else {
+                payload.daysChange = _adjustMode === 'add' ? count : -count;
+            }
+
             try {
                 const res = await fetch('/api/license/admin/adjust-days', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        deviceId: _activeModalDeviceId,
-                        daysChange: change
-                    })
+                    body: JSON.stringify(payload)
                 });
                 const data = await res.json();
                 if (data.success) {
-                    showToast(`🎉 បាន${_adjustMode === 'add' ? 'បន្ថែម' : 'បន្ថយ'} ${count} ថ្ងៃជោគជ័យ! (នៅសល់ ${data.newDays} ថ្ងៃ)`, '✅');
+                    const actionTxt = _adjustMode === 'set' ? `កំណត់ ${count}` : (_adjustMode === 'add' ? `បន្ថែម ${count}` : `បន្ថយ ${count}`);
+                    showToast(`🎉 បាន${actionTxt} ថ្ងៃជោគជ័យ! (នៅសល់ ${data.newDays} ថ្ងៃ)`, '✅');
+                    const savedDevId = _activeModalDeviceId;
                     closeModal('modalAdjustDays');
                     loadTrackedDevices();
+                    syncSingleCustomerToCloud(savedDevId);
                 } else {
                     showToast('❌ ' + (data.error || 'បរាជ័យ'), '⚠️');
                 }
@@ -2202,6 +2243,30 @@
             }
         }
 
+        // 3b. Sync Single Customer to Cloud (Real-time Cloud Sync តាមឈ្មោះនីមួយៗ)
+        async function syncSingleCustomerToCloud(deviceId) {
+            if (!deviceId) return;
+            const device = _cachedDevices.find(d => d.deviceId === deviceId) || {};
+            const displayName = device.customName || device.telegramUser || deviceId;
+            showToast(`⏳ កំពុង Sync ភ្ញៀវ «${displayName}» ទៅ Cloud...`, '☁️');
+            try {
+                const res = await fetch('/api/license/admin/sync-single-device', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ deviceId })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast(`☁️ បាន Sync «${data.customName || displayName}» ទៅ Cloud ជោគជ័យ!`, '✅');
+                    loadTrackedDevices(false, false);
+                } else {
+                    showToast('❌ Sync បរាជ័យ: ' + (data.error || 'Server error'), '⚠️');
+                }
+            } catch (e) {
+                showToast('❌ Error: ' + e.message, '⚠️');
+            }
+        }
+
         // 4. Disconnect (Expire) License
         async function confirmRevoke(deviceId) {
             if (!confirm(`⚠️ តើអ្នកពិតជាចង់កាត់ License លើម៉ាស៊ីន ${deviceId} ឱ្យផុតកំណត់ (០ ថ្ងៃ) ភ្លាមៗមែនទេ?\n\n(ម៉ាស៊ីននេះនឹងក្លាយជា «ផុតកំណត់» ភ្លាមៗ ដោយនៅតែអាចបើកកម្មវិធីមើលរូបភាព និងបញ្ចូល Key ថ្មីបានធម្មតា)`)) {
@@ -2220,6 +2285,32 @@
                     loadTrackedDevices();
                 } else {
                     showToast('❌ ' + (data.error || 'បរាជ័យ'), '⚠️');
+                }
+            } catch (e) {
+                showToast('Error: ' + e.message, '❌');
+            }
+        }
+
+        // 5. Permanently Delete Device
+        async function confirmDeleteDevice(deviceId) {
+            const device = _cachedDevices.find(d => d.deviceId === deviceId) || {};
+            const displayName = device.customName || device.telegramUser || deviceId;
+            if (!confirm(`⚠️ តើអ្នកពិតជាចង់លុបម៉ាស៊ីន ${deviceId} (${displayName}) ចេញពីបញ្ជីគ្រប់គ្រងទាំងស្រុងមែនទេ?\n\n(ទិន្នន័យម៉ាស៊ីន និង License របស់ឧបករណ៍នេះ នឹងត្រូវលុបចេញពី Database និង Cloud Sync ទាំងអស់)`)) {
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/license/admin/delete-device', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ deviceId: deviceId })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast(`🗑️ បានលុបម៉ាស៊ីន ${deviceId} ចេញពីបញ្ជីរួចរាល់!`, '✅');
+                    loadTrackedDevices();
+                } else {
+                    showToast('❌ ' + (data.error || 'បរាជ័យក្នុងការលុប'), '⚠️');
                 }
             } catch (e) {
                 showToast('Error: ' + e.message, '❌');
@@ -2634,8 +2725,10 @@
 
             const device = _cachedDevices.find(d => d.deviceId === devId) || {};
 
-            if (action === 'set_days') {
-                openAdjustDaysModal(devId, 'add', device.remainingDays || 0);
+            if (action === 'sync_cloud') {
+                syncSingleCustomerToCloud(devId);
+            } else if (action === 'set_days') {
+                openAdjustDaysModal(devId, 'set', device.remainingDays || 0);
             } else if (action === 'set_name') {
                 openEditNameModal(devId, device.customName || '');
             } else if (action === 'set_lifetime') {
@@ -2670,6 +2763,8 @@
                 }
             } else if (action === 'transfer') {
                 openTransferModal(devId, device.remainingDays || 0, device.remainingHours || 0, device.remainingMinutes || 0, device.isLifetime, device.customName || '');
+            } else if (action === 'delete') {
+                confirmDeleteDevice(devId);
             }
         }
 

@@ -440,3 +440,44 @@
     gap: 10px;
     flex-shrink: 0;
 }
+
+/* Episode chip checkbox support */
+.hs-ep-chip {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 4px 6px 18px !important;
+    min-height: 34px;
+    user-select: none;
+}
+.hs-ep-chip:hover {
+    transform: translateY(-1px);
+}
+.hs-ep-chip.selected {
+    background: rgba(99, 102, 241, 0.25) !important;
+    border-color: #818cf8 !important;
+    color: #c7d2fe !important;
+}
+.hs-ep-checkbox {
+    position: absolute;
+    top: 9px;
+    left: 6px;
+    width: 14px;
+    height: 14px;
+    accent-color: #818cf8;
+    cursor: pointer;
+    margin: 0;
+    opacity: 0.75;
+    transition: opacity 0.2s;
+}
+.hs-ep-chip:hover .hs-ep-checkbox,
+.hs-ep-chip.selected .hs-ep-checkbox {
+    opacity: 1;
+}
+.hs-ep-label {
+    pointer-events: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}

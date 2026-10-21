@@ -401,6 +401,11 @@
     background: rgba(99, 102, 241, 0.9);
     color: #ffffff;
 }
+.starred-platform-tag.platform-beeplaylet {
+    background: rgba(245, 158, 11, 0.95);
+    color: #0f172a;
+    font-weight: 800;
+}
 .starred-platform-tag.platform-mvffm {
     background: rgba(225, 29, 72, 0.9);
     color: #ffffff;

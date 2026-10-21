@@ -11,7 +11,7 @@ const fs = require('fs');
 const https = require('https');
 const http = require('http');
 const { getOutputDir } = require('./config.js');
-const { libraryManager } = require('./library_manager.js');
+const { libraryManager, downloadAndSaveCover, saveSeriesMetadata } = require('./library_manager.js');
 
 function sanitizeFilename(name) {
   const cleaned = String(name || '').replace(/[\\/*?:"<>|\r\n\t]/g, '_').trim();
@@ -48,6 +48,26 @@ function formatViews(views) {
   if (views >= 1000000) return (views / 1000000).toFixed(1) + 'M';
   if (views >= 1000) return (views / 1000).toFixed(1) + 'K';
   return String(views);
+}
+
+function getDeduplicationKey(item) {
+  if (!item) return '';
+  const rawTitle = String(item.title || '');
+  const clean = rawTitle
+    .toLowerCase()
+    .replace(/[^\w\u1780-\u17ff\u4e00-\u9fa5]/g, ' ')
+    .replace(/\b(full\s*movie|full\s*short\s*drama|full\s*drama|english\s*sub\w*|eng\s*sub\w*|chinese\s*drama|short\s*drama|chinese|drama|202[0-9]|hd|1080p|4k|reels?|part\s*\d+|ep\s*\d+|reelshort|dramabox|shortmax|ពេញមួយរឿង|រឿងភាគខ្លី|រឿងភាគចិន|完整版|完整劇集|全集)\b/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (clean && clean.length >= 4) {
+    return 'title_' + clean;
+  }
+  const rawNorm = rawTitle.toLowerCase().replace(/[^a-z0-9\u1780-\u17ff\u4e00-\u9fa5]/g, '');
+  if (rawNorm.length >= 6) {
+    return 'raw_' + rawNorm.slice(0, 30);
+  }
+  return 'id_' + (item.id || '');
 }
 
 function fetchJson(urlStr, timeoutMs = 12000, customHeaders = {}) {
@@ -87,6 +107,19 @@ function fetchJson(urlStr, timeoutMs = 12000, customHeaders = {}) {
       reject(e);
     }
   });
+}
+
+/**
+ * Fisher-Yates array shuffle for fresh drama feed discovery
+ */
+function shuffleArray(arr) {
+  if (!Array.isArray(arr) || arr.length <= 1) return arr ? [...arr] : [];
+  const copy = [...arr];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
 }
 
 /**
@@ -146,13 +179,39 @@ class DailymotionDownloader {
 
   _loadLocalDatabase() {
     try {
-      const dbPath = path.join(__dirname, '..', 'data', 'dailymotion_chinese_dramas.json');
-      if (fs.existsSync(dbPath)) {
+      const candidates = [
+        path.join(__dirname, '..', 'data', 'dailymotion_chinese_dramas.json'),
+        path.join(__dirname, 'data', 'dailymotion_chinese_dramas.json'),
+        path.join(process.cwd(), 'data', 'dailymotion_chinese_dramas.json')
+      ];
+      if (process.resourcesPath) {
+        candidates.push(path.join(process.resourcesPath, 'app', 'data', 'dailymotion_chinese_dramas.json'));
+        candidates.push(path.join(process.resourcesPath, 'data', 'dailymotion_chinese_dramas.json'));
+      }
+      try {
+        const exeDir = path.dirname(process.execPath);
+        candidates.push(path.join(exeDir, 'data', 'dailymotion_chinese_dramas.json'));
+      } catch (_) {}
+
+      let dbPath = null;
+      for (const p of candidates) {
+        if (p && fs.existsSync(p)) {
+          dbPath = p;
+          break;
+        }
+      }
+
+      if (dbPath && fs.existsSync(dbPath)) {
         const raw = JSON.parse(fs.readFileSync(dbPath, 'utf8'));
         if (Array.isArray(raw)) {
-          this._localDb = raw
-            .filter(item => item && item.id && (item.duration || 0) >= 1800)
-            .map(item => ({
+          const seenKeys = new Set();
+          const items = [];
+          for (const item of raw) {
+            if (!item || !item.id || (item.duration || 0) < 1800) continue;
+            const key = getDeduplicationKey(item);
+            if (seenKeys.has(key)) continue;
+            seenKeys.add(key);
+            items.push({
               id: item.id,
               title: item.title || 'Chinese Short Drama',
               thumbnail: item.poster || item.thumbnail || '',
@@ -165,8 +224,11 @@ class DailymotionDownloader {
               description: item.title,
               url: item.url || `https://www.dailymotion.com/video/${item.id}`,
               embed_url: `https://www.dailymotion.com/embed/video/${item.id}?autoplay=1&mute=0&ui-theme=dark&queue-enable=0`
-            }));
-          console.log(`[Dailymotion] Loaded ${this._localDb.length} local Chinese full movies (>=30m) from DB.`);
+            });
+          }
+          // Shuffle database on startup for fresh discovery every time app opens
+          this._localDb = shuffleArray(items);
+          console.log(`[Dailymotion] Loaded & shuffled ${this._localDb.length} verified unique Chinese full movies (>=30m) from DB.`);
         }
       }
     } catch (e) {
@@ -189,7 +251,7 @@ class DailymotionDownloader {
   async getChineseDramas(category = 'trending', page = 1, limit = 36) {
     const catKey = category || 'trending';
     const cacheKey = `feed_${catKey}_${page}_${limit}`;
-    if (this._cache.has(cacheKey)) {
+    if (page > 1 && this._cache.has(cacheKey)) {
       const cached = this._cache.get(cacheKey);
       if (Date.now() - cached.ts < 5 * 60 * 1000) {
         return cached.data;
@@ -212,6 +274,11 @@ class DailymotionDownloader {
 
     if (pool.length === 0) pool = this._localDb;
 
+    // Shuffle pool on page 1 for fresh mix on every refresh/visit
+    if (page === 1) {
+      pool = shuffleArray(pool);
+    }
+
     const startIdx = (page - 1) * limit;
     const pageItems = pool.slice(startIdx, startIdx + limit);
 
@@ -224,7 +291,9 @@ class DailymotionDownloader {
         page: page,
         category: catKey
       };
-      this._cache.set(cacheKey, { ts: Date.now(), data: result });
+      if (page > 1) {
+        this._cache.set(cacheKey, { ts: Date.now(), data: result });
+      }
       return result;
     }
 
@@ -287,13 +356,18 @@ class DailymotionDownloader {
 
       const candidates = [];
       const seenIds = new Set(localMatches.map(x => x.id));
+      const seenKeys = new Set(localMatches.map(x => getDeduplicationKey(x)));
 
       for (const item of rawList) {
         if (!item || !item.id) continue;
         const dur = Number(item.duration) || 0;
         if (strictFilter && dur < 1800) continue;
         if (seenIds.has(item.id)) continue;
+        const dedupKey = getDeduplicationKey(item);
+        if (dedupKey && seenKeys.has(dedupKey)) continue;
+
         seenIds.add(item.id);
+        if (dedupKey) seenKeys.add(dedupKey);
 
         candidates.push({
           id: item.id,
@@ -476,7 +550,7 @@ class DailymotionDownloader {
   /**
    * Start batch/single video download using yt-dlp
    */
-  async startDownload({ video_id, url, title, customDir = null }) {
+  async startDownload({ video_id, url, title, customDir = null, thumbnail = '' }) {
     const videoUrl = url || `https://www.dailymotion.com/video/${video_id}`;
     if (!videoUrl) throw new Error('Missing video URL');
 
@@ -488,6 +562,8 @@ class DailymotionDownloader {
       task_id: taskId,
       video_id: video_id || taskId,
       title: cleanTitle,
+      cover: thumbnail || '',
+      thumbnail: thumbnail || '',
       url: videoUrl,
       output_dir: outDir,
       status: 'downloading', // 'downloading', 'completed', 'error', 'canceled'
@@ -499,8 +575,12 @@ class DailymotionDownloader {
       error_message: ''
     };
 
+    if (thumbnail) {
+      downloadAndSaveCover(thumbnail, outDir, cleanTitle).catch(() => {});
+    }
+
     this.tasks.set(taskId, task);
-    libraryManager.registerSeries(taskId, cleanTitle, '', 1, '1', 'dailymotion').catch(() => {});
+    libraryManager.registerSeries(taskId, cleanTitle, thumbnail || '', 1, '1', 'dailymotion').catch(() => {});
 
     // Spawn yt-dlp in background
     this._runDownloadProcess(taskId, videoUrl, outDir, cleanTitle);
@@ -517,6 +597,8 @@ class DailymotionDownloader {
       '--newline',
       '--no-playlist',
       '--no-warnings',
+      '--write-thumbnail',
+      '--convert-thumbnails', 'jpg',
       '-o', outTemplate,
       videoUrl
     ];
@@ -574,6 +656,19 @@ class DailymotionDownloader {
   }
 
   cancelTask(taskId) {
+    if (!taskId || taskId === 'all') {
+      for (const [id, t] of this.tasks.entries()) {
+        if (t.status === 'downloading' || t.status === 'queued') {
+          t.status = 'canceled';
+          if (this.activeProcesses.has(id)) {
+            try { this.activeProcesses.get(id).kill('SIGKILL'); } catch (_) {}
+            this.activeProcesses.delete(id);
+          }
+        }
+      }
+      return { success: true };
+    }
+
     const task = this.tasks.get(taskId);
     if (!task) return { success: false, error: 'Task not found' };
 

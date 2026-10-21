@@ -7,7 +7,7 @@ const path = require('path');
 const fs = require('fs');
 
 const APP_TITLE = "PS DOWNLOAD";
-const APP_VERSION = "3.2.3";
+const APP_VERSION = "3.3.0";
 
 const PORT = parseInt(process.env.HONGGUO_PORT || '1994', 10);
 const HOST = process.env.HONGGUO_HOST || '127.0.0.1';
@@ -182,7 +182,7 @@ const DEFAULT_HEADERS = {
 
 function getSystemDefaultOutputDir() {
   const home = process.env.USERPROFILE || os.homedir();
-  return path.join(home, 'Videos', 'Hongguo Downloads');
+  return path.join(home, 'Downloads', 'PS_Download');
 }
 
 /**
@@ -195,8 +195,9 @@ function getSystemDefaultOutputDir() {
 const DEFAULT_GITHUB_REPO = process.env.GITHUB_UPDATE_REPO || 'S323334/ps-download';
 
 function loadSettings() {
+  const defaultDir = getSystemDefaultOutputDir();
   const defaults = {
-    output_dir: getSystemDefaultOutputDir(),
+    output_dir: defaultDir,
     concurrency: 5,
     threads: 4,
     port: PORT,
@@ -209,7 +210,16 @@ function loadSettings() {
     try {
       const content = fs.readFileSync(SETTINGS_FILE, 'utf-8');
       const parsed = JSON.parse(content);
-      return { ...defaults, ...parsed };
+      const res = { ...defaults, ...parsed };
+
+      // Self-heal: If output_dir targets a C:\Users\<user> folder that doesn't exist on this computer
+      if (res.output_dir && typeof res.output_dir === 'string') {
+        const userMatch = res.output_dir.match(/^([a-zA-Z]:\\Users\\)([^\\]+)(.*)$/i);
+        if (userMatch && !fs.existsSync(userMatch[1] + userMatch[2])) {
+          res.output_dir = defaultDir;
+        }
+      }
+      return res;
     } catch (e) {
       console.warn('[Config] Failed to read settings.json, using defaults:', e.message);
     }
@@ -231,12 +241,35 @@ function saveSettings(updates) {
 
 function getOutputDir() {
   const settings = loadSettings();
-  const out = settings.output_dir || getSystemDefaultOutputDir();
+  let out = settings.output_dir;
+
+  // Auto-detect foreign Windows user profile path (e.g. C:\Users\TH33 on a machine named CHANTHA)
+  if (out && typeof out === 'string') {
+    const userMatch = out.match(/^([a-zA-Z]:\\Users\\)([^\\]+)(.*)$/i);
+    if (userMatch && !fs.existsSync(userMatch[1] + userMatch[2])) {
+      out = getSystemDefaultOutputDir();
+      try {
+        saveSettings({ output_dir: out });
+      } catch (_) {}
+    }
+  }
+
+  if (!out) {
+    out = getSystemDefaultOutputDir();
+  }
+
   if (!fs.existsSync(out)) {
     try {
       fs.mkdirSync(out, { recursive: true });
     } catch (e) {
       console.warn('[Config] Could not create output dir:', e.message);
+      out = getSystemDefaultOutputDir();
+      try {
+        fs.mkdirSync(out, { recursive: true });
+        saveSettings({ output_dir: out });
+      } catch (err) {
+        console.warn('[Config] Could not create fallback output dir:', err.message);
+      }
     }
   }
   return out;

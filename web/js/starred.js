@@ -97,7 +97,9 @@ function toggleDramaStar(firstArg, title, cover, eps, remarks, platform = 'hongg
 
 window.getGlobalStarredDramas = getGlobalStarredDramas;
 window.isDramaStarred = isDramaStarred;
+window.isStarred = isDramaStarred;
 window.toggleDramaStar = toggleDramaStar;
+window.toggleStarred = toggleDramaStar;
 window.updateGlobalStarredBadge = updateGlobalStarredBadge;
 window.openGlobalStarredView = openGlobalStarredView;
 
@@ -118,6 +120,50 @@ function updateStarButtonsOnPage(id, platform, isStarred) {
         btn.classList.toggle('starred', isStarred);
         btn.innerHTML = isStarred ? '★' : '☆';
     });
+    // 4. Beeplaylet cards & detail button
+    document.querySelectorAll(`.bp-card-star-btn[data-bp-star="${idStr}"]`).forEach(btn => {
+        btn.classList.toggle('starred', isStarred);
+        btn.innerHTML = isStarred ? '★' : '☆';
+    });
+    const bpDetailBtn = document.getElementById('bpStarBtn');
+    if (bpDetailBtn && typeof currentBpDrama !== 'undefined' && currentBpDrama && String(currentBpDrama.id) === idStr) {
+        bpDetailBtn.innerHTML = isStarred ? '⭐ បាន PIN' : '☆ PIN';
+        bpDetailBtn.classList.toggle('btn-primary', isStarred);
+        bpDetailBtn.classList.toggle('btn-secondary', !isStarred);
+    }
+    // 5. AniTaku cards & detail button
+    document.querySelectorAll(`.ani-card-star-btn[data-ani-star="${idStr}"]`).forEach(btn => {
+        btn.classList.toggle('starred', isStarred);
+        btn.innerHTML = isStarred ? '★' : '☆';
+    });
+    const aniDetailBtn = document.getElementById('aniStarBtn');
+    if (aniDetailBtn && typeof _aniActiveAnime !== 'undefined' && _aniActiveAnime && String(_aniActiveAnime.id) === idStr) {
+        aniDetailBtn.innerHTML = isStarred ? '⭐ បាន PIN' : '☆ PIN';
+        aniDetailBtn.classList.toggle('btn-primary', isStarred);
+        aniDetailBtn.classList.toggle('btn-secondary', !isStarred);
+    }
+    // 6. AnimeXin cards & detail button
+    document.querySelectorAll(`.ax-card-star-btn[data-ax-star="${idStr}"]`).forEach(btn => {
+        btn.classList.toggle('starred', isStarred);
+        btn.innerHTML = isStarred ? '★' : '☆';
+    });
+    const axDetailBtn = document.getElementById('axStarBtn');
+    if (axDetailBtn && typeof _axActiveAnime !== 'undefined' && _axActiveAnime && String(_axActiveAnime.id) === idStr) {
+        axDetailBtn.innerHTML = isStarred ? '⭐ បាន PIN' : '☆ PIN';
+        axDetailBtn.classList.toggle('btn-primary', isStarred);
+        axDetailBtn.classList.toggle('btn-secondary', !isStarred);
+    }
+    // 7. Dailymotion cards & detail button
+    document.querySelectorAll(`.dm-card-star-btn[data-dm-star="${idStr}"]`).forEach(btn => {
+        btn.classList.toggle('starred', isStarred);
+        btn.innerHTML = isStarred ? '★' : '☆';
+    });
+    const dmDetailBtn = document.getElementById('dmStarBtn');
+    if (dmDetailBtn && typeof _activeDmPlayerVideo !== 'undefined' && _activeDmPlayerVideo && String(_activeDmPlayerVideo.id) === idStr) {
+        dmDetailBtn.innerHTML = isStarred ? '⭐ បាន PIN' : '☆ ចំណាំទុក (PIN)';
+        dmDetailBtn.classList.toggle('btn-primary', isStarred);
+        dmDetailBtn.classList.toggle('btn-secondary', !isStarred);
+    }
 }
 
 function updateGlobalStarredBadge() {
@@ -618,7 +664,10 @@ function renderGlobalStarredGrid() {
     const platformLabels = {
         hongguo: '🍎 HONGGUO',
         haosou: '🎬 HAOSOU',
-        mvffm: '🎥 MVFFM'
+        beeplaylet: '🐝 BEEPLAYLET',
+        mvffm: '🎥 MVFFM',
+        anitaku: '🍥 ANITAKU',
+        animexin: '🐉 ANIMEXIN'
     };
 
     grid.innerHTML = filtered.map(item => {
@@ -728,6 +777,81 @@ async function downloadSelectedStarredDramas() {
                     });
                     successCount++;
                 }
+            } else if (item.platform === 'beeplaylet') {
+                const res = await fetch('/api/beeplaylet/detail', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query: item.id })
+                });
+                const d = await res.json();
+                if (d && d.ok && d.data && d.data.episodes && d.data.episodes.length) {
+                    await fetch('/api/beeplaylet/download', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            drama_id: item.id,
+                            title: d.data.title || item.title,
+                            episodes: d.data.episodes,
+                            quality: chosenRes,
+                            fps: chosenFps,
+                            target_height: chosenHeight
+                        })
+                    });
+                    successCount++;
+                }
+            } else if (item.platform === 'anitaku') {
+                const res = await fetch('/api/anitaku/detail', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query: item.url || item.id })
+                });
+                const d = await res.json();
+                if (d && d.ok && d.data && d.data.episodes && d.data.episodes.length) {
+                    await fetch('/api/anitaku/download', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            anime_id: item.id,
+                            title: d.data.title || item.title,
+                            episodes: d.data.episodes,
+                            download_mode: (typeof window.getActiveDownloadMode === 'function' ? window.getActiveDownloadMode() : 'merged'),
+                            quality: 'original'
+                        })
+                    });
+                    successCount++;
+                }
+            } else if (item.platform === 'animexin') {
+                const res = await fetch('/api/animexin/detail', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query: item.url || item.id })
+                });
+                const d = await res.json();
+                if (d && d.ok && d.data && d.data.episodes && d.data.episodes.length) {
+                    await fetch('/api/animexin/download', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            anime_id: item.id,
+                            title: d.data.title || item.title,
+                            episodes: d.data.episodes,
+                            download_mode: (typeof window.getActiveDownloadMode === 'function' ? window.getActiveDownloadMode() : 'merged'),
+                            quality: 'original'
+                        })
+                    });
+                    successCount++;
+                }
+            } else if (item.platform === 'dailymotion') {
+                await fetch('/api/dailymotion/download', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        video_id: item.id,
+                        title: item.title,
+                        url: `https://www.dailymotion.com/video/${item.id}`
+                    })
+                });
+                successCount++;
             } else {
                 // Hongguo
                 const payload = {
@@ -817,6 +941,81 @@ async function downloadSingleStarredDrama(id, platform, title, cover) {
                     });
                     showToast(`✅ បានដាក់ទាញយក "${title}" (${chosenRes})!`, '🚀');
                 }
+            } else if (platform === 'beeplaylet') {
+                const res = await fetch('/api/beeplaylet/detail', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query: id })
+                });
+                const d = await res.json();
+                if (d && d.ok && d.data && d.data.episodes) {
+                    await fetch('/api/beeplaylet/download', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            drama_id: id,
+                            title: d.data.title || title,
+                            episodes: d.data.episodes,
+                            quality: chosenRes,
+                            fps: chosenFps,
+                            target_height: chosenHeight
+                        })
+                    });
+                    showToast(`✅ បានដាក់ទាញយក "${title}" (${chosenRes})!`, '🐝');
+                }
+            } else if (platform === 'anitaku') {
+                const res = await fetch('/api/anitaku/detail', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query: id })
+                });
+                const d = await res.json();
+                if (d && d.ok && d.data && d.data.episodes && d.data.episodes.length) {
+                    await fetch('/api/anitaku/download', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            anime_id: id,
+                            title: d.data.title || title,
+                            episodes: d.data.episodes,
+                            download_mode: (typeof window.getActiveDownloadMode === 'function' ? window.getActiveDownloadMode() : 'merged'),
+                            quality: 'original'
+                        })
+                    });
+                    showToast(`✅ បានដាក់ទាញយក Anime "${title}"!`, '🍥');
+                }
+            } else if (platform === 'animexin') {
+                const res = await fetch('/api/animexin/detail', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query: id })
+                });
+                const d = await res.json();
+                if (d && d.ok && d.data && d.data.episodes && d.data.episodes.length) {
+                    await fetch('/api/animexin/download', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            anime_id: id,
+                            title: d.data.title || title,
+                            episodes: d.data.episodes,
+                            download_mode: (typeof window.getActiveDownloadMode === 'function' ? window.getActiveDownloadMode() : 'merged'),
+                            quality: 'original'
+                        })
+                    });
+                    showToast(`✅ បានដាក់ទាញយក Donghua "${title}"!`, '🐉');
+                }
+            } else if (platform === 'dailymotion') {
+                await fetch('/api/dailymotion/download', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        video_id: id,
+                        title: title,
+                        url: `https://www.dailymotion.com/video/${id}`
+                    })
+                });
+                showToast(`✅ បានដាក់ទាញយក "${title}"!`, '🚀');
             } else {
                 // Hongguo
                 const payload = {
@@ -920,6 +1119,26 @@ function playStarredDrama(id, platform) {
         if (typeof analyzeHaoSouDrama === 'function') {
             analyzeHaoSouDrama(id);
         }
+    } else if (p === 'beeplaylet') {
+        switchPlatform('beeplaylet');
+        if (typeof analyzeBeeplayletDrama === 'function') {
+            analyzeBeeplayletDrama(id);
+        }
+    } else if (p === 'anitaku') {
+        switchPlatform('anitaku');
+        if (typeof loadAnitakuDetail === 'function') {
+            loadAnitakuDetail(id);
+        }
+    } else if (p === 'animexin') {
+        switchPlatform('animexin');
+        if (typeof loadAnimexinDetail === 'function') {
+            loadAnimexinDetail(id);
+        }
+    } else if (p === 'dailymotion') {
+        switchPlatform('dailymotion');
+        if (typeof playDailymotionDrama === 'function') {
+            playDailymotionDrama(id);
+        }
     } else {
         switchPlatform('hongguo');
         if (typeof openSeriesDetail === 'function') {
@@ -931,6 +1150,7 @@ function playStarredDrama(id, platform) {
         }
     }
 }
+
 
 // Helpers for individual card star toggles
 function toggleHaoSouCardStar(id, title, cover, remarks) {

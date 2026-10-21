@@ -122,7 +122,7 @@
             loadCategory(cat);
         }
 
-        async function loadCategory(cat, page = 1) {
+        async function loadCategory(cat, page = 1, isRefresh = false) {
             if (cat === 'starred') {
                 if (typeof openGlobalStarredView === 'function') openGlobalStarredView();
                 return;
@@ -138,32 +138,73 @@
             const countText = document.getElementById('itemCountText');
             const loadMoreBtn = document.getElementById('btnLoadMore');
             const loadMoreContainer = document.getElementById('loadMoreContainer');
+            const pag = document.getElementById('pagination');
 
-            if (loadMoreContainer) loadMoreContainer.style.display = 'flex';
-            if (loadMoreBtn) loadMoreBtn.style.display = 'inline-flex';
+            if (cat === 'new') {
+                if (pag) pag.style.display = 'none';
+                if (loadMoreContainer) loadMoreContainer.style.display = 'flex';
+                if (loadMoreBtn) {
+                    loadMoreBtn.style.display = 'inline-flex';
+                    loadMoreBtn.className = 'btn-load-more btn-reload-fresh';
+                }
+            } else {
+                if (loadMoreContainer) loadMoreContainer.style.display = 'flex';
+                if (loadMoreBtn) {
+                    loadMoreBtn.style.display = 'inline-flex';
+                    loadMoreBtn.className = 'btn-load-more';
+                }
+            }
 
             grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:60px; color:var(--text-dim);"><div class="spinner" style="margin:0 auto 16px;"></div>កំពុងទាញយកទិន្នន័យពី hongguoduanju.com...</div>';
 
             secTitle.innerText = getSectionTitle(cat);
 
             try {
-                let url = `/api/rank?category=${cat}&page=${page}&page_size=48`;
+                let url = `/api/rank?category=${cat}&page=${page}&page_size=${cat === 'new' ? 16 : 48}${isRefresh ? '&refresh=1' : ''}`;
                 const res = await fetch(url);
                 const data = await res.json();
                 let items = data.items || [];
-                if (typeof shuffleArray === 'function' && page === 1) {
-                    items = shuffleArray(items);
-                }
 
-                const countLabel = currentLang === 'zh' ? `显示 ${items.length} / 共 ${data.total || 360}+ 部短剧`
-                    : (currentLang === 'en' ? `Showing ${items.length} of ${data.total || 360}+ dramas`
-                    : `បង្ហាញ ${items.length} នៃ ${data.total || 360}+ រឿង`);
-                if (countText) countText.innerText = countLabel;
+                if (cat === 'new') {
+                    if (pag) pag.style.display = 'none';
+                    if (loadMoreContainer) {
+                        loadMoreContainer.style.display = 'flex';
+                    }
+                    if (loadMoreBtn) {
+                        loadMoreBtn.style.display = 'inline-flex';
+                        loadMoreBtn.className = 'btn-load-more btn-reload-fresh';
+                        loadMoreBtn.onclick = () => reloadFreshNewDramas();
+                        const reloadBtnText = currentLang === 'zh' ? '<span>🔄</span> <span>换一批最新短剧</span>'
+                            : (currentLang === 'en' ? '<span>🔄</span> <span>Reload Fresh Dramas</span>'
+                            : '<span>🔄</span> <span>ផ្ទុកឡើងវិញ</span>');
+                        loadMoreBtn.innerHTML = reloadBtnText;
+                    }
+
+                    const countLabel = currentLang === 'zh' ? `显示 ${items.length} 部最新短剧`
+                        : (currentLang === 'en' ? `Showing ${items.length} new releases`
+                        : `បង្ហាញ ${items.length} រឿងថ្មីៗ`);
+                    if (countText) countText.innerText = countLabel;
+                } else {
+                    if (loadMoreBtn) {
+                        loadMoreBtn.className = 'btn-load-more';
+                        loadMoreBtn.onclick = () => loadMoreDramas();
+                        loadMoreBtn.innerHTML = '<span>📥</span> <span>ផ្ទុកបន្ថែម ៤៨ រឿងទៀត (Load More Dramas)</span>';
+                    }
+                    if (typeof shuffleArray === 'function' && page === 1) {
+                        items = shuffleArray(items);
+                    }
+                    const countLabel = currentLang === 'zh' ? `显示 ${items.length} / 共 ${data.total || 360}+ 部短剧`
+                        : (currentLang === 'en' ? `Showing ${items.length} of ${data.total || 360}+ dramas`
+                        : `បង្ហាញ ${items.length} នៃ ${data.total || 360}+ រឿង`);
+                    if (countText) countText.innerText = countLabel;
+                }
 
                 allDramas = items;
                 window.allDramas = items;
                 renderDramaGrid(items);
-                setupPagination(data);
+                if (cat !== 'new') {
+                    setupPagination(data);
+                }
             } catch (err) {
                 const errMsg = currentLang === 'zh' ? `数据加载失败: ${err.message}`
                     : (currentLang === 'en' ? `Failed to load data: ${err.message}`
@@ -172,13 +213,43 @@
             }
         }
 
+        async function reloadFreshNewDramas() {
+            const btn = document.getElementById('btnLoadMore');
+            if (btn) {
+                btn.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px;display:inline-block;margin-right:6px;"></div> ' + 
+                    (currentLang === 'zh' ? '正在刷新最新短剧...' : (currentLang === 'en' ? 'Reloading fresh dramas...' : 'កំពុងផ្ទុកឡើងវិញរឿងថ្មីៗ...'));
+            }
+            await loadCategory('new', 1, true);
+            const grid = document.getElementById('dramaGrid');
+            if (grid) {
+                grid.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+            const toastMsg = currentLang === 'zh' ? '✨ 已刷新 16 部最新短剧 🔄'
+                : (currentLang === 'en' ? '✨ Reloaded 16 fresh dramas 🔄'
+                : '✨ បានផ្ទុកឡើងវិញ ១៦ រឿងថ្មីៗ 🔄');
+            showToast(toastMsg, '⚡');
+        }
+        window.reloadFreshNewDramas = reloadFreshNewDramas;
+
         function shuffleHongguoFeed() {
             if (currentCategory === 'starred' || currentCategory === 'library') {
                 return; // NEVER touch Starred / PIN or downloaded library
             }
+            if (currentCategory === 'new') {
+                // When in New category, clicking top Refresh reloads fresh 16 items mixed from secret server + web/app!
+                reloadFreshNewDramas();
+                return;
+            }
             if (allDramas && allDramas.length > 0) {
                 if (typeof shuffleArray === 'function') {
-                    allDramas = shuffleArray(allDramas);
+                    if (window.currentSeries && window.currentSeries.series_id) {
+                        const activeSid = String(window.currentSeries.series_id);
+                        const activeItem = allDramas.find(x => String(x.series_id) === activeSid) || allDramas[0];
+                        const others = allDramas.filter(x => String(x.series_id) !== String(activeItem.series_id));
+                        allDramas = [activeItem, ...shuffleArray(others)];
+                    } else {
+                        allDramas = shuffleArray(allDramas);
+                    }
                 }
                 renderDramaGrid(allDramas);
             } else {
@@ -368,6 +439,9 @@
 
         let isLoadingMore = false;
         async function loadMoreDramas() {
+            if (currentCategory === 'new') {
+                return reloadFreshNewDramas();
+            }
             if (isLoadingMore) return;
             const btn = document.getElementById('btnLoadMore');
             isLoadingMore = true;
@@ -402,6 +476,8 @@
             const grid = document.getElementById('dramaGrid');
             if (!grid || !items || !items.length) return;
             const offset = allDramas.length - items.length;
+            const showDaysBadge = (currentCategory === 'new');
+
             const html = items.map((item, idx) => {
                 const posterUrl = item.cover ? `/img?url=${encodeURIComponent(item.cover)}` : '';
                 const eps = item.episode_cnt || 0;
@@ -409,6 +485,29 @@
                 const rank = offset + idx + 1;
                 const isStarred = (typeof isDramaStarred === 'function') ? isDramaStarred(item.series_id) : false;
                 const memoryBadge = (typeof getCardMemoryBadgeHtml === 'function') ? getCardMemoryBadgeHtml(item.series_id, item.title) : '';
+
+                // Release days text (ONLY shown at bottom in card-meta when viewing 'new' category)
+                let daysAgoText = '';
+                if (showDaysBadge) {
+                    let d = (item.days_ago !== undefined && item.days_ago !== null) ? item.days_ago : -1;
+                    if (d < 0 && item.series_id) {
+                        try {
+                            const ts = Number(BigInt(item.series_id) >> 32n);
+                            if (ts > 1000000000 && ts < 2500000000) {
+                                d = Math.max(0, Math.floor((Math.floor(Date.now() / 1000) - ts) / 86400));
+                            }
+                        } catch (e) {}
+                    }
+                    if (d >= 0) {
+                        if (currentLang === 'zh') {
+                            daysAgoText = d === 0 ? '今日上线' : `${d}天前上线`;
+                        } else if (currentLang === 'en') {
+                            daysAgoText = d === 0 ? 'Released Today' : `${d}d ago`;
+                        } else {
+                            daysAgoText = d === 0 ? 'ទើបចេញថ្ងៃនេះ' : `ទើបចេញ ${d} ថ្ងៃមុន`;
+                        }
+                    }
+                }
 
                 return `
                     <div class="drama-card" onclick="openStreamPage('${item.series_id}')" style="animation: fadeIn 0.3s ease;">
@@ -427,7 +526,7 @@
                                 <h4 class="card-title" data-original-title="${escapeHtml(item.title)}" title="${escapeHtml(getDisplayTitle(item.title))}">${escapeHtml(getDisplayTitle(item.title))}</h4>
                                 <div class="card-meta">
                                     <span>${escapeHtml(getDisplayCategory(item.category))}</span>
-                                    <span style="color:#fb7185;">${item.status === 'completed' ? 'ចប់' : 'កំពុងផ្សាយ'}</span>
+                                    ${showDaysBadge && daysAgoText ? `<span class="card-meta-days">🕒 ${escapeHtml(daysAgoText)}</span>` : `<span style="color:#fb7185;">${item.status === 'completed' ? 'ចប់' : 'កំពុងផ្សាយ'}</span>`}
                                 </div>
                             </div>
                             <div class="card-actions">
@@ -774,6 +873,8 @@
                 return;
             }
 
+            const showDaysBadge = (currentCategory === 'new');
+
             grid.innerHTML = items.map((item, idx) => {
                 const posterUrl = item.cover ? `/img?url=${encodeURIComponent(item.cover)}` : '';
                 const eps = item.episode_cnt || 0;
@@ -782,11 +883,23 @@
                 const isStarred = (typeof isDramaStarred === 'function') ? isDramaStarred(item.series_id) : false;
                 const memoryBadge = (typeof getCardMemoryBadgeHtml === 'function') ? getCardMemoryBadgeHtml(item.series_id, item.title) : '';
 
+                let releaseBadgeText = '';
+                if (showDaysBadge) {
+                    if (currentLang === 'zh') {
+                        releaseBadgeText = item.release_badge_zh || '🔥 最新短剧';
+                    } else if (currentLang === 'en') {
+                        releaseBadgeText = item.release_badge_en || '🔥 New Release';
+                    } else {
+                        releaseBadgeText = item.release_badge_km || '🔥 រឿងថ្មីៗ';
+                    }
+                }
+
                 return `
                     <div class="drama-card" onclick="openStreamPage('${item.series_id}')">
                         <div class="card-cover">
                             <img src="${posterUrl}" loading="lazy" alt="${escapeHtml(item.title)}" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22200%22 height=%22280%22><rect width=%22100%%22 height=%22100%%22 fill=%22%23141c2c%22/><text x=%2250%%22 y=%2250%%22 fill=%22%2364748b%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 font-size=%2214%22>Hongguo Drama</text></svg>'">
                             <span class="card-rank">#${rank}</span>
+                            ${showDaysBadge ? `<span style="position:absolute; top:8px; right:40px; background:linear-gradient(135deg,#f43f5e,#e11d48); color:#fff; font-size:0.68rem; font-weight:800; padding:2px 8px; border-radius:10px; box-shadow:0 0 12px rgba(244,63,94,0.6); z-index:3; letter-spacing:0.3px;">${escapeHtml(releaseBadgeText)}</span>` : ''}
                             <button class="star-btn ${isStarred ? 'starred' : ''}" data-sid="${item.series_id}" onclick="event.stopPropagation(); toggleDramaStar('${item.series_id}', '${escapeHtml(item.title)}', '${item.cover||''}', ${eps}, '${escapeHtml(getDisplayCategory(item.category))}')" title="${isStarred ? '★' : '☆'}">${isStarred ? '★' : '☆'}</button>
                             ${memoryBadge}
                             <div class="card-overlay">
@@ -799,7 +912,7 @@
                                 <h4 class="card-title" data-original-title="${escapeHtml(item.title)}" title="${escapeHtml(getDisplayTitle(item.title))}">${escapeHtml(getDisplayTitle(item.title))}</h4>
                                 <div class="card-meta">
                                     <span>${escapeHtml(getDisplayCategory(item.category))}</span>
-                                    <span style="color:#fb7185;">${item.status === 'completed' ? dict.cardCompleted : dict.cardOngoing}</span>
+                                    ${showDaysBadge ? `<span class="card-meta-days" style="background:linear-gradient(135deg, rgba(244,63,94,0.18), rgba(234,88,12,0.18)); color:#f43f5e; border:1px solid rgba(244,63,94,0.35); font-weight:700; border-radius:6px; padding:2px 8px; font-size:0.75rem;">🕒 ${escapeHtml(releaseBadgeText)}</span>` : `<span style="color:#fb7185;">${item.status === 'completed' ? dict.cardCompleted : dict.cardOngoing}</span>`}
                                 </div>
                             </div>
                             <div class="card-actions" onclick="event.stopPropagation()">
@@ -1776,6 +1889,10 @@
           cover_url: currentSeries.cover || '',
           episodes: rangeStr,
           range: rangeStr,
+          episode_cnt: sorted.length,
+          episodes_list: (currentEpisodes && currentEpisodes.length > 0)
+            ? currentEpisodes.map(e => ({ index: e.index, vid: e.vid, title: e.title, cover: e.cover || '' }))
+            : undefined,
           quality: currentPlaybackQuality || '1080p',
           download_mode: chosenMode
         };
@@ -1787,7 +1904,7 @@
           const pdlEps = document.getElementById('pdlEpisodeProgress');
           if (pdlEps) pdlEps.innerText = `0 / ${sorted.length}`;
           const pdlProg = document.getElementById('pdlProgressBar');
-          if (pdlProg) pdlProg.style.width = '0%';
+          if (pdlProg) pdlProg.style.width = '2%';
           const pdlStatus = document.getElementById('pdlStatusText');
           if (pdlStatus) { pdlStatus.innerText = 'Starting...'; pdlStatus.style.color = '#38bdf8'; }
           const pdlConsole = document.getElementById('pdlConsoleLog');
@@ -1795,6 +1912,22 @@
             const modeLabel = chosenMode === 'merged' ? 'បញ្ចូលរឿង' : (chosenMode === 'both' ? 'ទាំងពីរ' : 'រាយភាគ');
             pdlConsole.innerHTML = `<div class="pdl-log-line" style="color:#38bdf8;">[System] ចាប់ផ្ដើមទាញយក «${escapeHtml(currentSeries.title || 'Drama')}» (${sorted.length} ភាគ, ទម្រង់: ${modeLabel})...</div>`;
           }
+
+          // Pre-populate Drawer Meters immediately
+          const dlPercentText = document.getElementById('dlPercentText');
+          if (dlPercentText) dlPercentText.innerText = '0%';
+          const dlLiveSpeed = document.getElementById('dlLiveSpeed');
+          if (dlLiveSpeed) dlLiveSpeed.innerText = '⚡ Connecting...';
+          const dlRunningStatus = document.getElementById('dlRunningStatus');
+          if (dlRunningStatus) { dlRunningStatus.innerText = 'Downloading'; dlRunningStatus.style.color = '#38bdf8'; }
+          const dlCurrentItem = document.getElementById('dlCurrentItem');
+          if (dlCurrentItem) dlCurrentItem.innerText = `កំពុងទាញយក: ${currentSeries.title || 'Drama'}...`;
+          const dlTotalEps = document.getElementById('dlTotalEps');
+          if (dlTotalEps) dlTotalEps.innerText = sorted.length;
+          const dlTotalDone = document.getElementById('dlTotalDone');
+          if (dlTotalDone) dlTotalDone.innerText = 0;
+          const dlProgressFill = document.getElementById('dlProgressFill');
+          if (dlProgressFill) dlProgressFill.style.width = '2%';
         } catch (e) {}
 
         try {
@@ -1807,8 +1940,7 @@
           const data = await res.json();
           showToast(`✓ បានដាក់ភាគ [${rangeStr}] ទៅក្នុងជួរទាញយក (${sorted.length} ភាគ)!`, '📥');
           toggleDownloadsDrawer(true, 'active');
-          if (typeof pollDownloadStatus === 'function') pollDownloadStatus();
-          if (typeof startDownloadPolling === 'function') startDownloadPolling();
+          if (typeof startDownloadPolling === 'function') startDownloadPolling(true);
         } catch (err) {
           showToast(`បញ្ហាទាញយក: ${err.message}`, '❌');
         }
@@ -2843,6 +2975,7 @@
                 const payload = {
                     series_ids: [sid],
                     ranges: { [sid]: rangeVal },
+                    episode_cnt: epCnt,
                     download_mode: finalMode,
                     series_info: {
                         [sid]: {
@@ -2873,8 +3006,7 @@
                     showToast(`បានដាក់បញ្ចូលទៅក្នុងការទាញយក! (${rangeVal})`, '📥');
                     closeDetailModal();
                     toggleDownloadsDrawer(true, 'active');
-                    if (typeof pollDownloadStatus === 'function') pollDownloadStatus();
-                    if (typeof startDownloadPolling === 'function') startDownloadPolling();
+                    if (typeof startDownloadPolling === 'function') startDownloadPolling(true);
                 } catch (err) {
                     showToast(`បរាជ័យក្នុងការដាក់ទាញយក: ${err.message}`, '❌');
                 }
@@ -2914,9 +3046,10 @@
                 const payload = {
                     series_ids: [seriesId],
                     ranges: { [seriesId]: 'all' },
+                    episode_cnt: epCount,
                     download_mode: finalMode,
                     series_info: {
-                        [seriesId]: { title: title, cover: cover }
+                        [seriesId]: { title: title, cover: cover, episode_cnt: epCount }
                     }
                 };
 
@@ -2938,8 +3071,7 @@
                     setTimeout(syncDownloadedSeriesCache, 800);
                     showToast(`បានបន្ថែម "${title}" ទៅក្នុងបញ្ជីទាញយក!`, '📥');
                     toggleDownloadsDrawer(true, 'active');
-                    if (typeof pollDownloadStatus === 'function') pollDownloadStatus();
-                    if (typeof startDownloadPolling === 'function') startDownloadPolling();
+                    if (typeof startDownloadPolling === 'function') startDownloadPolling(true);
                 } catch (err) {
                     showToast(`Error: ${err.message}`, '❌');
                 }

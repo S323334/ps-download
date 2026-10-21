@@ -5,6 +5,7 @@
  */
 
 const http = require('http');
+const { handleServerRequest } = require('./server.js');
 const { startTelegramBot, stopTelegramBot, sendBotMessage, parseFlexiblePaymentNotification } = require('./telegram_bot.js');
 const {
   getTelegramConfig,
@@ -15,7 +16,9 @@ const {
   fulfillPayWayPayment,
   recordUnclaimedPayment,
   getUnclaimedPayments,
-  setDeviceCustomName
+  setDeviceCustomName,
+  authorizeDevice,
+  deleteTrackedDevice
 } = require('./license.js');
 
 const _ACTIVE_CLOUD_DEVICES = new Map(); // deviceId -> live active device info
@@ -76,6 +79,14 @@ const server = http.createServer(async (req, res) => {
 
   const hostHeader = req.headers.host || `localhost:${PORT}`;
   const url = new URL(req.url, `http://${hostHeader}`);
+
+  // Landing Page: If mobile browser or mobile query, redirect to /m
+  const userAgent = req.headers['user-agent'] || '';
+  const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(userAgent);
+  if (url.pathname === '/' && (isMobileUA || url.searchParams.get('m') === '1' || url.searchParams.get('mobile') === '1')) {
+    res.writeHead(302, { 'Location': '/m' });
+    return res.end();
+  }
 
   // Landing Page
   if (url.pathname === '/') {
@@ -183,6 +194,45 @@ const server = http.createServer(async (req, res) => {
         dev.customName = cleanName;
       }
       return sendJson(res, 200, { success: true, customName: cleanName });
+    }
+    return sendJson(res, 400, { success: false, error: 'Missing deviceId' });
+  }
+
+  // Admin Full Authorization & Days Cloud Sync (from Desktop Admin Control Center)
+  if (url.pathname === '/api/license/sync-auth' && req.method === 'POST') {
+    const body = await parseJsonBody(req);
+    const cleanId = String(body.deviceId || '').trim().toUpperCase();
+    if (cleanId) {
+      if (body.deleted) {
+        if (typeof deleteTrackedDevice === 'function') {
+          try { deleteTrackedDevice(cleanId); } catch (_) {}
+        }
+        _ACTIVE_CLOUD_DEVICES.delete(cleanId);
+        return sendJson(res, 200, { success: true, deleted: true, deviceId: cleanId });
+      }
+
+      if (typeof authorizeDevice === 'function') {
+        try {
+          authorizeDevice({
+            deviceId: cleanId,
+            days: body.days !== undefined ? body.days : 0,
+            customLabel: body.label || null,
+            customExpiresAt: body.expiresAt || null,
+            customName: body.customName || '',
+            telegramUser: body.telegramUser || ''
+          });
+        } catch (_) {}
+      }
+
+      if (_ACTIVE_CLOUD_DEVICES.has(cleanId)) {
+        const dev = _ACTIVE_CLOUD_DEVICES.get(cleanId);
+        if (body.customName) dev.customName = body.customName;
+        if (body.key) dev.key = body.key;
+        if (body.status) dev.status = body.status;
+        if (body.expiresAt) dev.expiresAt = body.expiresAt;
+      }
+
+      return sendJson(res, 200, { success: true, synced: true, deviceId: cleanId });
     }
     return sendJson(res, 400, { success: false, error: 'Missing deviceId' });
   }
@@ -345,6 +395,11 @@ const server = http.createServer(async (req, res) => {
   // Get Unclaimed Payments (for debugging or admin inspection)
   if (url.pathname === '/api/license/unclaimed-payments' && req.method === 'GET') {
     return sendJson(res, 200, { success: true, unclaimed: getUnclaimedPayments() });
+  }
+
+  // Fallback to Mobile Web App & APIs (Hongguo, MVFFM, Dailymotion, HaoSou, Video Stream Proxy, etc.)
+  if (typeof handleServerRequest === 'function') {
+    return handleServerRequest(req, res, '0.0.0.0', PORT);
   }
 
   res.writeHead(404, { 'Content-Type': 'text/plain' });

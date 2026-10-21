@@ -1133,22 +1133,33 @@ async function activateLicense(inputKey, metadata = {}) {
   const cleanKey = String(inputKey || '').trim().toUpperCase();
   const tgUser = metadata.telegramUser || '';
   const compName = metadata.computerName || '';
+  const isAutoCheck = Boolean(metadata && metadata.isAutoCheck);
 
-  // Check if temporarily locked
-  const failMap = getFailedAttemptsMap();
-  const failRec = failMap[currentDevice];
-  if (failRec && failRec.lockedUntil && Date.now() < failRec.lockedUntil) {
-    const minsLeft = Math.ceil((failRec.lockedUntil - Date.now()) / 60000);
-    return {
-      success: false,
-      isLocked: true,
-      error: `🚨 អ្នកបានវាយលេខកូដខុសលើសកំណត់! ម៉ាស៊ីនត្រូវបានចាក់សោរបណ្ដោះអាសន្ន។ សូមរង់ចាំ ${minsLeft} នាទីទៀត ឬទាក់ទង Admin។`
-    };
-  }
-
+  // 1. Verify key FIRST! If user or Admin supplies a valid genuine key,
+  // immediately unlock, reset failure counters, and grant access.
   const result = verifyLicenseKey(cleanKey, currentDevice);
 
   if (!result.valid) {
+    // If this is an internal auto-check or sync, NEVER record failed attempts or accuse of crack!
+    if (isAutoCheck) {
+      return {
+        success: false,
+        error: result.reason || 'License Key មិនត្រឹមត្រូវ',
+        isAutoCheck: true
+      };
+    }
+
+    // Check if temporarily locked due to past failed attempts
+    const failMap = getFailedAttemptsMap();
+    const failRec = failMap[currentDevice];
+    if (failRec && failRec.lockedUntil && Date.now() < failRec.lockedUntil) {
+      const minsLeft = Math.ceil((failRec.lockedUntil - Date.now()) / 60000);
+      return {
+        success: false,
+        isLocked: true,
+        error: `🚨 អ្នកបានវាយលេខកូដខុសលើសកំណត់! ម៉ាស៊ីនត្រូវបានចាក់សោរបណ្ដោះអាសន្ន។ សូមរង់ចាំ ${minsLeft} នាទីទៀត ឬទាក់ទង Admin។`
+      };
+    }
     const failInfo = await recordFailedAttempt({
       deviceId: currentDevice,
       attemptedKey: cleanKey,
@@ -1310,6 +1321,7 @@ function deactivateLicense() {
 const AUTHORIZED_DEVICES_FILE = path.join(DATA_DIR, 'authorized_devices.json');
 const DEVICES_TRACKER_FILE = path.join(DATA_DIR, 'devices_tracker.json');
 const TELEGRAM_CONFIG_FILE = path.join(DATA_DIR, 'telegram_config.json');
+const DELETED_DEVICES_FILE = path.join(DATA_DIR, 'deleted_devices.json');
 
 // In-memory atomic map to prevent simultaneous race conditions on app startup
 const _lastAlertSentTimeByDevice = new Map();
@@ -1318,13 +1330,21 @@ const _lastAlertSentTimeByDevice = new Map();
  * Records or updates a client device whenever the app is launched.
  * Tracks Telegram username, Device ID, Computer Name, launch count, and first/last seen.
  */
-async function recordDeviceTracking({ deviceId, telegramUser = '', computerName = '', customName = '', key = '', status = '', expiresAt = null, remainingDays = null, skipAlert = false }) {
+async function recordDeviceTracking({ deviceId, telegramUser = '', computerName = '', customName = '', key = '', status = '', expiresAt = null, remainingDays = null, lastSeen = null, firstSeen = null, skipAlert = false, isSync = false }) {
   const cleanId = String(deviceId || getDeviceId()).trim().toUpperCase();
   const cleanTg = String(telegramUser || '').trim();
   const cleanName = String(customName || '').trim();
   const cleanKey = String(key || '').trim().toUpperCase();
   const host = computerName || os.hostname() || 'Unknown-PC';
   const user = (os.userInfo && os.userInfo().username) || '';
+
+  // If device is in deleted blacklist, skip completely
+  try {
+    if (fs.existsSync(DELETED_DEVICES_FILE)) {
+      const deletedList = JSON.parse(fs.readFileSync(DELETED_DEVICES_FILE, 'utf-8')) || [];
+      if (deletedList.includes(cleanId)) return { success: true, skippedDeleted: true };
+    }
+  } catch (_) {}
 
   let list = [];
   if (fs.existsSync(DEVICES_TRACKER_FILE)) {
@@ -1338,25 +1358,40 @@ async function recordDeviceTracking({ deviceId, telegramUser = '', computerName 
   let isNewDevice = false;
 
   if (existingIdx >= 0) {
-    list[existingIdx].lastSeen = now;
-    list[existingIdx].openCount = (list[existingIdx].openCount || 1) + 1;
+    // Only bump lastSeen and openCount on genuine live app ping, NOT during Cloud/Admin background sync!
+    if (!skipAlert && !isSync) {
+      list[existingIdx].lastSeen = now;
+      list[existingIdx].openCount = (list[existingIdx].openCount || 1) + 1;
+    } else if (lastSeen) {
+      const explicitLast = typeof lastSeen === 'number' ? new Date(lastSeen).toISOString() : lastSeen;
+      // Only update if explicit timestamp is valid
+      if (explicitLast && !isNaN(new Date(explicitLast).getTime())) {
+        list[existingIdx].lastSeen = explicitLast;
+      }
+    }
     if (cleanTg) list[existingIdx].telegramUser = cleanTg;
     if (cleanName) list[existingIdx].customName = cleanName;
     else if (cleanTg && !list[existingIdx].customName) list[existingIdx].customName = cleanTg;
     if (cleanKey) list[existingIdx].key = cleanKey;
     if (status) list[existingIdx].status = status;
-    list[existingIdx].computerName = host;
-    list[existingIdx].osUser = user;
+    if (host && host !== 'Unknown-PC') list[existingIdx].computerName = host;
+    if (user) list[existingIdx].osUser = user;
   } else {
     isNewDevice = true;
+    const initialLastSeen = lastSeen 
+      ? (typeof lastSeen === 'number' ? new Date(lastSeen).toISOString() : lastSeen) 
+      : now;
+    const initialFirstSeen = firstSeen 
+      ? (typeof firstSeen === 'number' ? new Date(firstSeen).toISOString() : firstSeen) 
+      : now;
     list.unshift({
       deviceId: cleanId,
       telegramUser: cleanTg,
       customName: cleanName || cleanTg || '',
       computerName: host,
       osUser: user,
-      firstSeen: now,
-      lastSeen: now,
+      firstSeen: initialFirstSeen,
+      lastSeen: initialLastSeen,
       openCount: 1,
       status: status || 'unactivated',
       key: cleanKey || ''
@@ -1476,22 +1511,23 @@ async function recordDeviceTracking({ deviceId, telegramUser = '', computerName 
   return { success: true, deviceId: cleanId, isNew: isNewDevice, customName: currentCustomName };
 }
 
-const _deviceLaunchNotificationMap = new Map();
+// Session-based notification tracking: strictly ONCE per application run / session
+const _sessionNotifiedDevices = new Set();
 
 /**
  * Sends a Telegram notification when a device opens/uses the app.
- * Cooldown of 15 minutes per unique device to prevent spamming while guaranteeing prompt alerts.
+ * Guaranteed to send strictly ONCE per application session / launch.
+ * Even if left open indefinitely, it will NEVER send another alert.
+ * A new alert is only sent if the user closes the app and reopens it.
  */
 async function sendAppLaunchTelegramNotification(overrideInfo = {}) {
   const cleanId = String(overrideInfo.deviceId || getDeviceId()).trim().toUpperCase();
-  const now = Date.now();
-  const lastTime = _deviceLaunchNotificationMap.get(cleanId) || 0;
 
-  // 15-minute cooldown per device
-  if (lastTime && (now - lastTime < 900000)) {
-    return { success: true, skipped: true, reason: 'Cooldown active for this device' };
+  // Strictly once per app execution session
+  if (_sessionNotifiedDevices.has(cleanId)) {
+    return { success: true, skipped: true, reason: 'Already notified for this app session' };
   }
-  _deviceLaunchNotificationMap.set(cleanId, now);
+  _sessionNotifiedDevices.add(cleanId);
 
   try {
     const localLic = getLicenseStatus();
@@ -1605,12 +1641,22 @@ function authorizeDevice({
   extend = false,
   customLabel = null,
   customExpiresAt = null,
-  customAuthorizedAt = null
+  customAuthorizedAt = null,
+  isSync = false
 }) {
   const cleanId = String(deviceId || '').trim().toUpperCase();
   const numDays = Math.max(0, parseInt(days || '0', 10));
   const numHours = Math.max(0, parseInt(hours || '0', 10));
   if (!cleanId) return { success: false, error: 'Missing deviceId' };
+
+  if (isSync) {
+    try {
+      if (fs.existsSync(DELETED_DEVICES_FILE)) {
+        const deletedList = JSON.parse(fs.readFileSync(DELETED_DEVICES_FILE, 'utf-8')) || [];
+        if (deletedList.includes(cleanId)) return { success: false, skippedDeleted: true };
+      }
+    } catch (_) {}
+  }
 
   let authMap = {};
   if (fs.existsSync(AUTHORIZED_DEVICES_FILE)) {
@@ -1641,8 +1687,13 @@ function authorizeDevice({
 
   let expiresAt = null;
   if (customExpiresAt) {
-    // Exact expiration timestamp provided (e.g. from Cloud Sync) - preserve it 100%!
-    expiresAt = customExpiresAt;
+    const customExpMs = new Date(customExpiresAt).getTime();
+    if (durationMs > 0 && customExpMs < Date.now() + durationMs) {
+      // Explicit duration (e.g. 35 days) takes precedence over an older/stale customExpiresAt from Cloud!
+      expiresAt = new Date(Date.now() + durationMs).toISOString();
+    } else {
+      expiresAt = customExpiresAt;
+    }
   } else if (durationMs > 0) {
     let baseTime = Date.now();
     if (extend && existingRecord.expiresAt) {
@@ -1657,8 +1708,11 @@ function authorizeDevice({
     expiresAt = existingRecord.expiresAt;
   }
 
-  // Preserve existing key if valid, otherwise generate
-  const key = existingRecord.key || generateLicenseKey(cleanId, keyDays);
+  // Preserve existing key if valid and matching duration, otherwise generate
+  let key = existingRecord.key;
+  if (!key || (keyDays > 0 && !key.startsWith(`D${String(keyDays).padStart(3, '0')}`) && !key.startsWith(`D${String(keyDays).padStart(2, '0')}`))) {
+    key = generateLicenseKey(cleanId, keyDays);
+  }
 
   const authTime = customAuthorizedAt || existingRecord.authorizedAt || new Date().toISOString();
 
@@ -1679,6 +1733,19 @@ function authorizeDevice({
     fs.writeFileSync(AUTHORIZED_DEVICES_FILE, JSON.stringify(authMap, null, 2), 'utf-8');
   } catch (e) {}
 
+  // If re-authorizing manually (not sync), remove from deleted_devices blacklist
+  if (!isSync) {
+    try {
+      if (fs.existsSync(DELETED_DEVICES_FILE)) {
+        let dList = JSON.parse(fs.readFileSync(DELETED_DEVICES_FILE, 'utf-8')) || [];
+        if (dList.includes(cleanId)) {
+          dList = dList.filter(id => id !== cleanId);
+          fs.writeFileSync(DELETED_DEVICES_FILE, JSON.stringify(dList, null, 2), 'utf-8');
+        }
+      }
+    } catch (_) {}
+  }
+
   // Also sync authorization to persistent system vaults
   for (const p of getSystemAuthVaultPaths()) {
     try {
@@ -1693,7 +1760,7 @@ function authorizeDevice({
     activateLicense(key, { customExpiresAt: authMap[cleanId].expiresAt, customName: authMap[cleanId].customName });
   }
 
-  // Update status in devices tracker
+  // Update status in devices tracker without faking lastSeen
   try {
     let list = [];
     if (fs.existsSync(DEVICES_TRACKER_FILE)) {
@@ -1706,7 +1773,7 @@ function authorizeDevice({
       item.key = key;
       if (telegramUser) item.telegramUser = telegramUser;
       if (resolvedName) item.customName = resolvedName;
-      item.lastSeen = new Date().toISOString();
+      // Do NOT modify item.lastSeen here! Authorizing an offline machine must keep it offline!
     } else {
       list.unshift({
         deviceId: cleanId,
@@ -1715,7 +1782,7 @@ function authorizeDevice({
         computerName: 'Authorized PC',
         osUser: '',
         firstSeen: new Date().toISOString(),
-        lastSeen: new Date().toISOString(),
+        lastSeen: new Date(Date.now() - 3600000).toISOString(), // Not online right now
         openCount: 1,
         status: label,
         key: key
@@ -1797,14 +1864,23 @@ function getTrackedDevicesWithLicenseInfo() {
   const authMap = getAuthorizedDevicesMap();
   const mapByDevice = new Map();
 
-  // Add all tracked devices
+  let deletedSet = new Set();
+  try {
+    if (fs.existsSync(DELETED_DEVICES_FILE)) {
+      const dArr = JSON.parse(fs.readFileSync(DELETED_DEVICES_FILE, 'utf-8')) || [];
+      deletedSet = new Set(dArr);
+    }
+  } catch (_) {}
+
+  // Add all tracked devices (ignoring blacklisted deleted ones)
   for (const t of trackedList) {
-    if (!t.deviceId) continue;
+    if (!t.deviceId || deletedSet.has(t.deviceId)) continue;
     mapByDevice.set(t.deviceId, { ...t });
   }
 
-  // Also include any authorized devices not yet in tracker
+  // Also include any authorized devices not yet in tracker (ignoring blacklisted deleted ones)
   for (const devId of Object.keys(authMap)) {
+    if (deletedSet.has(devId)) continue;
     const auth = authMap[devId];
     if (!mapByDevice.has(devId)) {
       mapByDevice.set(devId, {
@@ -1831,34 +1907,8 @@ function getTrackedDevicesWithLicenseInfo() {
 
     const customName = (auth && auth.customName) || dev.customName || (auth && auth.telegramUser) || dev.telegramUser || '';
 
-    // Online status: active within the last 5 minutes (300,000 ms)
-    let isOnline = false;
-    let lastSeenAgo = '';
-    if (dev.lastSeen) {
-      const lastMs = new Date(dev.lastSeen).getTime();
-      const diffMin = Math.floor((now - lastMs) / 60000);
-      if (diffMin <= 5 && diffMin >= 0) {
-        isOnline = true;
-      }
-      if (diffMin < 1) {
-        lastSeenAgo = 'អម្បាញ់មិញ (Just now)';
-      } else if (diffMin < 60) {
-        lastSeenAgo = `បិទ ${diffMin} នាទីមុន`;
-      } else {
-        const diffHours = Math.floor(diffMin / 60);
-        const remMin = diffMin % 60;
-        if (diffHours < 24) {
-          lastSeenAgo = remMin > 0 ? `បិទ ${diffHours} ម៉ោង ${remMin} នាទីមុន` : `បិទ ${diffHours} ម៉ោងមុន`;
-        } else {
-          const diffDays = Math.floor(diffHours / 24);
-          const remHours = diffHours % 24;
-          lastSeenAgo = remHours > 0 ? `បិទ ${diffDays} ថ្ងៃ ${remHours} ម៉ោងមុន` : `បិទ ${diffDays} ថ្ងៃមុន`;
-        }
-      }
-    }
-
     let isAuthorized = Boolean(auth && (auth.key || auth.status === 'active' || auth.days !== undefined));
-    let isExpired = Boolean(auth && auth.status === 'expired');
+    let isExpired = Boolean((auth && auth.status === 'expired') || (dev && dev.status === 'expired'));
     let isRevoked = Boolean(auth && (auth.revoked || auth.status === 'revoked'));
     let isLifetime = Boolean(auth && (auth.days === 0 && (!auth.expiresAt || String(auth.label).includes('Lifetime'))));
     let daysGranted = auth ? (auth.days || 0) : 0;
@@ -1884,6 +1934,32 @@ function getTrackedDevicesWithLicenseInfo() {
         remainingDays = Math.floor(diffMs / 86400000);
         remainingHours = Math.floor((diffMs % 86400000) / 3600000);
         remainingMinutes = Math.floor((diffMs % 3600000) / 60000);
+      }
+    }
+
+    // Online status: active within the last 4 minutes (240,000 ms) AND NOT expired/revoked
+    let isOnline = false;
+    let lastSeenAgo = '';
+    if (dev.lastSeen) {
+      const lastMs = new Date(dev.lastSeen).getTime();
+      const diffMin = Math.floor((now - lastMs) / 60000);
+      if (diffMin <= 4 && diffMin >= 0 && !isExpired && !isRevoked) {
+        isOnline = true;
+      }
+      if (diffMin < 1) {
+        lastSeenAgo = isOnline ? 'អម្បាញ់មិញ (Just now)' : 'បិទអម្បាញ់មិញ';
+      } else if (diffMin < 60) {
+        lastSeenAgo = `បិទ ${diffMin} នាទីមុន`;
+      } else {
+        const diffHours = Math.floor(diffMin / 60);
+        const remMin = diffMin % 60;
+        if (diffHours < 24) {
+          lastSeenAgo = remMin > 0 ? `បិទ ${diffHours} ម៉ោង ${remMin} នាទីមុន` : `បិទ ${diffHours} ម៉ោងមុន`;
+        } else {
+          const diffDays = Math.floor(diffHours / 24);
+          const remHours = diffHours % 24;
+          lastSeenAgo = remHours > 0 ? `បិទ ${diffDays} ថ្ងៃ ${remHours} ម៉ោងមុន` : `បិទ ${diffDays} ថ្ងៃមុន`;
+        }
       }
     }
 
@@ -1930,13 +2006,15 @@ function getTrackedDevicesWithLicenseInfo() {
 }
 
 /**
- * Adjusts remaining days on a device (+days or -days).
+ * Adjusts remaining days on a device (+days or -days or exact setDays).
  * Immediately recalculates expiresAt and generates/updates authorization.
  */
-function adjustDeviceDays({ deviceId, daysChange = 0 }) {
+function adjustDeviceDays({ deviceId, daysChange = 0, setDays = null }) {
   const cleanId = String(deviceId || '').trim().toUpperCase();
   const change = parseInt(daysChange, 10);
-  if (!cleanId || isNaN(change)) {
+  const targetExactDays = (setDays !== null && setDays !== undefined) ? parseInt(setDays, 10) : null;
+
+  if (!cleanId || (isNaN(change) && targetExactDays === null)) {
     return { success: false, error: 'ទិន្នន័យមិនត្រឹមត្រូវ (Invalid parameters)' };
   }
 
@@ -1947,36 +2025,58 @@ function adjustDeviceDays({ deviceId, daysChange = 0 }) {
   if (!auth) {
     authMap[cleanId] = {
       deviceId: cleanId,
-      days: Math.max(0, change),
+      days: targetExactDays !== null ? targetExactDays : Math.max(0, change),
       status: 'active',
       authorizedAt: new Date().toISOString()
     };
     auth = authMap[cleanId];
   }
 
-  let baseExpMs = now;
-  if (auth.expiresAt) {
-    const curExpMs = new Date(auth.expiresAt).getTime();
-    if (curExpMs > now) {
-      baseExpMs = curExpMs;
+  let newExpMs = now;
+
+  if (targetExactDays !== null && !isNaN(targetExactDays)) {
+    // Mode A: Set exact days directly (e.g. 35 days)
+    if (targetExactDays <= 0) {
+      newExpMs = now - 1000;
+      auth.expiresAt = new Date(newExpMs).toISOString();
+      auth.status = 'expired';
+      auth.days = 0;
+      auth.label = 'expired';
+    } else {
+      newExpMs = now + (targetExactDays * 86400000);
+      auth.expiresAt = new Date(newExpMs).toISOString();
+      auth.revoked = false;
+      auth.status = 'active';
+      auth.days = targetExactDays;
+      auth.label = `${targetExactDays} ថ្ងៃ`;
+      auth.key = generateLicenseKey(cleanId, targetExactDays);
     }
-  }
-
-  const deltaMs = change * 86400000;
-  const newExpMs = baseExpMs + deltaMs;
-
-  if (newExpMs <= now) {
-    auth.expiresAt = new Date(now - 1000).toISOString();
-    auth.status = 'expired';
-    auth.days = 0;
   } else {
-    auth.expiresAt = new Date(newExpMs).toISOString();
-    auth.revoked = false;
-    auth.status = 'active';
-    const remDays = Math.ceil((newExpMs - now) / 86400000);
-    auth.days = remDays;
-    auth.label = `${remDays} ថ្ងៃ`;
-    auth.key = generateLicenseKey(cleanId, remDays);
+    // Mode B: Relative adjust (+days or -days)
+    let baseExpMs = now;
+    if (auth.expiresAt) {
+      const curExpMs = new Date(auth.expiresAt).getTime();
+      if (curExpMs > now) {
+        baseExpMs = curExpMs;
+      }
+    }
+    const deltaMs = change * 86400000;
+    newExpMs = baseExpMs + deltaMs;
+
+    if (newExpMs <= now) {
+      auth.expiresAt = new Date(now - 1000).toISOString();
+      auth.status = 'expired';
+      auth.days = 0;
+      auth.label = 'expired';
+    } else {
+      auth.expiresAt = new Date(newExpMs).toISOString();
+      auth.revoked = false;
+      auth.status = 'active';
+      const remDays = Math.ceil((newExpMs - now) / 86400000);
+      auth.days = remDays;
+      auth.label = `${remDays} ថ្ងៃ`;
+      auth.key = generateLicenseKey(cleanId, remDays);
+    }
   }
 
   fs.writeFileSync(AUTHORIZED_DEVICES_FILE, JSON.stringify(authMap, null, 2), 'utf-8');
@@ -1987,6 +2087,19 @@ function adjustDeviceDays({ deviceId, daysChange = 0 }) {
       fs.writeFileSync(p, JSON.stringify(authMap, null, 2), 'utf-8');
     } catch (e) {}
   }
+
+  // Update in tracker
+  try {
+    if (fs.existsSync(DEVICES_TRACKER_FILE)) {
+      const list = JSON.parse(fs.readFileSync(DEVICES_TRACKER_FILE, 'utf-8')) || [];
+      const item = list.find(d => d.deviceId === cleanId);
+      if (item) {
+        item.status = auth.label || auth.status;
+        item.key = auth.key;
+        fs.writeFileSync(DEVICES_TRACKER_FILE, JSON.stringify(list, null, 2), 'utf-8');
+      }
+    }
+  } catch (e) {}
 
   // If modifying current device
   if (cleanId === getDeviceId()) {
@@ -2059,6 +2172,60 @@ function revokeDeviceLicense(deviceId) {
   }
 
   return { success: true, deviceId: cleanId, message: 'បានកាត់ License លើម៉ាស៊ីននេះឱ្យផុតកំណត់ (០ ថ្ងៃ) រួចរាល់!' };
+}
+
+/**
+ * Permanently deletes a tracked device and its authorization from database and vaults.
+ */
+function deleteTrackedDevice(deviceId) {
+  const cleanId = String(deviceId || '').trim().toUpperCase();
+  if (!cleanId) return { success: false, error: 'Missing deviceId' };
+
+  // 1. Remove from authorized_devices.json
+  let authMap = getAuthorizedDevicesMap();
+  if (authMap[cleanId]) {
+    delete authMap[cleanId];
+    try {
+      fs.writeFileSync(AUTHORIZED_DEVICES_FILE, JSON.stringify(authMap, null, 2), 'utf-8');
+    } catch (_) {}
+    for (const p of getSystemAuthVaultPaths()) {
+      try {
+        if (fs.existsSync(p)) {
+          const vMap = JSON.parse(fs.readFileSync(p, 'utf-8')) || {};
+          delete vMap[cleanId];
+          fs.writeFileSync(p, JSON.stringify(vMap, null, 2), 'utf-8');
+        }
+      } catch (_) {}
+    }
+  }
+
+  // 2. Remove from devices_tracker.json
+  if (fs.existsSync(DEVICES_TRACKER_FILE)) {
+    try {
+      let list = JSON.parse(fs.readFileSync(DEVICES_TRACKER_FILE, 'utf-8')) || [];
+      list = list.filter(d => d.deviceId !== cleanId);
+      fs.writeFileSync(DEVICES_TRACKER_FILE, JSON.stringify(list, null, 2), 'utf-8');
+    } catch (_) {}
+  }
+
+  // 3. Add to persistent DELETED_DEVICES_FILE blacklist to prevent resurrecting on Cloud Sync
+  try {
+    let deletedList = [];
+    if (fs.existsSync(DELETED_DEVICES_FILE)) {
+      deletedList = JSON.parse(fs.readFileSync(DELETED_DEVICES_FILE, 'utf-8')) || [];
+    }
+    if (!deletedList.includes(cleanId)) {
+      deletedList.push(cleanId);
+      fs.writeFileSync(DELETED_DEVICES_FILE, JSON.stringify(deletedList, null, 2), 'utf-8');
+    }
+  } catch (_) {}
+
+  // 4. Reset failed attempts
+  try {
+    resetDeviceFails(cleanId);
+  } catch (_) {}
+
+  return { success: true, deviceId: cleanId, message: `បានលុបម៉ាស៊ីន ${cleanId} ចេញពីបញ្ជីជោគជ័យ!` };
 }
 
 /**
@@ -2204,16 +2371,31 @@ async function checkAutoActivation(deviceId = null) {
   const targetId = String(deviceId || getDeviceId()).trim().toUpperCase();
 
   // Helper to find record in an auth map
-  const checkRecord = async (record) => {
+  const checkRecord = async (record, sourceVaultPath = null, authMapRef = null) => {
     if (record && (record.revoked || record.status === 'revoked')) {
       deactivateLicense();
       return { authorized: false, revoked: true, message: 'License ត្រូវបានដកហូតដោយ Admin' };
     }
     if (record && record.key) {
+      // First, directly verify key validity before trying to activate!
+      const ver = verifyLicenseKey(record.key, targetId);
+      if (!ver.valid) {
+        // Stale or expired trial key detected in file/vault!
+        // Immediately purge from this file/vault so it stops retrying on startup!
+        try {
+          if (authMapRef && sourceVaultPath) {
+            delete authMapRef[targetId];
+            fs.writeFileSync(sourceVaultPath, JSON.stringify(authMapRef, null, 2), 'utf-8');
+          }
+        } catch (_) {}
+        return null; // Stale key removed, continue to check Cloud!
+      }
+
       const actResult = await activateLicense(record.key, {
         customExpiresAt: record.expiresAt,
         targetDeviceId: targetId,
-        customName: record.customName || record.customerName || ''
+        customName: record.customName || record.customerName || '',
+        isAutoCheck: true
       });
       if (actResult.success) {
         return {
@@ -2234,7 +2416,7 @@ async function checkAutoActivation(deviceId = null) {
   if (fs.existsSync(AUTHORIZED_DEVICES_FILE)) {
     try {
       const authMap = JSON.parse(fs.readFileSync(AUTHORIZED_DEVICES_FILE, 'utf-8')) || {};
-      const res = await checkRecord(authMap[targetId]);
+      const res = await checkRecord(authMap[targetId], AUTHORIZED_DEVICES_FILE, authMap);
       if (res) return res;
     } catch (e) {}
   }
@@ -2245,12 +2427,7 @@ async function checkAutoActivation(deviceId = null) {
       if (fs.existsSync(vaultPath)) {
         const authMap = JSON.parse(fs.readFileSync(vaultPath, 'utf-8')) || {};
         if (authMap[targetId]) {
-          // Restore local file
-          try {
-            if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
-            fs.writeFileSync(AUTHORIZED_DEVICES_FILE, JSON.stringify(authMap, null, 2), 'utf-8');
-          } catch (e) {}
-          const res = await checkRecord(authMap[targetId]);
+          const res = await checkRecord(authMap[targetId], vaultPath, authMap);
           if (res) return res;
         }
       }
@@ -2289,10 +2466,28 @@ async function checkAutoActivation(deviceId = null) {
           return { authorized: false, revoked: true, message: 'License ត្រូវបានដកហូតដោយ Admin' };
         }
         if (record && record.key) {
+          // If current local license has longer validity than cloud record, DO NOT downgrade!
+          const currentLic = getLicenseStatus();
+          if (currentLic && currentLic.activated && currentLic.expires_at) {
+            const currentExpMs = new Date(currentLic.expires_at).getTime();
+            const cloudExpMs = record.expiresAt ? new Date(record.expiresAt).getTime() : 0;
+            if (currentExpMs > cloudExpMs && currentExpMs > Date.now()) {
+              return {
+                authorized: true,
+                key: currentLic.key,
+                days: currentLic.remaining_days,
+                label: currentLic.label,
+                expiresAt: currentLic.expires_at,
+                message: '🎉 ម៉ាស៊ីនដំណើរការអាជ្ញាប័ណ្ណបច្ចុប្បន្នត្រឹមត្រូវ!'
+              };
+            }
+          }
+
           const actResult = await activateLicense(record.key, {
             customExpiresAt: record.expiresAt,
             targetDeviceId: targetId,
-            customName: record.customName || record.customerName || ''
+            customName: record.customName || record.customerName || '',
+            isAutoCheck: true
           });
           if (actResult.success) {
             return {
@@ -2876,6 +3071,7 @@ module.exports = {
   adjustDeviceDays,
   revokeDeviceLicense,
   transferDeviceLicense,
+  deleteTrackedDevice,
   getAuthorizedDevicesMap,
   recordUnclaimedPayment,
   getUnclaimedPayments,

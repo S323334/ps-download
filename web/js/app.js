@@ -124,6 +124,41 @@ let pollTimer = null;
                 mvOut.textContent = folderPath;
                 mvOut.title = folderPath;
             }
+
+            // 6. HaoSou Folder Display
+            const hsOut = document.getElementById('hsOutputDirDisplay');
+            if (hsOut) {
+                hsOut.textContent = folderPath;
+                hsOut.title = folderPath;
+            }
+
+            // 7. Beeplaylet Folder Display
+            const bpOut = document.getElementById('bpOutputDirDisplay');
+            if (bpOut) {
+                bpOut.textContent = folderPath;
+                bpOut.title = folderPath;
+            }
+
+            // 8. Dailymotion Folder Display
+            const dmOut = document.getElementById('dmOutputDirDisplay');
+            if (dmOut) {
+                dmOut.textContent = folderPath;
+                dmOut.title = folderPath;
+            }
+
+            // 9. YouTube Folder Display
+            const ytOut = document.getElementById('ytOutputDirDisplay');
+            if (ytOut) {
+                ytOut.textContent = folderPath;
+                ytOut.title = folderPath;
+            }
+
+            // 10. TikTok Folder Display
+            const ttOut = document.getElementById('ttOutputDirDisplay') || document.getElementById('tiktokOutputDirDisplay');
+            if (ttOut) {
+                ttOut.textContent = folderPath;
+                ttOut.title = folderPath;
+            }
         }
         window.updateDownloadFolderUI = updateDownloadFolderUI;
 
@@ -531,8 +566,6 @@ let pollTimer = null;
             setupVideoPlayer();
             updateStarredBadge();
             syncDownloadedSeriesCache();
-            // Silent background update check on startup
-            setTimeout(() => checkAppUpdate(true), 1500);
 
             // Right-click context menu for search & link input
             const searchInput = document.getElementById('searchInput');
@@ -659,9 +692,28 @@ let pollTimer = null;
             pollTimer = setTimeout(pollDownloadStatus, delayMs);
         }
 
-        function startDownloadPolling() {
-            scheduleNextPoll(1000);
+        let _pollingWatchdogTimer = null;
+        function ensurePollingWatchdog() {
+            if (_pollingWatchdogTimer) return;
+            _pollingWatchdogTimer = setInterval(() => {
+                if (!isPollingActive && (!pollTimer || (Date.now() - (window._lastSuccessfulPollTime || 0) > 3000))) {
+                    pollDownloadStatus();
+                }
+            }, 2500);
         }
+
+        function startDownloadPolling(immediate = true) {
+            ensurePollingWatchdog();
+            if (pollTimer) clearTimeout(pollTimer);
+            isPollingActive = false; // ensure not blocked
+            if (immediate) {
+                pollDownloadStatus();
+                scheduleNextPoll(300);
+            } else {
+                scheduleNextPoll(400);
+            }
+        }
+        window.startDownloadPolling = startDownloadPolling;
 
         document.addEventListener('visibilitychange', () => {
             if (!document.hidden) {
@@ -672,7 +724,9 @@ let pollTimer = null;
         async function pollDownloadStatus() {
             if (isPollingActive) return;
             isPollingActive = true;
+            let totalActive = 0;
             try {
+                window._lastSuccessfulPollTime = Date.now();
                 const [hgRes, ytRes] = await Promise.all([
                     fetch('/dl/status').catch(() => null),
                     fetch('/api/youtube/tasks').catch(() => null)
@@ -696,11 +750,15 @@ let pollTimer = null;
                 const hgRunning = Boolean(hgData && hgData.running);
                 const hsTasks = (hgData && Array.isArray(hgData.haosou_tasks)) ? hgData.haosou_tasks : [];
                 const mvTasks = (hgData && Array.isArray(hgData.mvffm_tasks)) ? hgData.mvffm_tasks : [];
+                const bpTasks = (hgData && Array.isArray(hgData.beeplaylet_tasks)) ? hgData.beeplaylet_tasks : [];
+                const axTasks = (hgData && Array.isArray(hgData.animexin_tasks)) ? hgData.animexin_tasks : [];
+                const aniTasks = (hgData && Array.isArray(hgData.anitaku_tasks)) ? hgData.anitaku_tasks : [];
+                const dmTasks = (hgData && Array.isArray(hgData.dailymotion_tasks)) ? hgData.dailymotion_tasks : [];
                 const activeHgCount = (hgData && Array.isArray(hgData.series))
                     ? hgData.series.filter(s => s.status === 'downloading' || s.status === 'merging').length
                     : (hgRunning ? 1 : 0);
                 const activeYtTasks = ytTasks.filter(t => ['downloading', 'pending', 'merging'].includes(t.status));
-                const totalActive = activeHgCount + activeYtTasks.length + hsTasks.length + mvTasks.length;
+                totalActive = activeHgCount + activeYtTasks.length + hsTasks.length + mvTasks.length + bpTasks.length + axTasks.length + aniTasks.length + dmTasks.length;
 
                 // 1. Header Active Download Badge
                 const dlBadge = document.getElementById('activeDlCount');
@@ -724,40 +782,89 @@ let pollTimer = null;
                     }
                 }
 
-                // 3. Update Drawer Meters
+                // 3. Update Drawer Meters (Speed, Progress, Completed Count across ALL platforms)
                 if (hgData) {
                     const speedEl = document.getElementById('dlLiveSpeed');
-                    if (speedEl) {
-                        if (hgRunning) {
-                            speedEl.innerText = hgData.speed || '0.0 MB/s';
-                        } else if (activeYtTasks.length > 0) {
-                            speedEl.innerText = activeYtTasks[0].speed || 'Downloading...';
-                        } else {
-                            speedEl.innerText = '0.0 MB/s';
-                        }
-                    }
                     const itemEl = document.getElementById('dlCurrentItem');
-                    if (itemEl) {
-                        if (hgRunning) {
-                            itemEl.innerText = hgData.current_status || 'កំពុងទាញយករឿងភាគ...';
-                        } else if (activeYtTasks.length > 0) {
-                            itemEl.innerText = activeYtTasks[0].title || 'YouTube Video';
-                        } else {
-                            itemEl.innerText = 'Idle';
-                        }
-                    }
                     const pctEl = document.getElementById('dlPercentText');
-                    if (pctEl) pctEl.innerText = `${hgData.progress || (activeYtTasks.length ? (activeYtTasks[0].percent || '0%') : '0%')}`;
                     const progFill = document.getElementById('dlProgressFill');
-                    if (progFill) progFill.style.width = `${hgData.progress || (activeYtTasks.length ? (activeYtTasks[0].percentNum || 0) : 0)}%`;
                     const doneEl = document.getElementById('dlTotalDone');
-                    if (doneEl) doneEl.innerText = hgData.total_done || 0;
                     const epsEl = document.getElementById('dlTotalEps');
-                    if (epsEl) epsEl.innerText = hgData.total_eps || 0;
                     const runStat = document.getElementById('dlRunningStatus');
+
+                    let activeTitle = 'Idle';
+                    let activeSpeed = '0.0 MB/s';
+                    let activePct = 0;
+                    let activeDone = 0;
+                    let activeTotal = 0;
+                    const isAnyRunning = totalActive > 0;
+
+                    if (hgRunning) {
+                        activeTitle = hgData.current_status || hgData.current_title || 'កំពុងទាញយករឿងភាគ...';
+                        activeSpeed = hgData.speed || '0.0 MB/s';
+                        activePct = typeof hgData.progress === 'number' ? hgData.progress : (parseFloat(hgData.progress) || 0);
+                        activeDone = hgData.total_done || 0;
+                        activeTotal = hgData.total_eps || 0;
+                    } else if (axTasks.length > 0) {
+                        const ax = axTasks[0];
+                        activeTitle = `${ax.title || 'Animexin Donghua'} [${ax.current_episode_label || ''}]`;
+                        activeSpeed = ax.speed_str || 'Downloading...';
+                        activePct = ax.progress_pct || 0;
+                        activeDone = ax.completed_episodes || 0;
+                        activeTotal = ax.total_episodes || 0;
+                    } else if (aniTasks.length > 0) {
+                        const ani = aniTasks[0];
+                        activeTitle = `${ani.title || 'Anitaku Anime'} [${ani.current_episode_label || ''}]`;
+                        activeSpeed = ani.speed_str || 'Downloading...';
+                        activePct = ani.progress_pct || 0;
+                        activeDone = ani.completed_episodes || 0;
+                        activeTotal = ani.total_episodes || 0;
+                    } else if (dmTasks.length > 0) {
+                        const dm = dmTasks[0];
+                        activeTitle = dm.title || 'Dailymotion Video';
+                        activeSpeed = dm.speed_str || 'Downloading...';
+                        activePct = dm.progress_pct || 0;
+                        activeDone = dm.status === 'completed' ? 1 : 0;
+                        activeTotal = 1;
+                    } else if (activeYtTasks.length > 0) {
+                        const yt = activeYtTasks[0];
+                        activeTitle = yt.title || 'YouTube Video';
+                        activeSpeed = yt.speed || 'Downloading...';
+                        activePct = yt.percentNum || (parseFloat(yt.percent) || 0);
+                        activeDone = 0;
+                        activeTotal = 1;
+                    } else if (hsTasks.length > 0) {
+                        const hs = hsTasks[0];
+                        activeTitle = `${hs.title || 'HaoSou Drama'} [${hs.current_episode_label || ''}]`;
+                        activeSpeed = hs.speed_str || 'Downloading...';
+                        activePct = hs.progress_pct || 0;
+                        activeDone = hs.completed_episodes || 0;
+                        activeTotal = hs.total_episodes || 0;
+                    } else if (mvTasks.length > 0) {
+                        const mv = mvTasks[0];
+                        activeTitle = `${mv.title || 'MVFFM Drama'} [${mv.current_episode_label || ''}]`;
+                        activeSpeed = mv.speed_str || 'Downloading...';
+                        activePct = mv.progress_pct || 0;
+                        activeDone = mv.completed_episodes || 0;
+                        activeTotal = mv.total_episodes || 0;
+                    } else if (bpTasks.length > 0) {
+                        const bp = bpTasks[0];
+                        activeTitle = `${bp.title || 'Beeplaylet Drama'} [${bp.current_episode_label || ''}]`;
+                        activeSpeed = bp.speed_str || 'Downloading...';
+                        activePct = bp.progress_pct || 0;
+                        activeDone = bp.completed_episodes || 0;
+                        activeTotal = bp.total_episodes || 0;
+                    }
+
+                    if (speedEl) speedEl.innerText = activeSpeed;
+                    if (itemEl) itemEl.innerText = activeTitle;
+                    if (pctEl) pctEl.innerText = `${activePct}%`;
+                    if (progFill) progFill.style.width = `${activePct}%`;
+                    if (doneEl) doneEl.innerText = isAnyRunning ? activeDone : (hgData.total_done || 0);
+                    if (epsEl) epsEl.innerText = isAnyRunning ? activeTotal : (hgData.total_eps || 0);
                     if (runStat) {
-                        runStat.innerText = totalActive > 0 ? 'Downloading' : (hgData.completed ? 'Completed' : 'Ready');
-                        runStat.style.color = totalActive > 0 ? '#38bdf8' : '#fb7185';
+                        runStat.innerText = isAnyRunning ? 'Downloading' : (hgData.completed ? 'Completed' : 'Ready');
+                        runStat.style.color = isAnyRunning ? '#38bdf8' : '#fb7185';
                     }
                 }
 
@@ -823,21 +930,28 @@ let pollTimer = null;
                     const viewingTotal = isViewingDrama ? ((window.currentEpisodes && window.currentEpisodes.length) || window.currentSeries.episode_cnt || 0) : 0;
 
                     if (isViewingDrama && viewingSid) {
-                        const isThisActiveDownloading = hgData.running && String(hgData.current_sid) === viewingSid;
                         const sState = hgData.series_states && hgData.series_states[viewingSid];
+                        const isThisActiveDownloading = (hgData.running && String(hgData.current_sid) === viewingSid) || (sState && (sState.status === 'downloading' || sState.status === 'merging'));
                         const localCache = window.downloadedSeriesCache && window.downloadedSeriesCache.get(viewingSid);
 
                         if (pdlSeries) pdlSeries.innerText = viewingTitle;
 
                         if (isThisActiveDownloading) {
-                            if (pdlEps) pdlEps.innerText = `${hgData.current_series_done || 0} / ${hgData.current_series_total || viewingTotal}`;
+                            const curDone = (sState && sState.done !== undefined) ? sState.done : (hgData.current_series_done || 0);
+                            const curTotal = (sState && sState.total) ? sState.total : (hgData.current_series_total || viewingTotal);
+                            const curProg = (sState && sState.progress !== undefined) ? sState.progress : (hgData.current_series_progress || 0);
+                            const isMerging = (sState && sState.status === 'merging') || (hgData.current_status && hgData.current_status.toLowerCase().includes('merg'));
+
+                            if (pdlEps) pdlEps.innerText = `${curDone} / ${curTotal}`;
                             if (pdlStatus) {
-                                pdlStatus.innerText = hgData.current_status || (currentLang === 'zh' ? '正在下载' : (currentLang === 'en' ? 'Downloading' : 'កំពុងទាញយក'));
+                                pdlStatus.innerText = isMerging ? 'កំពុងផ្គុំវីដេអូពេញ...' : (hgData.current_status || (currentLang === 'zh' ? '正在下载' : (currentLang === 'en' ? 'Downloading' : 'កំពុងទាញយក')));
                                 pdlStatus.style.color = '#38bdf8';
                             }
                             if (liveBadge) liveBadge.style.display = 'inline-block';
-                            if (pdlProg) pdlProg.style.width = `${hgData.current_series_progress || 0}%`;
-                            const activeLogs = (hgData.current_series_logs && hgData.current_series_logs.length > 0) ? hgData.current_series_logs : (hgData.log || []);
+                            if (pdlProg) pdlProg.style.width = `${curProg}%`;
+                            const activeLogs = (sState && Array.isArray(sState.logs) && sState.logs.length > 0)
+                                ? sState.logs
+                                : ((hgData.current_series_logs && hgData.current_series_logs.length > 0) ? hgData.current_series_logs : (hgData.log || []));
                             if (pdlConsole && activeLogs.length > 0) {
                                 pdlConsole.innerHTML = activeLogs.slice(-25).map(line => {
                                     const isErr = line.includes('ERR') || line.includes('Fail');
@@ -942,6 +1056,30 @@ let pollTimer = null;
                             if (fdwTitle) fdwTitle.innerText = hgData.current_title || 'Hongguo Drama';
                             if (fdwEpisodes) fdwEpisodes.innerText = `${hgData.current_series_done || hgData.total_done || 0}/${hgData.current_series_total || hgData.total_eps || 0} ភាគ`;
                             if (fdwSpeed) fdwSpeed.innerText = `⚡ ${hgData.speed || '0.0 MB/s'}`;
+                        } else if (axTasks.length > 0) {
+                            const ax = axTasks[0];
+                            const pct = ax.progress_pct || 0;
+                            if (fdwPercent) fdwPercent.innerText = `${pct}%`;
+                            if (fdwProgressFill) fdwProgressFill.style.width = `${pct}%`;
+                            if (fdwTitle) fdwTitle.innerText = ax.title || 'Animexin Donghua';
+                            if (fdwEpisodes) fdwEpisodes.innerText = `${ax.completed_episodes || 0}/${ax.total_episodes || 0} ភាគ`;
+                            if (fdwSpeed) fdwSpeed.innerText = `⚡ ${ax.speed_str || 'Donghua'}`;
+                        } else if (aniTasks.length > 0) {
+                            const ani = aniTasks[0];
+                            const pct = ani.progress_pct || 0;
+                            if (fdwPercent) fdwPercent.innerText = `${pct}%`;
+                            if (fdwProgressFill) fdwProgressFill.style.width = `${pct}%`;
+                            if (fdwTitle) fdwTitle.innerText = ani.title || 'Anitaku Anime';
+                            if (fdwEpisodes) fdwEpisodes.innerText = `${ani.completed_episodes || 0}/${ani.total_episodes || 0} ភាគ`;
+                            if (fdwSpeed) fdwSpeed.innerText = `⚡ ${ani.speed_str || 'Anime'}`;
+                        } else if (dmTasks.length > 0) {
+                            const dm = dmTasks[0];
+                            const pct = dm.progress_pct || 0;
+                            if (fdwPercent) fdwPercent.innerText = `${pct}%`;
+                            if (fdwProgressFill) fdwProgressFill.style.width = `${pct}%`;
+                            if (fdwTitle) fdwTitle.innerText = dm.title || 'Dailymotion';
+                            if (fdwEpisodes) fdwEpisodes.innerText = 'Dailymotion';
+                            if (fdwSpeed) fdwSpeed.innerText = `⚡ ${dm.speed_str || 'Dailymotion'}`;
                         } else if (activeYtTasks.length > 0) {
                             const yt = activeYtTasks[0];
                             const pct = yt.percentNum || 0;
@@ -966,6 +1104,14 @@ let pollTimer = null;
                             if (fdwTitle) fdwTitle.innerText = mv.title || 'MVFFM Drama';
                             if (fdwEpisodes) fdwEpisodes.innerText = `${mv.completed_episodes || 0}/${mv.total_episodes || 0} ភាគ`;
                             if (fdwSpeed) fdwSpeed.innerText = `⚡ ${mv.speed_str || 'MVFFM'}`;
+                        } else if (bpTasks.length > 0) {
+                            const bp = bpTasks[0];
+                            const pct = bp.progress_pct || 0;
+                            if (fdwPercent) fdwPercent.innerText = `${pct}%`;
+                            if (fdwProgressFill) fdwProgressFill.style.width = `${pct}%`;
+                            if (fdwTitle) fdwTitle.innerText = bp.title || 'Beeplaylet Drama';
+                            if (fdwEpisodes) fdwEpisodes.innerText = `${bp.completed_episodes || 0}/${bp.total_episodes || 0} ភាគ`;
+                            if (fdwSpeed) fdwSpeed.innerText = `⚡ ${bp.speed_str || 'Beeplaylet'}`;
                         }
                     } else if (isDrawerOpen) {
                         fdw.style.display = 'none';
@@ -1002,7 +1148,7 @@ let pollTimer = null;
                 // Silent background poll
             } finally {
                 isPollingActive = false;
-                const nextDelay = totalActive > 0 ? 1200 : (document.hidden ? 6000 : 4000);
+                const nextDelay = totalActive > 0 ? 600 : (document.hidden ? 5000 : 2500);
                 scheduleNextPoll(nextDelay);
             }
         }
@@ -1173,9 +1319,369 @@ let pollTimer = null;
                 if (ytContainer) ytContainer.innerHTML = '';
             }
 
-            // 3. Check if any active downloads:
+            // 3. ANIMEXIN (Donghua) Tasks
+            const axContainer = document.getElementById('drawerAxTasksContainer');
+            const axSection = document.getElementById('drawerAxSectionWrap');
+            const axCountBadge = document.getElementById('drawerAxCount');
+            const axList = (hgData && (hgData.all_animexin_tasks || hgData.animexin_tasks))
+                ? (Array.isArray(hgData.all_animexin_tasks) && hgData.all_animexin_tasks.length > 0 ? hgData.all_animexin_tasks : (hgData.animexin_tasks || []))
+                : [];
+            const activeAxList = axList.filter(t => ['downloading', 'pending', 'queued', 'merging'].includes(t.status));
+            if (axCountBadge) axCountBadge.innerText = activeAxList.length || axList.length;
+
+            if (axList.length > 0) {
+                if (axSection) axSection.style.display = 'block';
+                if (axContainer) {
+                    axContainer.innerHTML = axList.map(t => {
+                        const title = t.title || 'Animexin Donghua';
+                        const pct = t.progress_pct || 0;
+                        const isDone = t.status === 'completed';
+                        const isErr = t.status === 'error';
+                        const isDownloading = t.status === 'downloading' || t.status === 'merging';
+                        const speed = t.speed_str || '';
+                        const epLabel = t.current_episode_label || `ភាគ ${t.completed_episodes || 0}/${t.total_episodes || '?'}`;
+                        return `
+                        <div class="drawer-task-card" style="background:rgba(16,185,129,0.06); border:1px solid ${isDone ? 'rgba(16,185,129,0.3)' : (isErr ? 'rgba(239,68,68,0.3)' : 'rgba(16,185,129,0.22)')}; border-radius:8px; padding:10px 12px; display:flex; flex-direction:column; gap:8px;">
+                            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
+                                ${(t.cover || t.thumbnail) ? `
+                                <div style="width:40px; height:56px; border-radius:6px; overflow:hidden; flex-shrink:0; background:rgba(0,0,0,0.35); border:1px solid rgba(255,255,255,0.12);">
+                                    <img src="${escapeHtml(t.cover || t.thumbnail)}" style="width:100%; height:100%; object-fit:cover;" onerror="this.parentElement.style.display='none'">
+                                </div>
+                                ` : ''}
+                                <div style="flex:1; min-width:0;">
+                                    <div style="font-size:0.84rem; font-weight:700; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${escapeHtml(title)}">${escapeHtml(title)}</div>
+                                    <div style="display:flex; align-items:center; gap:8px; font-size:0.72rem; color:#94a3b8; margin-top:3px; flex-wrap:wrap;">
+                                        <span style="background:rgba(16,185,129,0.18); color:#34d399; font-weight:700; padding:1px 6px; border-radius:3px;">🌸 Donghua</span>
+                                        <span style="color:#e2e8f0;">${escapeHtml(epLabel)}</span>
+                                        ${speed ? `<span style="color:#38bdf8; font-weight:700;">⚡ ${escapeHtml(speed)}</span>` : ''}
+                                    </div>
+                                </div>
+                                <div style="font-size:0.86rem; font-weight:800; color:${isDone ? '#34d399' : (isErr ? '#ef4444' : '#38bdf8')};">
+                                    ${pct}%
+                                </div>
+                            </div>
+                            <div style="width:100%; height:6px; background:rgba(255,255,255,0.08); border-radius:9999px; overflow:hidden;">
+                                <div style="height:100%; width:${pct}%; background:${isDone ? '#10b981' : (isErr ? '#ef4444' : 'linear-gradient(90deg, #10b981, #059669)')}; transition:width 0.3s ease;"></div>
+                            </div>
+                            <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.72rem; color:#94a3b8;">
+                                <span>${isDone ? '<span style="color:#34d399; font-weight:700;">✓ បានទាញយកចប់</span>' : (isErr ? '<span style="color:#ef4444; font-weight:700;">❌ បរាជ័យ</span>' : `ភាគ: <b style="color:#fff;">${t.completed_episodes || 0}</b> / ${t.total_episodes || 1}`)}</span>
+                                <div style="display:flex; gap:6px;">
+                                    <button class="btn-queue-retry" style="padding:2px 8px; font-size:0.68rem;" onclick="openAnimexinTaskFolder('${escapeHtml(t.series_folder || '')}')">📂 Folder</button>
+                                    ${isDownloading ? `<button class="btn-queue-retry" style="padding:2px 8px; font-size:0.68rem; color:#fca5a5; border-color:rgba(239,68,68,0.3);" onclick="cancelAnimexinTask('${t.task_id}')">🛑 Cancel</button>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                        `;
+                    }).join('');
+                }
+            } else {
+                if (axSection) axSection.style.display = 'none';
+                if (axContainer) axContainer.innerHTML = '';
+            }
+
+            // 4. ANITAKU (Anime) Tasks
+            const aniContainer = document.getElementById('drawerAniTasksContainer');
+            const aniSection = document.getElementById('drawerAniSectionWrap');
+            const aniCountBadge = document.getElementById('drawerAniCount');
+            const aniList = (hgData && (hgData.all_anitaku_tasks || hgData.anitaku_tasks))
+                ? (Array.isArray(hgData.all_anitaku_tasks) && hgData.all_anitaku_tasks.length > 0 ? hgData.all_anitaku_tasks : (hgData.anitaku_tasks || []))
+                : [];
+            const activeAniList = aniList.filter(t => ['downloading', 'pending', 'queued', 'merging'].includes(t.status));
+            if (aniCountBadge) aniCountBadge.innerText = activeAniList.length || aniList.length;
+
+            if (aniList.length > 0) {
+                if (aniSection) aniSection.style.display = 'block';
+                if (aniContainer) {
+                    aniContainer.innerHTML = aniList.map(t => {
+                        const title = t.title || 'Anitaku Anime';
+                        const pct = t.progress_pct || 0;
+                        const isDone = t.status === 'completed';
+                        const isErr = t.status === 'error';
+                        const isDownloading = t.status === 'downloading' || t.status === 'merging';
+                        const speed = t.speed_str || '';
+                        const epLabel = t.current_episode_label || `ភាគ ${t.completed_episodes || 0}/${t.total_episodes || '?'}`;
+                        return `
+                        <div class="drawer-task-card" style="background:rgba(56,189,248,0.06); border:1px solid ${isDone ? 'rgba(56,189,248,0.3)' : (isErr ? 'rgba(239,68,68,0.3)' : 'rgba(56,189,248,0.22)')}; border-radius:8px; padding:10px 12px; display:flex; flex-direction:column; gap:8px;">
+                            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
+                                ${(t.cover || t.thumbnail) ? `
+                                <div style="width:40px; height:56px; border-radius:6px; overflow:hidden; flex-shrink:0; background:rgba(0,0,0,0.35); border:1px solid rgba(255,255,255,0.12);">
+                                    <img src="${escapeHtml(t.cover || t.thumbnail)}" style="width:100%; height:100%; object-fit:cover;" onerror="this.parentElement.style.display='none'">
+                                </div>
+                                ` : ''}
+                                <div style="flex:1; min-width:0;">
+                                    <div style="font-size:0.84rem; font-weight:700; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${escapeHtml(title)}">${escapeHtml(title)}</div>
+                                    <div style="display:flex; align-items:center; gap:8px; font-size:0.72rem; color:#94a3b8; margin-top:3px; flex-wrap:wrap;">
+                                        <span style="background:rgba(56,189,248,0.18); color:#38bdf8; font-weight:700; padding:1px 6px; border-radius:3px;">🍥 Anime</span>
+                                        <span style="color:#e2e8f0;">${escapeHtml(epLabel)}</span>
+                                        ${speed ? `<span style="color:#38bdf8; font-weight:700;">⚡ ${escapeHtml(speed)}</span>` : ''}
+                                    </div>
+                                </div>
+                                <div style="font-size:0.86rem; font-weight:800; color:${isDone ? '#34d399' : (isErr ? '#ef4444' : '#38bdf8')};">
+                                    ${pct}%
+                                </div>
+                            </div>
+                            <div style="width:100%; height:6px; background:rgba(255,255,255,0.08); border-radius:9999px; overflow:hidden;">
+                                <div style="height:100%; width:${pct}%; background:${isDone ? '#10b981' : (isErr ? '#ef4444' : 'linear-gradient(90deg, #38bdf8, #0284c7)')}; transition:width 0.3s ease;"></div>
+                            </div>
+                            <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.72rem; color:#94a3b8;">
+                                <span>${isDone ? '<span style="color:#34d399; font-weight:700;">✓ បានទាញយកចប់</span>' : (isErr ? '<span style="color:#ef4444; font-weight:700;">❌ បរាជ័យ</span>' : `ភាគ: <b style="color:#fff;">${t.completed_episodes || 0}</b> / ${t.total_episodes || 1}`)}</span>
+                                <div style="display:flex; gap:6px;">
+                                    <button class="btn-queue-retry" style="padding:2px 8px; font-size:0.68rem;" onclick="openAnitakuTaskFolder('${escapeHtml(t.anime_dir || '')}')">📂 Folder</button>
+                                    ${isDownloading ? `<button class="btn-queue-retry" style="padding:2px 8px; font-size:0.68rem; color:#fca5a5; border-color:rgba(239,68,68,0.3);" onclick="cancelAnitakuTask('${t.task_id}')">🛑 Cancel</button>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                        `;
+                    }).join('');
+                }
+            } else {
+                if (aniSection) aniSection.style.display = 'none';
+                if (aniContainer) aniContainer.innerHTML = '';
+            }
+
+            // 5. DAILYMOTION Tasks
+            const dmContainer = document.getElementById('drawerDmTasksContainer');
+            const dmSection = document.getElementById('drawerDmSectionWrap');
+            const dmCountBadge = document.getElementById('drawerDmCount');
+            const dmList = (hgData && (hgData.all_dailymotion_tasks || hgData.dailymotion_tasks))
+                ? (Array.isArray(hgData.all_dailymotion_tasks) && hgData.all_dailymotion_tasks.length > 0 ? hgData.all_dailymotion_tasks : (hgData.dailymotion_tasks || []))
+                : [];
+            const activeDmList = dmList.filter(t => ['downloading', 'pending', 'queued', 'merging'].includes(t.status));
+            if (dmCountBadge) dmCountBadge.innerText = activeDmList.length || dmList.length;
+
+            if (dmList.length > 0) {
+                if (dmSection) dmSection.style.display = 'block';
+                if (dmContainer) {
+                    dmContainer.innerHTML = dmList.map(t => {
+                        const title = t.title || 'Dailymotion Video';
+                        const pct = t.progress_pct || 0;
+                        const isDone = t.status === 'completed';
+                        const isErr = t.status === 'error';
+                        const isDownloading = t.status === 'downloading' || t.status === 'merging';
+                        const speed = t.speed_str || '';
+                        return `
+                        <div class="drawer-task-card" style="background:rgba(249,115,22,0.06); border:1px solid ${isDone ? 'rgba(249,115,22,0.3)' : (isErr ? 'rgba(239,68,68,0.3)' : 'rgba(249,115,22,0.22)')}; border-radius:8px; padding:10px 12px; display:flex; flex-direction:column; gap:8px;">
+                            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
+                                ${(t.cover || t.thumbnail) ? `
+                                <div style="width:40px; height:56px; border-radius:6px; overflow:hidden; flex-shrink:0; background:rgba(0,0,0,0.35); border:1px solid rgba(255,255,255,0.12);">
+                                    <img src="${escapeHtml(t.cover || t.thumbnail)}" style="width:100%; height:100%; object-fit:cover;" onerror="this.parentElement.style.display='none'">
+                                </div>
+                                ` : ''}
+                                <div style="flex:1; min-width:0;">
+                                    <div style="font-size:0.84rem; font-weight:700; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${escapeHtml(title)}">${escapeHtml(title)}</div>
+                                    <div style="display:flex; align-items:center; gap:8px; font-size:0.72rem; color:#94a3b8; margin-top:3px; flex-wrap:wrap;">
+                                        <span style="background:rgba(249,115,22,0.18); color:#fb923c; font-weight:700; padding:1px 6px; border-radius:3px;">🎬 Dailymotion</span>
+                                        ${speed ? `<span style="color:#38bdf8; font-weight:700;">⚡ ${escapeHtml(speed)}</span>` : ''}
+                                    </div>
+                                </div>
+                                <div style="font-size:0.86rem; font-weight:800; color:${isDone ? '#34d399' : (isErr ? '#ef4444' : '#fb923c')};">
+                                    ${pct}%
+                                </div>
+                            </div>
+                            <div style="width:100%; height:6px; background:rgba(255,255,255,0.08); border-radius:9999px; overflow:hidden;">
+                                <div style="height:100%; width:${pct}%; background:${isDone ? '#10b981' : (isErr ? '#ef4444' : 'linear-gradient(90deg, #f97316, #ea580c)')}; transition:width 0.3s ease;"></div>
+                            </div>
+                            <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.72rem; color:#94a3b8;">
+                                <span>${isDone ? '<span style="color:#34d399; font-weight:700;">✓ បានទាញយកចប់</span>' : (isErr ? '<span style="color:#ef4444; font-weight:700;">❌ បរាជ័យ</span>' : '⚡ កំពុងទាញយក...')}</span>
+                                <div style="display:flex; gap:6px;">
+                                    <button class="btn-queue-retry" style="padding:2px 8px; font-size:0.68rem;" onclick="openDailymotionFolder()">📂 Folder</button>
+                                    ${isDownloading ? `<button class="btn-queue-retry" style="padding:2px 8px; font-size:0.68rem; color:#fca5a5; border-color:rgba(239,68,68,0.3);" onclick="cancelDailymotionTask('${t.task_id}')">🛑 Cancel</button>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                        `;
+                    }).join('');
+                }
+            } else {
+                if (dmSection) dmSection.style.display = 'none';
+                if (dmContainer) dmContainer.innerHTML = '';
+            }
+
+            // 6. HAOSOU Tasks
+            const hsContainer = document.getElementById('drawerHsTasksContainer');
+            const hsSection = document.getElementById('drawerHsSectionWrap');
+            const hsCountBadge = document.getElementById('drawerHsCount');
+            const hsList = (hgData && (hgData.all_haosou_tasks || hgData.haosou_tasks))
+                ? (Array.isArray(hgData.all_haosou_tasks) && hgData.all_haosou_tasks.length > 0 ? hgData.all_haosou_tasks : (hgData.haosou_tasks || []))
+                : [];
+            const activeHsList = hsList.filter(t => ['downloading', 'pending', 'queued', 'merging'].includes(t.status));
+            if (hsCountBadge) hsCountBadge.innerText = activeHsList.length || hsList.length;
+
+            if (hsList.length > 0) {
+                if (hsSection) hsSection.style.display = 'block';
+                if (hsContainer) {
+                    hsContainer.innerHTML = hsList.map(t => {
+                        const title = t.title || 'HaoSou Drama';
+                        const pct = t.progress_pct || 0;
+                        const isDone = t.status === 'completed';
+                        const isErr = t.status === 'error';
+                        const isDownloading = t.status === 'downloading' || t.status === 'merging';
+                        const speed = t.speed_str || '';
+                        const epLabel = t.current_episode_label || `ភាគ ${t.completed_episodes || 0}/${t.total_episodes || '?'}`;
+                        return `
+                        <div class="drawer-task-card" style="background:rgba(168,85,247,0.06); border:1px solid ${isDone ? 'rgba(168,85,247,0.3)' : (isErr ? 'rgba(239,68,68,0.3)' : 'rgba(168,85,247,0.22)')}; border-radius:8px; padding:10px 12px; display:flex; flex-direction:column; gap:8px;">
+                            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
+                                ${(t.cover || t.thumbnail) ? `
+                                <div style="width:40px; height:56px; border-radius:6px; overflow:hidden; flex-shrink:0; background:rgba(0,0,0,0.35); border:1px solid rgba(255,255,255,0.12);">
+                                    <img src="${escapeHtml(t.cover || t.thumbnail)}" style="width:100%; height:100%; object-fit:cover;" onerror="this.parentElement.style.display='none'">
+                                </div>
+                                ` : ''}
+                                <div style="flex:1; min-width:0;">
+                                    <div style="font-size:0.84rem; font-weight:700; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${escapeHtml(title)}">${escapeHtml(title)}</div>
+                                    <div style="display:flex; align-items:center; gap:8px; font-size:0.72rem; color:#94a3b8; margin-top:3px; flex-wrap:wrap;">
+                                        <span style="background:rgba(168,85,247,0.18); color:#c084fc; font-weight:700; padding:1px 6px; border-radius:3px;">⚡ HaoSou</span>
+                                        <span style="color:#e2e8f0;">${escapeHtml(epLabel)}</span>
+                                        ${speed ? `<span style="color:#38bdf8; font-weight:700;">⚡ ${escapeHtml(speed)}</span>` : ''}
+                                    </div>
+                                </div>
+                                <div style="font-size:0.86rem; font-weight:800; color:${isDone ? '#34d399' : (isErr ? '#ef4444' : '#c084fc')};">
+                                    ${pct}%
+                                </div>
+                            </div>
+                            <div style="width:100%; height:6px; background:rgba(255,255,255,0.08); border-radius:9999px; overflow:hidden;">
+                                <div style="height:100%; width:${pct}%; background:${isDone ? '#10b981' : (isErr ? '#ef4444' : 'linear-gradient(90deg, #a855f7, #7c3aed)')}; transition:width 0.3s ease;"></div>
+                            </div>
+                            <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.72rem; color:#94a3b8;">
+                                <span>${isDone ? '<span style="color:#34d399; font-weight:700;">✓ បានទាញយកចប់</span>' : (isErr ? '<span style="color:#ef4444; font-weight:700;">❌ បរាជ័យ</span>' : `ភាគ: <b style="color:#fff;">${t.completed_episodes || 0}</b> / ${t.total_episodes || 1}`)}</span>
+                                <div style="display:flex; gap:6px;">
+                                    <button class="btn-queue-retry" style="padding:2px 8px; font-size:0.68rem;" onclick="openHaoSouFolder('${escapeHtml(t.series_folder || '')}')">📂 Folder</button>
+                                    ${isDownloading ? `<button class="btn-queue-retry" style="padding:2px 8px; font-size:0.68rem; color:#fca5a5; border-color:rgba(239,68,68,0.3);" onclick="cancelHaoSouTask('${t.task_id}')">🛑 Cancel</button>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                        `;
+                    }).join('');
+                }
+            } else {
+                if (hsSection) hsSection.style.display = 'none';
+                if (hsContainer) hsContainer.innerHTML = '';
+            }
+
+            // 7. MVFFM Tasks
+            const mvContainer = document.getElementById('drawerMvTasksContainer');
+            const mvSection = document.getElementById('drawerMvSectionWrap');
+            const mvCountBadge = document.getElementById('drawerMvCount');
+            const mvList = (hgData && (hgData.all_mvffm_tasks || hgData.mvffm_tasks))
+                ? (Array.isArray(hgData.all_mvffm_tasks) && hgData.all_mvffm_tasks.length > 0 ? hgData.all_mvffm_tasks : (hgData.mvffm_tasks || []))
+                : [];
+            const activeMvList = mvList.filter(t => ['downloading', 'pending', 'queued', 'merging'].includes(t.status));
+            if (mvCountBadge) mvCountBadge.innerText = activeMvList.length || mvList.length;
+
+            if (mvList.length > 0) {
+                if (mvSection) mvSection.style.display = 'block';
+                if (mvContainer) {
+                    mvContainer.innerHTML = mvList.map(t => {
+                        const title = t.title || 'MVFFM Drama';
+                        const pct = t.progress_pct || 0;
+                        const isDone = t.status === 'completed';
+                        const isErr = t.status === 'error';
+                        const isDownloading = t.status === 'downloading' || t.status === 'merging';
+                        const speed = t.speed_str || '';
+                        const epLabel = t.current_episode_label || `ភាគ ${t.completed_episodes || 0}/${t.total_episodes || '?'}`;
+                        return `
+                        <div class="drawer-task-card" style="background:rgba(236,72,153,0.06); border:1px solid ${isDone ? 'rgba(236,72,153,0.3)' : (isErr ? 'rgba(239,68,68,0.3)' : 'rgba(236,72,153,0.22)')}; border-radius:8px; padding:10px 12px; display:flex; flex-direction:column; gap:8px;">
+                            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
+                                ${(t.cover || t.thumbnail) ? `
+                                <div style="width:40px; height:56px; border-radius:6px; overflow:hidden; flex-shrink:0; background:rgba(0,0,0,0.35); border:1px solid rgba(255,255,255,0.12);">
+                                    <img src="${escapeHtml(t.cover || t.thumbnail)}" style="width:100%; height:100%; object-fit:cover;" onerror="this.parentElement.style.display='none'">
+                                </div>
+                                ` : ''}
+                                <div style="flex:1; min-width:0;">
+                                    <div style="font-size:0.84rem; font-weight:700; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${escapeHtml(title)}">${escapeHtml(title)}</div>
+                                    <div style="display:flex; align-items:center; gap:8px; font-size:0.72rem; color:#94a3b8; margin-top:3px; flex-wrap:wrap;">
+                                        <span style="background:rgba(236,72,153,0.18); color:#f472b6; font-weight:700; padding:1px 6px; border-radius:3px;">🎥 MVFFM</span>
+                                        <span style="color:#e2e8f0;">${escapeHtml(epLabel)}</span>
+                                        ${speed ? `<span style="color:#38bdf8; font-weight:700;">⚡ ${escapeHtml(speed)}</span>` : ''}
+                                    </div>
+                                </div>
+                                <div style="font-size:0.86rem; font-weight:800; color:${isDone ? '#34d399' : (isErr ? '#ef4444' : '#f472b6')};">
+                                    ${pct}%
+                                </div>
+                            </div>
+                            <div style="width:100%; height:6px; background:rgba(255,255,255,0.08); border-radius:9999px; overflow:hidden;">
+                                <div style="height:100%; width:${pct}%; background:${isDone ? '#10b981' : (isErr ? '#ef4444' : 'linear-gradient(90deg, #ec4899, #db2777)')}; transition:width 0.3s ease;"></div>
+                            </div>
+                            <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.72rem; color:#94a3b8;">
+                                <span>${isDone ? '<span style="color:#34d399; font-weight:700;">✓ បានទាញយកចប់</span>' : (isErr ? '<span style="color:#ef4444; font-weight:700;">❌ បរាជ័យ</span>' : `ភាគ: <b style="color:#fff;">${t.completed_episodes || 0}</b> / ${t.total_episodes || 1}`)}</span>
+                                <div style="display:flex; gap:6px;">
+                                    <button class="btn-queue-retry" style="padding:2px 8px; font-size:0.68rem;" onclick="openMvffmFolder('${escapeHtml(t.series_folder || '')}')">📂 Folder</button>
+                                    ${isDownloading ? `<button class="btn-queue-retry" style="padding:2px 8px; font-size:0.68rem; color:#fca5a5; border-color:rgba(239,68,68,0.3);" onclick="cancelMvffmTask('${t.task_id}')">🛑 Cancel</button>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                        `;
+                    }).join('');
+                }
+            } else {
+                if (mvSection) mvSection.style.display = 'none';
+                if (mvContainer) mvContainer.innerHTML = '';
+            }
+
+            // 8. BEEPLAYLET Tasks
+            const bpContainer = document.getElementById('drawerBpTasksContainer');
+            const bpSection = document.getElementById('drawerBpSectionWrap');
+            const bpCountBadge = document.getElementById('drawerBpCount');
+            const bpList = (hgData && (hgData.all_beeplaylet_tasks || hgData.beeplaylet_tasks))
+                ? (Array.isArray(hgData.all_beeplaylet_tasks) && hgData.all_beeplaylet_tasks.length > 0 ? hgData.all_beeplaylet_tasks : (hgData.beeplaylet_tasks || []))
+                : [];
+            const activeBpList = bpList.filter(t => ['downloading', 'pending', 'queued', 'merging'].includes(t.status));
+            if (bpCountBadge) bpCountBadge.innerText = activeBpList.length || bpList.length;
+
+            if (bpList.length > 0) {
+                if (bpSection) bpSection.style.display = 'block';
+                if (bpContainer) {
+                    bpContainer.innerHTML = bpList.map(t => {
+                        const title = t.title || 'Beeplaylet Drama';
+                        const pct = t.progress_pct || 0;
+                        const isDone = t.status === 'completed';
+                        const isErr = t.status === 'error';
+                        const isDownloading = t.status === 'downloading' || t.status === 'merging';
+                        const speed = t.speed_str || '';
+                        const epLabel = t.current_episode_label || `ភាគ ${t.completed_episodes || 0}/${t.total_episodes || '?'}`;
+                        return `
+                        <div class="drawer-task-card" style="background:rgba(234,179,8,0.06); border:1px solid ${isDone ? 'rgba(234,179,8,0.3)' : (isErr ? 'rgba(239,68,68,0.3)' : 'rgba(234,179,8,0.22)')}; border-radius:8px; padding:10px 12px; display:flex; flex-direction:column; gap:8px;">
+                            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
+                                ${(t.cover || t.thumbnail) ? `
+                                <div style="width:40px; height:56px; border-radius:6px; overflow:hidden; flex-shrink:0; background:rgba(0,0,0,0.35); border:1px solid rgba(255,255,255,0.12);">
+                                    <img src="${escapeHtml(t.cover || t.thumbnail)}" style="width:100%; height:100%; object-fit:cover;" onerror="this.parentElement.style.display='none'">
+                                </div>
+                                ` : ''}
+                                <div style="flex:1; min-width:0;">
+                                    <div style="font-size:0.84rem; font-weight:700; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${escapeHtml(title)}">${escapeHtml(title)}</div>
+                                    <div style="display:flex; align-items:center; gap:8px; font-size:0.72rem; color:#94a3b8; margin-top:3px; flex-wrap:wrap;">
+                                        <span style="background:rgba(234,179,8,0.18); color:#facc15; font-weight:700; padding:1px 6px; border-radius:3px;">🐝 Beeplaylet</span>
+                                        <span style="color:#e2e8f0;">${escapeHtml(epLabel)}</span>
+                                        ${speed ? `<span style="color:#38bdf8; font-weight:700;">⚡ ${escapeHtml(speed)}</span>` : ''}
+                                    </div>
+                                </div>
+                                <div style="font-size:0.86rem; font-weight:800; color:${isDone ? '#34d399' : (isErr ? '#ef4444' : '#facc15')};">
+                                    ${pct}%
+                                </div>
+                            </div>
+                            <div style="width:100%; height:6px; background:rgba(255,255,255,0.08); border-radius:9999px; overflow:hidden;">
+                                <div style="height:100%; width:${pct}%; background:${isDone ? '#10b981' : (isErr ? '#ef4444' : 'linear-gradient(90deg, #eab308, #ca8a04)')}; transition:width 0.3s ease;"></div>
+                            </div>
+                            <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.72rem; color:#94a3b8;">
+                                <span>${isDone ? '<span style="color:#34d399; font-weight:700;">✓ បានទាញយកចប់</span>' : (isErr ? '<span style="color:#ef4444; font-weight:700;">❌ បរាជ័យ</span>' : `ភាគ: <b style="color:#fff;">${t.completed_episodes || 0}</b> / ${t.total_episodes || 1}`)}</span>
+                                <div style="display:flex; gap:6px;">
+                                    <button class="btn-queue-retry" style="padding:2px 8px; font-size:0.68rem;" onclick="openBeeplayletFolder('${escapeHtml(t.series_folder || '')}')">📂 Folder</button>
+                                    ${isDownloading ? `<button class="btn-queue-retry" style="padding:2px 8px; font-size:0.68rem; color:#fca5a5; border-color:rgba(239,68,68,0.3);" onclick="cancelBeeplayletTask('${t.task_id}')">🛑 Cancel</button>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                        `;
+                    }).join('');
+                }
+            } else {
+                if (bpSection) bpSection.style.display = 'none';
+                if (bpContainer) bpContainer.innerHTML = '';
+            }
+
+            // 9. Check if any active or queued downloads across ALL platforms
             const activeHgTasks = (hgData && hgData.tasks) ? hgData.tasks.filter(t => ['downloading', 'pending'].includes(t.status)) : [];
-            const hasAnyActive = seriesList.length > 0 || activeYt.length > 0 || activeHgTasks.length > 0;
+            const hasAnyActive = seriesList.length > 0 || activeYt.length > 0 || activeHgTasks.length > 0
+                || axList.length > 0 || aniList.length > 0 || dmList.length > 0
+                || hsList.length > 0 || mvList.length > 0 || bpList.length > 0;
             if (!hasAnyActive) {
                 if (emptyNotice) emptyNotice.style.display = 'block';
             } else {
@@ -1850,8 +2356,11 @@ let pollTimer = null;
                     }
                     if (actionBox) {
                         actionBox.innerHTML = `
+                            <button type="button" class="btn btn-primary" style="justify-content:center; background:linear-gradient(135deg, #e11d48, #be123c); font-weight:800; font-size:0.88rem; padding:10px; margin-bottom:4px; box-shadow:0 4px 14px rgba(225,29,72,0.35);" onclick="closeSmartDownloadModal(); mergeExistingDrama('${seriesId}', '${escapeHtml(check.folder || title)}', '${escapeHtml(title)}');">
+                                🎞️ បញ្ចូលរឿងជាវីដេអូពេញភ្លាមៗ (Merge into Full Video)
+                            </button>
                             <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
-                                <button type="button" class="btn btn-primary" style="justify-content:center; background:linear-gradient(135deg, #f97316, #ea580c);" onclick="closeSmartDownloadModal(); playDramaInVlc('${seriesId}', '${escapeHtml(check.folder || title)}');">
+                                <button type="button" class="btn btn-secondary" style="justify-content:center; background:rgba(255,255,255,0.08);" onclick="closeSmartDownloadModal(); playDramaInVlc('${seriesId}', '${escapeHtml(check.folder || title)}');">
                                     ▶️ បើកមើលវីដេអូ
                                 </button>
                                 <button type="button" class="btn btn-secondary" style="justify-content:center;" onclick="closeSmartDownloadModal(); openDramaFolder('${escapeHtml(check.folder || title)}');">
@@ -1907,6 +2416,35 @@ let pollTimer = null;
             }
         }
         window.checkAndPromptDuplicate = checkAndPromptDuplicate;
+
+        async function mergeExistingDrama(seriesId, folder, title) {
+            if (typeof showToast === 'function') {
+                showToast(`🎬 កំពុងបញ្ចូលរឿង «${title || 'Drama'}» ជាវីដេអូពេញ...`, '⏳');
+            }
+            try {
+                const res = await fetch('/api/drama/merge-existing', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ series_id: seriesId, folder: folder, title: title })
+                });
+                const data = await res.json();
+                if (data.ok) {
+                    if (typeof showToast === 'function') {
+                        showToast(`🎉 បានបញ្ចូលរឿង «${title}» ជាវីដេអូពេញជោគជ័យ!`, '✅');
+                    }
+                    if (typeof syncDownloadedSeriesCache === 'function') syncDownloadedSeriesCache();
+                } else {
+                    if (typeof showToast === 'function') {
+                        showToast(`បញ្ហាក្នុងការបញ្ចូលរឿង: ${data.message || data.error}`, '❌');
+                    }
+                }
+            } catch (e) {
+                if (typeof showToast === 'function') {
+                    showToast(`Error: ${e.message}`, '❌');
+                }
+            }
+        }
+        window.mergeExistingDrama = mergeExistingDrama;
 
         function closeSmartDownloadModal() {
             const modal = document.getElementById('smartDownloadConfirmModal');
@@ -2029,12 +2567,53 @@ let pollTimer = null;
         }
 
         async function openUnifiedFolder() {
-            if (currentDrawerTab === 'library') {
-                openDownloadFolder();
-            } else {
-                openDownloadFolder();
-            }
+            openDownloadFolder();
         }
+
+        async function openAnimexinTaskFolder(folderPath) {
+            try {
+                await fetch('/api/animexin/open_folder', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ path: folderPath || '' })
+                });
+            } catch (_) {}
+        }
+        window.openAnimexinTaskFolder = openAnimexinTaskFolder;
+
+        async function openAnitakuTaskFolder(folderPath) {
+            try {
+                await fetch('/api/anitaku/open_folder', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ path: folderPath || '' })
+                });
+            } catch (_) {}
+        }
+        window.openAnitakuTaskFolder = openAnitakuTaskFolder;
+
+        async function openDailymotionFolder() {
+            try {
+                await fetch('/api/dailymotion/open_folder', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: '{}'
+                });
+            } catch (_) {}
+        }
+        window.openDailymotionFolder = openDailymotionFolder;
+
+        async function cancelDailymotionTask(taskId) {
+            try {
+                await fetch('/api/dailymotion/cancel', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ task_id: taskId })
+                });
+                if (typeof pollDownloadStatus === 'function') pollDownloadStatus();
+            } catch (_) {}
+        }
+        window.cancelDailymotionTask = cancelDailymotionTask;
 
         async function cancelAllUnifiedDownloads() {
             try {
@@ -2044,6 +2623,36 @@ let pollTimer = null;
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({})
+                    }).catch(() => {}),
+                    fetch('/api/animexin/cancel', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ task_id: 'all' })
+                    }).catch(() => {}),
+                    fetch('/api/anitaku/cancel', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ task_id: 'all' })
+                    }).catch(() => {}),
+                    fetch('/api/dailymotion/cancel', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ task_id: 'all' })
+                    }).catch(() => {}),
+                    fetch('/api/haosou/cancel', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ task_id: 'all' })
+                    }).catch(() => {}),
+                    fetch('/api/mvffm/cancel', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ task_id: 'all' })
+                    }).catch(() => {}),
+                    fetch('/api/beeplaylet/cancel', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ task_id: 'all' })
                     }).catch(() => {})
                 ]);
                 showToast(currentLang === 'zh' ? '已取消全部下载！' : (currentLang === 'km' ? 'បានបោះបង់ការទាញយកទាំងអស់!' : 'Cancelled all downloads!'), '⚠️');
@@ -2052,6 +2661,49 @@ let pollTimer = null;
                 showToast('Cancel error: ' + e.message, '❌');
             }
         }
+
+        async function clearFinishedOrCanceledDownloads() {
+            try {
+                await Promise.all([
+                    fetch('/dl/clear-history', { method: 'POST' }).catch(() => {}),
+                    fetch('/api/haosou/clear', { method: 'POST' }).catch(() => {}),
+                    fetch('/api/mvffm/clear', { method: 'POST' }).catch(() => {}),
+                    fetch('/api/beeplaylet/clear', { method: 'POST' }).catch(() => {}),
+                    fetch('/api/animexin/clear', { method: 'POST' }).catch(() => {}),
+                    fetch('/api/anitaku/clear', { method: 'POST' }).catch(() => {}),
+                    fetch('/api/dailymotion/clear', { method: 'POST' }).catch(() => {}),
+                    fetch('/api/youtube/clear', { method: 'POST' }).catch(() => {})
+                ]);
+
+                // Reset UI Drawer Cards & Status Elements
+                const listEl = document.getElementById('dlSeriesList');
+                if (listEl) {
+                    listEl.innerHTML = '';
+                }
+                const logBox = document.getElementById('dlLogBox');
+                if (logBox) {
+                    logBox.innerHTML = '<div>[System] បញ្ជីទាញយកត្រូវបានសម្អាតស្អាតបាត។ Ready.</div>';
+                }
+                const progressFill = document.getElementById('dlProgressFill');
+                if (progressFill) progressFill.style.width = '0%';
+                const percentText = document.getElementById('dlPercentText');
+                if (percentText) percentText.innerText = '0%';
+                const totalDone = document.getElementById('dlTotalDone');
+                if (totalDone) totalDone.innerText = '0';
+                const totalEps = document.getElementById('dlTotalEps');
+                if (totalEps) totalEps.innerText = '0';
+                const runningStatus = document.getElementById('dlRunningStatus');
+                if (runningStatus) runningStatus.innerText = 'Idle';
+                const liveSpeed = document.getElementById('dlLiveSpeed');
+                if (liveSpeed) liveSpeed.innerText = '0.0 MB/s';
+
+                showToast('🧹 បានសម្អាតបញ្ជីទាញយក និងកំណត់ហេតុស្អាតបាត!', '✨');
+                if (typeof pollDownloadStatus === 'function') pollDownloadStatus();
+            } catch (e) {
+                showToast('Clear error: ' + e.message, '❌');
+            }
+        }
+        window.clearFinishedOrCanceledDownloads = clearFinishedOrCanceledDownloads;
 
         async function cancelDownloads() {
             try {
@@ -2192,8 +2844,6 @@ let pollTimer = null;
                 if (statusText && cfg.version) {
                     statusText.innerText = `កម្មវិធីរបស់អ្នកជាកំណែចុងក្រោយបំផុតហើយ (v${cfg.version})`;
                 }
-                // Check in background silently
-                checkAppUpdate(true);
                 if (typeof checkAppLicenseStatus === 'function') {
                     checkAppLicenseStatus();
                 }
@@ -2236,6 +2886,12 @@ let pollTimer = null;
         async function saveSystemSettings() {
             const threads = parseInt(document.getElementById('settingsThreads').value) || 4;
             const payload = { threads: threads };
+            const outDirInput = document.getElementById('settingsOutDir');
+            if (outDirInput && outDirInput.value.trim()) {
+                const outDir = outDirInput.value.trim();
+                payload.output_dir = outDir;
+                updateDownloadFolderUI(outDir);
+            }
             const repoInput = document.getElementById('settingsGithubRepo');
             if (repoInput && repoInput.value.trim()) {
                 payload.github_repo = repoInput.value.trim();
@@ -2254,242 +2910,16 @@ let pollTimer = null;
         }
 
         // ==========================================
-        // 1-Click Seamless Software Auto-Updater
+        // Software Auto-Updater (Disabled - Portable Distribution)
         // ==========================================
         async function checkAppUpdate(silent = true) {
-            const cardBox = document.getElementById('updateCardBox');
-            const statusIcon = document.getElementById('updateStatusIcon');
-            const statusText = document.getElementById('updateStatusText');
-            const statusSub = document.getElementById('updateStatusSubtext');
-            const btnAction = document.getElementById('btnAppUpdateAction');
-            const btnIcon = document.getElementById('btnUpdateActionIcon');
-            const btnText = document.getElementById('btnUpdateActionText');
-            const changelogBox = document.getElementById('updateChangelogBox');
-            const updateDot = document.getElementById('settingsUpdateDot');
-
-            try {
-                const res = await fetch('/api/update/check');
-                const data = await res.json();
-                _latestUpdateData = data;
-
-                if (data && data.has_update) {
-                    // 🌟 Update Available! Transform button to glowing emerald & clickable
-                    if (cardBox) cardBox.className = 'card-update-active';
-                    if (statusIcon) statusIcon.innerText = '✨';
-                    if (statusText) {
-                        statusText.innerHTML = `រកឃើញកំណែថ្មី <b style="color:#34d399;">v${escapeHtml(data.latest_version)}</b> ជាមួយមុខងារថ្មីៗ!`;
-                    }
-                    if (statusSub) {
-                        statusSub.style.display = 'block';
-                        statusSub.innerText = `កំណែបច្ចុប្បន្ន: v${data.current_version || '3.1.0'}`;
-                    }
-                    if (changelogBox && data.release_notes) {
-                        changelogBox.innerText = data.release_notes;
-                        changelogBox.style.display = 'block';
-                    }
-                    if (btnAction) {
-                        btnAction.disabled = false;
-                        btnAction.className = 'btn-update-action btn-update-active';
-                    }
-                    if (btnIcon) btnIcon.innerText = '⚡';
-                    if (btnText) btnText.innerText = 'Update ឥឡូវនេះ';
-                    if (updateDot) updateDot.style.display = 'block';
-
-                    if (!silent) {
-                        showToast(`រកឃើញកំណែថ្មី v${data.latest_version}! 🎉`, '✨');
-                    }
-                } else {
-                    // ✅ Already up-to-date: Button is Disabled and Dimmed (cannot be clicked)
-                    if (cardBox) cardBox.className = '';
-                    if (statusIcon) statusIcon.innerText = '✅';
-                    if (statusText) {
-                        statusText.innerText = `កម្មវិធីរបស់អ្នកជាកំណែចុងក្រោយបំផុតហើយ (v${data.current_version || '3.1.0'})`;
-                    }
-                    if (statusSub) statusSub.style.display = 'none';
-                    if (changelogBox) changelogBox.style.display = 'none';
-                    if (btnAction) {
-                        btnAction.disabled = true;
-                        btnAction.className = 'btn-update-action btn-update-disabled';
-                    }
-                    if (btnIcon) btnIcon.innerText = '🔄';
-                    if (btnText) btnText.innerText = 'Update';
-                    if (updateDot) updateDot.style.display = 'none';
-
-                    if (!silent) {
-                        showToast('កម្មវិធីរបស់អ្នកជាកំណែចុងក្រោយបំផុតហើយ!', '✅');
-                    }
-                }
-            } catch (err) {
-                if (btnAction) {
-                    btnAction.disabled = true;
-                    btnAction.className = 'btn-update-action btn-update-disabled';
-                }
-            }
+            return { has_update: false, is_latest: true };
         }
 
-        async function handleAppUpdateActionClick() {
-            if (!_latestUpdateData || !_latestUpdateData.has_update) {
-                return; // Disabled / cannot click
-            }
-            await applyAppUpdate();
-        }
-
-        async function applyAppUpdate() {
-            if (!_latestUpdateData || !_latestUpdateData.download_url) {
-                showToast('មិនមាន URL សម្រាប់ Update ឡើយ', '⚠️');
-                return;
-            }
-
-            const btnAction = document.getElementById('btnAppUpdateAction');
-            const btnIcon = document.getElementById('btnUpdateActionIcon');
-            const btnText = document.getElementById('btnUpdateActionText');
-            const cardBox = document.getElementById('updateCardBox');
-            const progressContainer = document.getElementById('updateProgressBarContainer');
-            const progressFill = document.getElementById('updateProgressBarFill');
-            const progressPhase = document.getElementById('updateProgressPhaseText');
-            const progressPercent = document.getElementById('updateProgressPercentText');
-            const progressBytes = document.getElementById('updateProgressBytesText');
-            const progressSpeed = document.getElementById('updateProgressSpeedText');
-
-            if (btnAction) {
-                btnAction.disabled = true;
-                btnAction.style.pointerEvents = 'none';
-            }
-            if (btnIcon) btnIcon.innerText = '⏳';
-            if (btnText) btnText.innerText = 'ទាញយក... 1%';
-
-            if (progressContainer) {
-                progressContainer.style.display = 'block';
-                if (progressFill) progressFill.style.width = '1%';
-                if (progressPercent) progressPercent.innerText = '1%';
-                if (progressBytes) progressBytes.innerText = '0 MB / 4.9 MB';
-                if (progressSpeed) progressSpeed.innerText = 'កំពុងភ្ជាប់...';
-                if (progressPhase) progressPhase.innerHTML = `<span>⏳</span> <span>កំពុងទាញយកកូដថ្មីពី GitHub...</span>`;
-            }
-
-            let progressTimer = null;
-            const startProgressPolling = () => {
-                progressTimer = setInterval(async () => {
-                    try {
-                        const prRes = await fetch('/api/update/progress');
-                        if (!prRes.ok) return;
-                        const p = await prRes.json();
-                        if (!p || !p.active) return;
-
-                        const pct = Math.max(1, p.percent || 1);
-                        if (progressFill) progressFill.style.width = `${pct}%`;
-                        if (progressPercent) progressPercent.innerText = `${pct}%`;
-
-                        if (p.downloadedBytes > 0) {
-                            const mbDown = (p.downloadedBytes / (1024 * 1024)).toFixed(1);
-                            const mbTotal = p.totalBytes > 0 ? (p.totalBytes / (1024 * 1024)).toFixed(1) : '4.9';
-                            if (progressBytes) progressBytes.innerText = `${mbDown} MB / ${mbTotal} MB`;
-                        }
-
-                        if (p.speedKBps !== undefined && p.speedKBps > 0) {
-                            if (progressSpeed) progressSpeed.innerText = `${p.speedKBps} KB/s`;
-                        }
-
-                        if (p.status === 'extracting') {
-                            if (btnText) btnText.innerText = `ពន្លាឯកសារ... ${pct}%`;
-                            if (progressPhase) progressPhase.innerHTML = `<span>📦</span> <span>${p.message || 'កំពុងពន្លាឯកសារកូដថ្មី...'}</span>`;
-                            if (progressSpeed) progressSpeed.innerText = 'កំពុងពន្លា';
-                        } else if (p.status === 'applying') {
-                            if (btnText) btnText.innerText = `ដំឡើង... ${pct}%`;
-                            if (progressPhase) progressPhase.innerHTML = `<span>⚙️</span> <span>${p.message || 'កំពុងដំឡើងកូដថ្មី...'}</span>`;
-                            if (progressSpeed) progressSpeed.innerText = 'កំពុងដំឡើង';
-                        } else if (p.status === 'downloading') {
-                            if (btnText) btnText.innerText = `ទាញយក... ${pct}%`;
-                            if (progressPhase) progressPhase.innerHTML = `<span>📥</span> <span>${p.message || 'កំពុងទាញយកកូដថ្មី...'}</span>`;
-                        }
-                    } catch (_) {}
-                }, 350);
-            };
-
-            startProgressPolling();
-
-            try {
-                const res = await fetch('/api/update/apply', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        download_url: _latestUpdateData.download_url,
-                        repo: _latestUpdateData.repo
-                    })
-                });
-
-                if (progressTimer) clearInterval(progressTimer);
-
-                const result = await res.json();
-                if (result.status === 'success') {
-                    if (progressFill) progressFill.style.width = '100%';
-                    if (progressPercent) progressPercent.innerText = '100%';
-                    if (btnText) btnText.innerText = '100% រួចរាល់';
-
-                    showToast('បានធ្វើបច្ចុប្បន្នភាពកូដជោគជ័យ!', '🎉');
-                    if (cardBox) {
-                        cardBox.innerHTML = `
-                            <div style="text-align:center; padding:12px 6px;">
-                                <div style="font-size:1.05rem; font-weight:800; color:#34d399; margin-bottom:6px;">
-                                    ✅ ធ្វើបច្ចុប្បន្នភាពកូដជោគជ័យ (100%)!
-                                </div>
-                                <div style="font-size:0.82rem; color:#cbd5e1; margin-bottom:12px;">
-                                    បានដំឡើងកំណែ <b>v${escapeHtml(result.updated_version)}</b> រួចរាល់។ សូម Restart កម្មវិធីឥឡូវនេះ!
-                                </div>
-                                <button type="button" class="btn btn-primary" onclick="restartAppAfterUpdate()" style="height:38px; padding:0 20px; font-size:0.85rem; font-weight:800; background:linear-gradient(135deg, #2563eb, #1d4ed8); border-radius:8px; cursor:pointer; display:inline-flex; align-items:center; gap:8px;">
-                                    <span>🔄</span> <span>Restart / Reload កម្មវិធីឥឡូវនេះ</span>
-                                </button>
-                            </div>
-                        `;
-                    }
-                    const verBadge = document.getElementById('settingsCurrentVersionBadge');
-                    if (verBadge && result.updated_version) {
-                        verBadge.innerText = `v${result.updated_version}`;
-                    }
-                    const updateDot = document.getElementById('settingsUpdateDot');
-                    if (updateDot) updateDot.style.display = 'none';
-                } else {
-                    throw new Error(result.error || 'បរាជ័យក្នុងការ Update');
-                }
-            } catch (err) {
-                if (progressTimer) clearInterval(progressTimer);
-                if (progressContainer) progressContainer.style.display = 'none';
-                showToast(`បរាជ័យ: ${err.message}`, '❌');
-                if (btnAction) {
-                    btnAction.disabled = false;
-                    btnAction.style.pointerEvents = 'auto';
-                }
-                if (btnIcon) btnIcon.innerText = '⚡';
-                if (btnText) btnText.innerText = 'Update ម្តងទៀត';
-            }
-        }
-
-        function toggleRepoConfig() {
-            const panel = document.getElementById('repoConfigPanel');
-            const link = document.getElementById('btnToggleRepoConfig');
-            if (panel) {
-                const isOpen = panel.style.display === 'block';
-                panel.style.display = isOpen ? 'none' : 'block';
-                if (link) link.innerHTML = isOpen ? '⚙️ កំណត់ GitHub Repo (Developer) ▾' : '⚙️ បិទការកំណត់ Repo ▴';
-            }
-        }
-
-        async function saveDevRepo() {
-            const repoInput = document.getElementById('settingsGithubRepo');
-            const repo = repoInput ? repoInput.value.trim() : '';
-            try {
-                await fetch('/dl/config', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ github_repo: repo })
-                });
-                showToast('បានរក្សាទុក Repo ជោគជ័យ!', '✅');
-                checkAppUpdate(false);
-            } catch (e) {
-                showToast('Error saving repo', '❌');
-            }
-        }
-
+        async function handleAppUpdateActionClick() {}
+        async function applyAppUpdate() {}
+        function toggleRepoConfig() {}
+        async function saveDevRepo() {}
         function restartAppAfterUpdate() {
             if (window.electronAPI && window.electronAPI.relaunch) {
                 window.electronAPI.relaunch();
@@ -2509,12 +2939,5 @@ let pollTimer = null;
                 .replace(/"/g, '&quot;')
                 .replace(/'/g, '&#039;');
         }
-
-        // Silent background check for updates shortly after app launch
-        setTimeout(() => {
-            if (typeof checkAppUpdate === 'function') {
-                checkAppUpdate(true);
-            }
-        }, 2500);
 
 

@@ -43,7 +43,11 @@ const { mergeDramaEpisodes } = require('./video_merger.js');
 const cenc = require('../lib/cenc.js');
 
 function sanitizeFilename(name) {
-  const cleaned = String(name || '').replace(/[\\/*?:"<>|\r\n\t]/g, '_').trim();
+  const cleaned = String(name || '')
+    .replace(/[\\/*?:"<>|\r\n\t]/g, '_')
+    .replace(/[\uFF1A\uFF1F\uFF0A\uFF1C\uFF1E\uFF5C]/g, '_')
+    .trim()
+    .replace(/[. ]+$/, '');
   return cleaned.slice(0, 80) || 'Hongguo_Drama';
 }
 
@@ -299,6 +303,29 @@ class DownloadManager extends EventEmitter {
     this._log('Canceled all active downloads.');
   }
 
+  clearCompletedOrCanceled() {
+    let clearedCount = 0;
+    for (const [sid, s] of this.queueSeries.entries()) {
+      if (['done', 'completed', 'canceled', 'failed'].includes(s.status) || (s.total > 0 && s.done >= s.total)) {
+        this.queueSeries.delete(sid);
+        clearedCount++;
+      }
+    }
+    for (const [tid, t] of this.tasks.entries()) {
+      if (['completed', 'canceled', 'failed'].includes(t.status)) {
+        this.tasks.delete(tid);
+      }
+    }
+    this.queueLogs = [];
+    if (!this.queueRunning) {
+      this.totalDone = 0;
+      this.totalEps = 0;
+      this.currentTitle = '';
+      this.currentStatus = 'Idle';
+    }
+    return { ok: true, clearedCount, remaining: this.queueSeries.size };
+  }
+
   resumeQueue() {
     const pending = [];
     for (const [sid, s] of this.queueSeries.entries()) {
@@ -366,13 +393,26 @@ class DownloadManager extends EventEmitter {
     }
 
     this.queueCanceled = false;
+    let totalInitialEps = 0;
     for (const sid of seriesIds) {
       const range = (req.ranges && req.ranges[sid]) || (req.ranges && req.ranges['default']) || 'all';
       const downloadMode = (req.download_modes && req.download_modes[sid]) || req.download_mode || 'merged';
       const sInfo = (req.series_info && req.series_info[sid]) || {};
       const sTitle = sInfo.title || req.title || `Drama ${sid}`;
       const sCover = sInfo.cover || req.cover_url || '';
-      const sTotal = sInfo.episode_cnt || 0;
+      let sTotal = sInfo.episode_cnt || req.episode_cnt || 0;
+      let episodesList = (req.episodes_list && req.episodes_list.length > 0) ? req.episodes_list : (sInfo.episodes_list || null);
+
+      // Fast cache lookup so we don't have to wait for network scraping
+      if ((!sTotal || !episodesList) && scraper._SERIES_DETAIL_CACHE && scraper._SERIES_DETAIL_CACHE.has(sid)) {
+        const cached = scraper._SERIES_DETAIL_CACHE.get(sid);
+        if (cached && cached.data && cached.data.episodes && cached.data.episodes.length > 0) {
+          if (!sTotal) sTotal = cached.data.episodes.length;
+          if (!episodesList) episodesList = cached.data.episodes;
+        }
+      }
+
+      totalInitialEps += (sTotal || 0);
 
       const sQuality = (req.qualities && req.qualities[sid]) || req.quality || '1080p';
       const qualityStr = typeof sQuality === 'object' ? (sQuality.resolution || '1080p') : sQuality;
@@ -393,6 +433,7 @@ class DownloadManager extends EventEmitter {
           quality: qualityStr,
           targetHeight: targetH,
           fps: targetFps,
+          episodes: episodesList,
           logs: []
         });
       } else {
@@ -405,6 +446,8 @@ class DownloadManager extends EventEmitter {
         s.quality = qualityStr;
         s.targetHeight = targetH;
         s.fps = targetFps;
+        if (episodesList) s.episodes = episodesList;
+        if (sTotal > 0) s.total = sTotal;
         s.logs = [];
         if (sTitle) s.title = sTitle;
         if (sCover) s.cover = sCover;
@@ -417,10 +460,12 @@ class DownloadManager extends EventEmitter {
     if (!this.queueRunning) {
       this.queueRunning = true;
       this.totalDone = 0;
-      this.totalEps = 0;
+      this.totalEps = totalInitialEps;
       this.queueLogs = [];
       this.startedTime = Math.floor(Date.now() / 1000);
       this._startSpeedSampler();
+    } else if (totalInitialEps > 0) {
+      this.totalEps = Math.max(this.totalEps, totalInitialEps);
     }
 
     // Immediately dispatch all queued dramas simultaneously in parallel
@@ -437,9 +482,14 @@ class DownloadManager extends EventEmitter {
   _dispatchSeriesQueue(quality = '1080p') {
     if (this.queueCanceled) return;
 
-    // Sequential Drama Queue: 1 active drama at maximum turbo speed (5 workers), remaining series queued
-    // As soon as drama 1 finishes, drama 2 starts automatically without competing for network bandwidth
+    // Resilient Series Queue: Auto-heal any stale active items with no active workers
     const MAX_PARALLEL_SERIES = 1;
+    for (const [sid, s] of this.queueSeries.entries()) {
+      if ((s.status === 'downloading' || s.status === 'merging') && s.total > 0 && s.done >= s.total) {
+        s.status = 'done';
+      }
+    }
+
     const activeList = Array.from(this.queueSeries.values()).filter(s => s.status === 'downloading' || s.status === 'merging');
     const queuedList = Array.from(this.queueSeries.values()).filter(s => s.status === 'queued');
 
@@ -479,18 +529,32 @@ class DownloadManager extends EventEmitter {
     this.currentTitle = currentEntry.title;
     this._log(`Starting parallel download for "${currentEntry.title}" (${sid}) at ${seriesQuality}...`, sid);
 
-    let detail;
-    try {
-      const fetchPromise = scraper.getSeriesDetail(sid);
-      const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout fetching metadata (12s)')), 12000));
-      detail = await Promise.race([fetchPromise, timeoutPromise]);
-      currentEntry.title = detail.title;
-      currentEntry.cover = detail.cover || currentEntry.cover;
-      libraryManager.registerSeries(sid, detail.title, detail.cover, detail.episodes ? detail.episodes.length : 0, currentEntry.range).catch(() => {});
-    } catch (err) {
-      this._log(`Failed to fetch details for ${sid}: ${err.message}`, sid);
-      currentEntry.status = 'failed';
-      return;
+    let detail = null;
+    if (currentEntry.episodes && Array.isArray(currentEntry.episodes) && currentEntry.episodes.length > 0) {
+      detail = {
+        series_id: sid,
+        title: currentEntry.title || `Drama ${sid}`,
+        cover: currentEntry.cover || '',
+        episode_cnt: currentEntry.episodes.length,
+        episodes: currentEntry.episodes
+      };
+      if (scraper._SERIES_DETAIL_CACHE) {
+        scraper._SERIES_DETAIL_CACHE.set(sid, { timestamp: Date.now(), data: detail });
+      }
+      libraryManager.registerSeries(sid, detail.title, detail.cover, detail.episodes.length, currentEntry.range).catch(() => {});
+    } else {
+      try {
+        const fetchPromise = scraper.getSeriesDetail(sid);
+        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout fetching metadata (12s)')), 12000));
+        detail = await Promise.race([fetchPromise, timeoutPromise]);
+        currentEntry.title = detail.title;
+        currentEntry.cover = detail.cover || currentEntry.cover;
+        libraryManager.registerSeries(sid, detail.title, detail.cover, detail.episodes ? detail.episodes.length : 0, currentEntry.range).catch(() => {});
+      } catch (err) {
+        this._log(`Failed to fetch details for ${sid}: ${err.message}`, sid);
+        currentEntry.status = 'failed';
+        return;
+      }
     }
 
     if (this.queueCanceled) {
@@ -500,9 +564,17 @@ class DownloadManager extends EventEmitter {
 
     // Create drama folder
     const dramaFolderName = sanitizeFilename(detail.title);
-    const dramaDir = path.join(outRoot, dramaFolderName);
+    let dramaDir = path.join(outRoot, dramaFolderName);
     if (!fs.existsSync(dramaDir)) {
-      fs.mkdirSync(dramaDir, { recursive: true });
+      try {
+        fs.mkdirSync(dramaDir, { recursive: true });
+      } catch (err) {
+        const safeRoot = getOutputDir();
+        dramaDir = path.join(safeRoot, dramaFolderName);
+        if (!fs.existsSync(dramaDir)) {
+          fs.mkdirSync(dramaDir, { recursive: true });
+        }
+      }
     }
 
     // Save poster & metadata in background without blocking episode downloads
@@ -511,8 +583,15 @@ class DownloadManager extends EventEmitter {
     });
 
     // Determine target episodes
-    const targetIndices = parseEpisodeRange(currentEntry.range, detail.episodes.length);
-    const targetEpisodes = detail.episodes.filter(ep => targetIndices.has(ep.index));
+    let targetEpisodes = [];
+    if (detail.episodes && Array.isArray(detail.episodes) && detail.episodes.length > 0) {
+      const maxEpIndex = Math.max(...detail.episodes.map(e => e.index || 1), detail.episodes.length);
+      const targetIndices = parseEpisodeRange(currentEntry.range, maxEpIndex);
+      targetEpisodes = detail.episodes.filter(ep => targetIndices.has(ep.index));
+      if (targetEpisodes.length === 0) {
+        targetEpisodes = detail.episodes;
+      }
+    }
 
     currentEntry.total = targetEpisodes.length;
     currentEntry.done = 0;
@@ -531,8 +610,11 @@ class DownloadManager extends EventEmitter {
     currentEntry.progress = targetEpisodes.length > 0 ? Math.round((seriesDoneCount / targetEpisodes.length) * 1000) / 10 : 0;
     this._log(`Selected ${targetEpisodes.length} episode(s) for "${detail.title}" (${seriesDoneCount} already completed)`, sid);
 
-    // High-speed parallel worker pool: up to 5 concurrent episode workers
-    const numWorkers = Math.min(5, targetEpisodes.length);
+    // Dynamic concurrent episode worker pool based on user settings (threads)
+    const settings = loadSettings();
+    const configuredThreads = Math.max(1, Math.min(16, parseInt(settings.threads, 10) || 4));
+    const numWorkers = Math.min(configuredThreads, targetEpisodes.length);
+    this._log(`Starting download pool with ${numWorkers} concurrent episode worker(s) (configured threads: ${configuredThreads})`, sid);
 
     let epIndex = 0;
     const worker = async () => {
@@ -575,7 +657,7 @@ class DownloadManager extends EventEmitter {
 
     const workers = [];
     for (let i = 0; i < numWorkers; i++) {
-      workers.push(worker());
+      workers.push(new Promise(resolve => setTimeout(resolve, i * 250)).then(worker));
     }
     await Promise.all(workers);
 
@@ -609,35 +691,48 @@ class DownloadManager extends EventEmitter {
     }
 
     // Merging and completion
-    if (seriesDoneCount === targetEpisodes.length) {
+    if (seriesDoneCount >= targetEpisodes.length) {
+      this._log(`Finished downloading all ${seriesDoneCount} episodes of "${detail.title}"!`, sid);
+
       if (currentEntry.downloadMode !== 'separate') {
         currentEntry.status = 'merging';
-        this._log(`Starting video merge for "${detail.title}" (Mode: Merged)...`, sid);
-        await mergeDramaEpisodes({
-          dramaDir,
-          seriesTitle: detail.title,
-          mode: 'merged',
-          episodes: targetEpisodes,
-          onLog: (msg) => this._log(msg, sid)
-        });
+        this.currentStatus = `🎬 កំពុងបញ្ចូលរឿង «${detail.title}» ជាវីដេអូពេញ (GPU Assisted Direct Stream)...`;
+        this._log(`[Background] 🎬 កំពុងបញ្ចូលរឿង «${detail.title}» ជាវីដេអូពេញស្វ័យប្រវត្តិតាម Direct Stream Copy (GPU Assisted)...`, sid);
+        try {
+          await mergeDramaEpisodes({
+            dramaDir,
+            seriesTitle: detail.title,
+            mode: 'merged',
+            episodes: targetEpisodes,
+            onLog: (msg) => this._log(msg, sid)
+          });
+          this._log(`🎉 បានបញ្ចូលរឿង «${detail.title}» ជាវីដេអូពេញជោគជ័យ ១០០%!`, sid);
+        } catch (err) {
+          this._log(`[VideoMerger] Merge notice: ${err.message}`, sid);
+        }
       }
       currentEntry.status = 'done';
+      currentEntry.progress = 100;
       libraryManager.markCompleted(sid);
-      this._log(`Finished downloading all ${seriesDoneCount} episodes of "${detail.title}"!`, sid);
     } else if (seriesDoneCount > 0) {
-      if (currentEntry.downloadMode !== 'separate') {
-        currentEntry.status = 'merging';
-        await mergeDramaEpisodes({
-          dramaDir,
-          seriesTitle: detail.title,
-          mode: 'merged',
-          episodes: targetEpisodes,
-          onLog: (msg) => this._log(msg, sid)
-        });
-      }
       currentEntry.status = 'partial';
       libraryManager.updateProgress(sid, seriesDoneCount, targetEpisodes.length, currentEntry.progress, this.totalDownloadedBytes);
       this._log(`Completed ${seriesDoneCount}/${targetEpisodes.length} episodes for "${detail.title}"`, sid);
+
+      if (currentEntry.downloadMode !== 'separate') {
+        currentEntry.status = 'merging';
+        this.currentStatus = `🎬 កំពុងបញ្ចូលរឿង «${detail.title}» (${seriesDoneCount} ភាគ) ជាវីដេអូពេញ...`;
+        try {
+          await mergeDramaEpisodes({
+            dramaDir,
+            seriesTitle: detail.title,
+            mode: 'merged',
+            episodes: targetEpisodes,
+            onLog: (msg) => this._log(msg, sid)
+          });
+        } catch (_) {}
+        currentEntry.status = 'partial';
+      }
     } else {
       currentEntry.status = 'failed';
       this._log(`Failed to download episodes for "${detail.title}"`, sid);
@@ -722,18 +817,28 @@ class DownloadManager extends EventEmitter {
     const cancelToken = { canceled: false, req: null };
     this.cancelTokens.set(taskId, cancelToken);
 
-    // Resolve video stream at maximum 1080p quality
-    let track;
-    try {
-      const res = await scraper.getVideoStreams(ep.vid, seriesId, '', true, quality || '1080p');
-      track = res.tracks[0];
-    } catch (err) {
-      this._log(`Failed to resolve stream for EP ${ep.index} (${ep.vid}): ${err.message}`);
-      return false;
+    // Resolve video stream at maximum 1080p quality (Fast cache hit first with retry on rate limit)
+    let track = null;
+    for (let resolveAttempt = 1; resolveAttempt <= 3 && !cancelToken.canceled; resolveAttempt++) {
+      try {
+        const res = await scraper.getVideoStreams(ep.vid, seriesId, '', resolveAttempt > 1, quality || '1080p');
+        if (res && res.tracks && res.tracks[0] && res.tracks[0].main_url) {
+          track = res.tracks[0];
+          break;
+        }
+      } catch (err) {
+        if (resolveAttempt < 3 && !cancelToken.canceled) {
+          await new Promise(r => setTimeout(r, 400 * resolveAttempt));
+        } else if (!cancelToken.canceled) {
+          this._log(`Failed to resolve stream for EP ${ep.index} (${ep.vid}): ${err.message}`);
+        }
+      }
     }
 
     if (!track || !track.main_url) {
-      this._log(`No stream URL found for EP ${ep.index}`);
+      if (!cancelToken.canceled) {
+        this._log(`No stream URL found for EP ${ep.index}`);
+      }
       return false;
     }
 
@@ -743,6 +848,15 @@ class DownloadManager extends EventEmitter {
       let stallInterval = null;
       let abortController = new AbortController();
       try {
+        // If retrying, force refresh the stream URL token
+        if (attempt > 1) {
+          try {
+            const freshRes = await scraper.getVideoStreams(ep.vid, seriesId, '', true, quality || '1080p');
+            if (freshRes && freshRes.tracks && freshRes.tracks[0]) {
+              track = freshRes.tracks[0];
+            }
+          } catch (_) {}
+        }
         const fetchHeaders = track.headers || {
           'User-Agent': 'com.phoenix.read/71332',
           'Referer': 'https://novel.snssdk.com/'
@@ -760,7 +874,7 @@ class DownloadManager extends EventEmitter {
 
         if (res.ok && res.body) {
           const totalBytes = parseInt(res.headers.get('content-length') || track.size || 0, 10);
-          const out = fs.createWriteStream(partFile, { highWaterMark: 1024 * 1024 });
+          const out = fs.createWriteStream(partFile, { highWaterMark: 2 * 1024 * 1024 });
           let receivedBytes = 0;
           let lastDataTime = Date.now();
 

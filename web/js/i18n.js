@@ -32,12 +32,14 @@
                 libraryBtn: "📚 本地剧库",
                 downloadsBtn: "⬇️ 下载列表",
                 tabHot: "🔥 热门短剧",
+                tabNew: "⚡ 最新短剧",
                 tabReal: "🎭 真实故事",
                 tabComic: "🎨 漫改短剧",
                 tabAI: "🤖 AI短剧",
                 tabStarred: "⭐ 我的收藏",
                 tabLibrary: "📁 本地剧库",
                 trendingTitle: "🔥 热门短剧推荐",
+                newDramaTitle: "⚡ 最新短剧",
                 realDramaTitle: "🎭 真实故事短剧",
                 comicDramaTitle: "🎨 漫改动画短剧",
                 aiDramaTitle: "🤖 AI生成短剧",
@@ -205,12 +207,14 @@
                 libraryBtn: "📚 បណ្ណាល័យ",
                 downloadsBtn: "⬇️ ទាញយក",
                 tabHot: "🔥 ពេញនិយម",
+                tabNew: "⚡ រឿងថ្មីៗ",
                 tabReal: "🎭 រឿងសម្ដែងពិត",
                 tabComic: "🎨 គំនូរជីវចល",
                 tabAI: "🤖 រឿង AI",
                 tabStarred: "⭐ រឿងបានផ្កាយ",
                 tabLibrary: "📁 បណ្ណាល័យ",
                 trendingTitle: "🔥 កំពុងពេញនិយម",
+                newDramaTitle: "⚡ រឿងថ្មីៗ",
                 realDramaTitle: "🎭 រឿងសម្តែងពិត",
                 comicDramaTitle: "🎨 រឿងគំនូរជីវចល",
                 aiDramaTitle: "🤖 រឿងបង្កើតដោយ AI",
@@ -378,12 +382,14 @@
                 libraryBtn: "📚 Library",
                 downloadsBtn: "⬇️ Downloads",
                 tabHot: "🔥 Trending",
+                tabNew: "⚡ New Releases",
                 tabReal: "🎭 Real Drama",
                 tabComic: "🎨 Comic Drama",
                 tabAI: "🤖 AI Drama",
                 tabStarred: "⭐ Starred",
                 tabLibrary: "📁 Library",
                 trendingTitle: "🔥 Trending Short Dramas",
+                newDramaTitle: "⚡ New Releases",
                 realDramaTitle: "🎭 Live Action Real Dramas",
                 comicDramaTitle: "🎨 Comic & Anime Short Dramas",
                 aiDramaTitle: "🤖 AI Generated Short Dramas",
@@ -625,6 +631,7 @@
         function getSectionTitle(cat) {
             const dict = I18N_DICT[currentLang] || I18N_DICT['zh'];
             if (cat === 'all') return dict.trendingTitle;
+            if (cat === 'new') return dict.newDramaTitle;
             if (cat === 'real-drama') return dict.realDramaTitle;
             if (cat === 'comic-drama') return dict.comicDramaTitle;
             if (cat === 'ai-drama') return dict.aiDramaTitle;
@@ -680,9 +687,30 @@
             if (typeof renderGlobalStarredGrid === 'function') {
                 renderGlobalStarredGrid();
             }
+            // Re-render Beeplaylet view if loaded or active
+            if (typeof _allBpItems !== 'undefined' && _allBpItems && _allBpItems.length && typeof renderBeeplayletCards === 'function') {
+                renderBeeplayletCards(_lastBpItems || _allBpItems.slice(0, 60));
+            }
+            if (typeof currentBpDrama !== 'undefined' && currentBpDrama && currentBpDrama.title && typeof renderBeeplayletDetail === 'function') {
+                renderBeeplayletDetail(currentBpDrama);
+            }
             // Re-render Dailymotion view if loaded or active
             if (typeof _dmItems !== 'undefined' && _dmItems && _dmItems.length && typeof renderDailymotionCards === 'function') {
                 renderDailymotionCards(_dmItems);
+            }
+            // Re-render Anitaku view if loaded or active
+            if (typeof _aniCards !== 'undefined' && _aniCards && _aniCards.length && typeof renderAnitakuCards === 'function') {
+                renderAnitakuCards(_aniCards);
+            }
+            if (typeof renderAnitakuLanguageChange === 'function') {
+                renderAnitakuLanguageChange();
+            }
+            // Re-render Animexin view if loaded or active
+            if (typeof _axCards !== 'undefined' && _axCards && _axCards.length && typeof renderAnimexinCards === 'function') {
+                renderAnimexinCards(_axCards);
+            }
+            if (typeof renderAnimexinLanguageChange === 'function') {
+                renderAnimexinLanguageChange();
             }
             updateVisibleTitlesOnPage();
         }
@@ -767,10 +795,10 @@
             if (tabAll) tabAll.innerText = dict.tabHot;
             const tabReal = document.querySelector('.tab-btn[data-cat="real-drama"]');
             if (tabReal) tabReal.innerText = dict.tabReal;
-            const tabComic = document.querySelector('.tab-btn[data-cat="comic-drama"]');
-            if (tabComic) tabComic.innerText = dict.tabComic;
             const tabAI = document.querySelector('.tab-btn[data-cat="ai-drama"]');
             if (tabAI) tabAI.innerText = dict.tabAI;
+            const tabNew = document.querySelector('.tab-btn[data-cat="new"]');
+            if (tabNew) tabNew.innerText = dict.tabNew;
 
             const tabStarred = document.getElementById('tabStarred');
             if (tabStarred) {
@@ -1096,6 +1124,30 @@
             if (ttAnalyzeBtn) {
                 ttAnalyzeBtn.textContent = currentLang === 'zh' ? '⚡ 解析视频' : (currentLang === 'km' ? '⚡ វិភាគវីដេអូ' : '⚡ Fetch Video');
             }
+
+            // 17. Beeplaylet Platform UI
+            const bpInput = document.getElementById('bpDramaInput');
+            if (bpInput) {
+                bpInput.placeholder = currentLang === 'zh'
+                    ? '输入片名或粘贴 Beeplaylet 链接 (https://beeplaylet.com/...)...'
+                    : (currentLang === 'km' ? 'វាយឈ្មោះរឿង ឬបិទភ្ជាប់លីង Beeplaylet (https://beeplaylet.com/...)...' : 'Search drama or paste Beeplaylet link...');
+            }
+
+            // 18. AniTaku Platform UI
+            const aniInput = document.getElementById('aniInput');
+            if (aniInput) {
+                aniInput.placeholder = currentLang === 'zh'
+                    ? '输入动漫名称或粘贴链接 (例如: One Piece, 鬼灭之刃 或 https://anitaku.com.ro/...)'
+                    : (currentLang === 'km' ? 'វាយឈ្មោះរឿង Anime ឬបិទភ្ជាប់តំណ (ឧ. One Piece, Bleach ឬ https://anitaku.com.ro/...)' : 'Search anime or paste link (e.g. One Piece, Bleach or https://anitaku.com.ro/...)');
+            }
+
+            // 19. AnimeXin Platform UI
+            const axInput = document.getElementById('axInput');
+            if (axInput) {
+                axInput.placeholder = currentLang === 'zh'
+                    ? '输入国漫名称或粘贴链接 (例如: 仙逆, 吞噬星空 或 https://animexin.dev/...)'
+                    : (currentLang === 'km' ? 'វាយឈ្មោះរឿង Donghua ឬបិទភ្ជាប់តំណរ (ឧ. Renegade Immortal, Swallowed Star ឬ https://animexin.dev/...)' : 'Search Donghua or paste link (e.g. Renegade Immortal, Swallowed Star or https://animexin.dev/...)');
+            }
         }
 
 
@@ -1250,12 +1302,34 @@
                 }
             }
 
-            // Update HaoSou detail card title if displayed
+            // Update HaoSou detail card title & desc if displayed
             if (typeof currentHsDrama !== 'undefined' && currentHsDrama && currentHsDrama.title) {
                 const hsTitleEl = document.getElementById('hsCardTitle');
                 if (hsTitleEl) {
                     const disp = currentLang === 'original' ? currentHsDrama.title : getDisplayTitle(currentHsDrama.title);
                     hsTitleEl.textContent = disp;
+                }
+                if (typeof window.translateHaoSouDesc === 'function') {
+                    window.translateHaoSouDesc(currentHsDrama.id, currentHsDrama.desc);
+                }
+            }
+
+            // Update Beeplaylet card titles and detail card if displayed
+            document.querySelectorAll('.bp-card-title[data-original-title]').forEach(el => {
+                const orig = el.getAttribute('data-original-title');
+                if (!orig) return;
+                const display = getDisplayTitle(orig);
+                el.innerText = display;
+                el.setAttribute('title', display);
+            });
+            if (typeof currentBpDrama !== 'undefined' && currentBpDrama && currentBpDrama.title) {
+                const bpTitleEl = document.getElementById('bpCardTitle');
+                if (bpTitleEl) {
+                    const disp = currentLang === 'original' ? currentBpDrama.title : getDisplayTitle(currentBpDrama.title);
+                    bpTitleEl.textContent = disp;
+                }
+                if (typeof window.translateBeeplayletDesc === 'function') {
+                    window.translateBeeplayletDesc(currentBpDrama.id, currentBpDrama.desc);
                 }
             }
 
@@ -1277,22 +1351,39 @@
                 el.setAttribute('title', display);
             });
 
-            // Update Dailymotion detail card title if displayed
-            if (typeof _activeDmPlayerVideo !== 'undefined' && _activeDmPlayerVideo && _activeDmPlayerVideo.title) {
-                const dmTitleEl = document.getElementById('dmCardTitle');
-                const dmSubEl = document.getElementById('dmCardSubOrig');
-                if (dmTitleEl) {
-                    const disp = currentLang === 'original' ? _activeDmPlayerVideo.title : getDisplayTitle(_activeDmPlayerVideo.title);
-                    dmTitleEl.textContent = disp;
+            // Update AniTaku card titles
+            document.querySelectorAll('.ani-card-title[data-original-title]').forEach(el => {
+                const orig = el.getAttribute('data-original-title');
+                if (!orig) return;
+                const display = currentLang === 'original' ? orig : getDisplayTitle(orig);
+                el.innerText = display;
+                el.setAttribute('title', display);
+            });
+            if (typeof _aniActiveAnime !== 'undefined' && _aniActiveAnime && _aniActiveAnime.title) {
+                const aniTitleEl = document.getElementById('aniShowcaseTitle');
+                if (aniTitleEl) {
+                    aniTitleEl.textContent = currentLang === 'original' ? _aniActiveAnime.title : getDisplayTitle(_aniActiveAnime.title);
                 }
-                if (dmSubEl) {
-                    dmSubEl.textContent = (currentLang !== 'original' && currentLang !== 'zh') ? _activeDmPlayerVideo.title : '';
+            }
+
+            // Update AnimeXin card titles
+            document.querySelectorAll('.ax-card-title[data-original-title]').forEach(el => {
+                const orig = el.getAttribute('data-original-title');
+                if (!orig) return;
+                const display = currentLang === 'original' ? orig : getDisplayTitle(orig);
+                el.innerText = display;
+                el.setAttribute('title', display);
+            });
+            if (typeof _axActiveAnime !== 'undefined' && _axActiveAnime && _axActiveAnime.title) {
+                const axTitleEl = document.getElementById('axShowcaseTitle');
+                if (axTitleEl) {
+                    axTitleEl.textContent = currentLang === 'original' ? _axActiveAnime.title : getDisplayTitle(_axActiveAnime.title);
                 }
             }
         }
 
         function applyDramaTitlesTranslation() {
-            const titleSelectors = '.card-title[data-original-title], .mv-card-title[data-original-title], .hs-card-title[data-original-title], .starred-card-title[data-original-title], .dm-card-title[data-original-title]';
+            const titleSelectors = '.card-title[data-original-title], .mv-card-title[data-original-title], .hs-card-title[data-original-title], .bp-card-title[data-original-title], .starred-card-title[data-original-title], .dm-card-title[data-original-title], .ani-card-title[data-original-title], .ax-card-title[data-original-title]';
             if (currentLang === 'original') {
                 document.querySelectorAll(titleSelectors).forEach(el => {
                     const orig = el.getAttribute('data-original-title');
@@ -1322,12 +1413,28 @@
                 if (typeof currentHsDrama !== 'undefined' && currentHsDrama && currentHsDrama.title) {
                     const hsTitleEl = document.getElementById('hsCardTitle');
                     if (hsTitleEl) hsTitleEl.textContent = currentHsDrama.title;
+                    const hsDescEl = document.getElementById('hsCardDesc');
+                    if (hsDescEl) hsDescEl.textContent = currentHsDrama.desc || '';
+                }
+                if (typeof currentBpDrama !== 'undefined' && currentBpDrama && currentBpDrama.title) {
+                    const bpTitleEl = document.getElementById('bpCardTitle');
+                    if (bpTitleEl) bpTitleEl.textContent = currentBpDrama.title;
+                    const bpDescEl = document.getElementById('bpCardDesc');
+                    if (bpDescEl) bpDescEl.textContent = currentBpDrama.desc || '';
                 }
                 if (typeof _activeDmPlayerVideo !== 'undefined' && _activeDmPlayerVideo && _activeDmPlayerVideo.title) {
                     const dmTitleEl = document.getElementById('dmCardTitle');
                     const dmSubEl = document.getElementById('dmCardSubOrig');
                     if (dmTitleEl) dmTitleEl.textContent = _activeDmPlayerVideo.title;
                     if (dmSubEl) dmSubEl.textContent = '';
+                }
+                if (typeof _aniActiveAnime !== 'undefined' && _aniActiveAnime && _aniActiveAnime.title) {
+                    const aniTitleEl = document.getElementById('aniShowcaseTitle');
+                    if (aniTitleEl) aniTitleEl.textContent = _aniActiveAnime.title;
+                }
+                if (typeof _axActiveAnime !== 'undefined' && _axActiveAnime && _axActiveAnime.title) {
+                    const axTitleEl = document.getElementById('axShowcaseTitle');
+                    if (axTitleEl) axTitleEl.textContent = _axActiveAnime.title;
                 }
                 document.querySelectorAll('.yt-task-title[data-original-title]').forEach(el => {
                     const orig = el.getAttribute('data-original-title');
@@ -1390,6 +1497,23 @@
                         queueTitleTranslation(currentHsDrama.title);
                     }
                 }
+                if (typeof window.translateHaoSouDesc === 'function') {
+                    window.translateHaoSouDesc(currentHsDrama.id, currentHsDrama.desc);
+                }
+            }
+            if (typeof currentBpDrama !== 'undefined' && currentBpDrama && currentBpDrama.title) {
+                const bpTitleEl = document.getElementById('bpCardTitle');
+                if (bpTitleEl) {
+                    const cached = getDisplayTitle(currentBpDrama.title);
+                    if (cached !== currentBpDrama.title) {
+                        bpTitleEl.textContent = cached;
+                    } else {
+                        queueTitleTranslation(currentBpDrama.title);
+                    }
+                }
+                if (typeof window.translateBeeplayletDesc === 'function') {
+                    window.translateBeeplayletDesc(currentBpDrama.id, currentBpDrama.desc);
+                }
             }
             if (typeof _activeDmPlayerVideo !== 'undefined' && _activeDmPlayerVideo && _activeDmPlayerVideo.title) {
                 const dmTitleEl = document.getElementById('dmCardTitle');
@@ -1404,6 +1528,28 @@
                 }
                 if (dmSubEl) {
                     dmSubEl.textContent = (currentLang !== 'original' && currentLang !== 'zh') ? _activeDmPlayerVideo.title : '';
+                }
+            }
+            if (typeof _aniActiveAnime !== 'undefined' && _aniActiveAnime && _aniActiveAnime.title) {
+                const aniTitleEl = document.getElementById('aniShowcaseTitle');
+                if (aniTitleEl) {
+                    const cached = getDisplayTitle(_aniActiveAnime.title);
+                    if (cached !== _aniActiveAnime.title) {
+                        aniTitleEl.textContent = cached;
+                    } else {
+                        queueTitleTranslation(_aniActiveAnime.title);
+                    }
+                }
+            }
+            if (typeof _axActiveAnime !== 'undefined' && _axActiveAnime && _axActiveAnime.title) {
+                const axTitleEl = document.getElementById('axShowcaseTitle');
+                if (axTitleEl) {
+                    const cached = getDisplayTitle(_axActiveAnime.title);
+                    if (cached !== _axActiveAnime.title) {
+                        axTitleEl.textContent = cached;
+                    } else {
+                        queueTitleTranslation(_axActiveAnime.title);
+                    }
                 }
             }
             document.querySelectorAll('.yt-task-title[data-original-title]').forEach(el => {

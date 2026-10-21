@@ -7,6 +7,28 @@ let _dmPage = 1;
 let _dmCategory = 'trending';
 let _dmItems = [];
 let _dmLoadedIds = new Set();
+let _dmLoadedKeys = new Set();
+
+function getDeduplicationKey(item) {
+    if (!item) return '';
+    const rawTitle = String(item.title || '');
+    const clean = rawTitle
+        .toLowerCase()
+        .replace(/[^\w\u1780-\u17ff\u4e00-\u9fa5]/g, ' ')
+        .replace(/\b(full\s*movie|full\s*short\s*drama|full\s*drama|english\s*sub\w*|eng\s*sub\w*|chinese\s*drama|short\s*drama|chinese|drama|202[0-9]|hd|1080p|4k|reels?|part\s*\d+|ep\s*\d+|reelshort|dramabox|shortmax|ពេញមួយរឿង|រឿងភាគខ្លី|រឿងភាគចិន|完整版|完整劇集|全集)\b/gi, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+    if (clean && clean.length >= 4) {
+        return 'title_' + clean;
+    }
+    const rawNorm = rawTitle.toLowerCase().replace(/[^a-z0-9\u1780-\u17ff\u4e00-\u9fa5]/g, '');
+    if (rawNorm.length >= 6) {
+        return 'raw_' + rawNorm.slice(0, 30);
+    }
+    return 'id_' + (item.id || '');
+}
+
 let _activeDmPlayerVideo = null;
 let _activeDmEpisodes = [];
 let _dmTasksPollingTimer = null;
@@ -64,6 +86,7 @@ async function loadDailymotionFeed(page = 1, append = false) {
 
     if (!append) {
         _dmLoadedIds.clear();
+        _dmLoadedKeys.clear();
         _dmItems = [];
         if (grid) {
             grid.innerHTML = `
@@ -89,10 +112,13 @@ async function loadDailymotionFeed(page = 1, append = false) {
             if (!item || !item.id) continue;
             // Strict client-side verification: duration >= 1800 (>= 30 mins)
             if (Number(item.duration) < 1800) continue;
-            // Deduplication: Never add duplicate video ID
+            // Deduplication: Never add duplicate video ID or duplicate title/content
             if (_dmLoadedIds.has(item.id)) continue;
+            const dedupKey = getDeduplicationKey(item);
+            if (dedupKey && _dmLoadedKeys.has(dedupKey)) continue;
 
             _dmLoadedIds.add(item.id);
+            if (dedupKey) _dmLoadedKeys.add(dedupKey);
             newItems.push(item);
         }
 
@@ -100,7 +126,7 @@ async function loadDailymotionFeed(page = 1, append = false) {
             _dmItems.push(...newItems);
             appendDailymotionCards(newItems);
         } else {
-            _dmItems = newItems;
+            _dmItems = (typeof shuffleArray === 'function') ? shuffleArray(newItems) : newItems;
             renderDailymotionCards(_dmItems);
         }
 
@@ -120,6 +146,24 @@ async function loadDailymotionFeed(page = 1, append = false) {
         }
     }
 }
+
+function shuffleDailymotionFeed() {
+    if (_dmItems && _dmItems.length > 0) {
+        if (typeof shuffleArray === 'function') {
+            if (window._dmActiveVideoId) {
+                const activeItem = _dmItems.find(x => x.id === window._dmActiveVideoId) || _dmItems[0];
+                const others = _dmItems.filter(x => x.id !== activeItem.id);
+                _dmItems = [activeItem, ...shuffleArray(others)];
+            } else {
+                _dmItems = shuffleArray(_dmItems);
+            }
+        }
+        renderDailymotionCards(_dmItems);
+    } else {
+        loadDailymotionFeed(1, false);
+    }
+}
+window.shuffleDailymotionFeed = shuffleDailymotionFeed;
 
 /**
  * Load More button handler (Appends 50+ more 30+ min Chinese dramas)
@@ -205,12 +249,26 @@ function buildDramaCardHtml(item) {
     const showSubOrig = (curLang === 'en' || curLang === 'original');
     const subOrigHtml = showSubOrig ? `<div class="dm-card-sub-orig" title="${rawTitleSafe}">${rawTitleSafe}</div>` : '';
     const badgeText = curLang === 'km' ? '30+ នាទី' : (curLang === 'zh' ? '30+ 分钟' : '30M+');
-    const playBtnText = curLang === 'zh' ? '▶️ 播放' : (curLang === 'km' ? '▶️ មើល & លេង' : '▶️ Play');
+    const isPlaying = Boolean(window._dmActiveVideoId && window._dmActiveVideoId === item.id);
+    const isStarred = (typeof isDramaStarred === 'function') && isDramaStarred(item.id, 'dailymotion');
+    const playBtnText = isPlaying
+        ? (curLang === 'zh' ? '▶️ 正在播放' : (curLang === 'km' ? '▶️ កំពុងចាក់' : '▶️ Playing'))
+        : (curLang === 'zh' ? '▶️ 播放' : (curLang === 'km' ? '▶️ មើល & លេង' : '▶️ Play'));
     const jsonItem = escapeHtml(JSON.stringify(item));
+    const cardActiveStyle = isPlaying
+        ? 'border: 2px solid #ef4444; box-shadow: 0 0 18px rgba(239, 68, 68, 0.45); transform: translateY(-2px);'
+        : '';
+    const playingPill = isPlaying
+        ? `<span class="dm-playing-pill" style="position:absolute; top:8px; left:8px; z-index:4; background:#ef4444; color:#fff; font-size:0.72rem; font-weight:700; padding:2px 8px; border-radius:6px; box-shadow:0 2px 6px rgba(0,0,0,0.5); display:flex; align-items:center; gap:4px;">▶ ${curLang === 'km' ? 'កំពុងចាក់' : 'Playing'}</span>`
+        : '';
 
     return `
-        <div class="dm-card" onclick="playDailymotionDrama('${escapeHtml(item.id)}')" data-drama="${jsonItem}">
+        <div class="dm-card ${isPlaying ? 'dm-card-playing' : ''}" style="${cardActiveStyle}" onclick="playDailymotionDrama('${escapeHtml(item.id)}')" data-dm-id="${escapeHtml(item.id)}" data-drama="${jsonItem}">
             <div class="dm-card-poster-wrapper">
+                ${playingPill}
+                <button type="button" class="dm-card-star-btn ${isStarred ? 'starred' : ''}" data-dm-star="${escapeHtml(item.id)}" onclick="toggleDailymotionCardStar(event, '${escapeHtml(item.id)}')" title="PIN / ចំណាំទុកមើល">
+                    ${isStarred ? '★' : '☆'}
+                </button>
                 <img class="dm-card-poster" src="${escapeHtml(thumb)}" alt="${rawTitleSafe}" loading="lazy" onerror="this.src='/ps_logo.jpg';">
                 <span class="dm-card-badge" style="display:flex; align-items:center; gap:4px;">
                     <img src="/dailymotion_icon.svg" style="width:12px; height:12px; vertical-align:middle;">
@@ -228,7 +286,7 @@ function buildDramaCardHtml(item) {
                     <div class="dm-card-meta">
                         <span>👁️ ${escapeHtml(viewsStr)}</span>
                     </div>
-                    <button type="button" class="dm-btn-card-play" onclick="event.stopPropagation(); playDailymotionDrama('${escapeHtml(item.id)}')">
+                    <button type="button" class="dm-btn-card-play" style="${isPlaying ? 'background:#ef4444; border-color:#ef4444; color:#fff;' : ''}" onclick="event.stopPropagation(); playDailymotionDrama('${escapeHtml(item.id)}')">
                         ${playBtnText}
                     </button>
                 </div>
@@ -294,21 +352,60 @@ async function searchDailymotionDramas() {
         if (!res.ok || !json.ok) throw new Error(json.message || 'Search failed');
 
         const rawList = json.data && json.data.list ? json.data.list : [];
-        _dmLoadedIds.clear();
-        _dmItems = [];
+        if (rawList.length === 0) {
+            throw new Error(curLang === 'zh' ? '未找到相关短剧' : (curLang === 'km' ? 'រកមិនឃើញរឿងនេះឡើយ' : 'No dramas found'));
+        }
 
+        const newFoundItems = [];
         for (const item of rawList) {
             if (!item || !item.id) continue;
-            if (_dmLoadedIds.has(item.id)) continue;
-            _dmLoadedIds.add(item.id);
-            _dmItems.push(item);
+            newFoundItems.push(item);
+        }
+
+        const foundIds = new Set(newFoundItems.map(x => x.id));
+        const foundKeys = new Set(newFoundItems.map(x => getDeduplicationKey(x)).filter(Boolean));
+
+        // Preserve all existing recommendation items, filtering out duplicates
+        const existingOthers = (_dmItems || []).filter(x => !foundIds.has(x.id) && !foundKeys.has(getDeduplicationKey(x)));
+
+        // Position #1 (very front) is the found drama, followed by all other recommendation dramas!
+        _dmItems = [...newFoundItems, ...existingOthers];
+
+        // If direct single URL was entered, set active and open player
+        if (newFoundItems.length > 0) {
+            window._dmActiveVideoId = newFoundItems[0].id;
+            if (json.data && json.data.is_direct) {
+                playDailymotionDrama(newFoundItems[0].id);
+            }
+        }
+
+        // Show Reset button in search bar
+        const resetBtn = document.getElementById('btnDmResetFeed');
+        if (resetBtn) resetBtn.style.display = 'inline-flex';
+
+        // Update section title with back button
+        if (title) {
+            const headingText = curLang === 'km'
+                ? 'រឿងដែលអ្នកស្វែងរក & រឿងភាគល្បីៗ'
+                : (curLang === 'zh' ? '搜索结果与热门短剧' : 'Search Result & Popular Dramas');
+            const backText = curLang === 'km' ? '🔙 ត្រឡប់ទៅរឿងទាំងអស់' : '🔙 Back to All';
+            title.innerHTML = `<span>🎬</span> <span>${headingText}</span> <button type="button" class="btn btn-secondary btn-sm" onclick="resetDailymotionFeed()" style="margin-left:14px; font-size:0.8rem; padding:4px 12px; border-radius:6px; cursor:pointer;">${backText}</button>`;
         }
 
         renderDailymotionCards(_dmItems);
 
-        // If direct single URL was entered, open it immediately!
-        if (json.data && json.data.is_direct && _dmItems.length === 1) {
-            playDailymotionDrama(_dmItems[0].id);
+        // If feed was empty prior to search, fetch background recommendations so user has 30+ dramas below
+        if (_dmItems.length < 10) {
+            fetch(`/api/dailymotion/feed?category=${encodeURIComponent(_dmCategory)}&page=1`)
+                .then(r => r.json())
+                .then(feedData => {
+                    if (feedData && feedData.ok && feedData.data && feedData.data.list) {
+                        const existingIds = new Set(_dmItems.map(x => x.id));
+                        const moreOthers = feedData.data.list.filter(x => !existingIds.has(x.id));
+                        _dmItems = [..._dmItems, ...moreOthers];
+                        renderDailymotionCards(_dmItems);
+                    }
+                }).catch(() => {});
         }
     } catch (err) {
         if (grid) {
@@ -360,6 +457,45 @@ async function playDailymotionDrama(videoIdOrItem) {
         videoId = String(videoIdOrItem).trim();
         item = _dmItems.find(x => x.id === videoId);
     }
+
+    // Set as actively playing video without scrambling or re-rendering the card grid
+    window._dmActiveVideoId = videoId;
+    document.querySelectorAll('.dm-card').forEach(c => {
+        const cId = c.getAttribute('data-dm-id');
+        const isThis = (cId === videoId);
+        c.classList.toggle('dm-card-playing', isThis);
+        c.style.border = isThis ? '2px solid #ef4444' : '';
+        c.style.boxShadow = isThis ? '0 0 18px rgba(239, 68, 68, 0.45)' : '';
+        c.style.transform = isThis ? 'translateY(-2px)' : '';
+
+        let pill = c.querySelector('.dm-playing-pill');
+        if (isThis && !pill) {
+            const pWrap = c.querySelector('.dm-card-poster-wrapper');
+            if (pWrap) {
+                const curL = window.currentLang || 'km';
+                const pillHtml = `<span class="dm-playing-pill" style="position:absolute; top:8px; left:8px; z-index:4; background:#ef4444; color:#fff; font-size:0.72rem; font-weight:700; padding:2px 8px; border-radius:6px; box-shadow:0 2px 6px rgba(0,0,0,0.5); display:flex; align-items:center; gap:4px;">▶ ${curL === 'km' ? 'កំពុងចាក់' : 'Playing'}</span>`;
+                pWrap.insertAdjacentHTML('afterbegin', pillHtml);
+            }
+        } else if (!isThis && pill) {
+            pill.remove();
+        }
+
+        const pBtn = c.querySelector('.dm-btn-card-play');
+        if (pBtn) {
+            const curL = window.currentLang || 'km';
+            if (isThis) {
+                pBtn.style.background = '#ef4444';
+                pBtn.style.borderColor = '#ef4444';
+                pBtn.style.color = '#fff';
+                pBtn.textContent = curL === 'zh' ? '▶️ 正在播放' : (curL === 'km' ? '▶️ កំពុងចាក់' : '▶️ Playing');
+            } else {
+                pBtn.style.background = '';
+                pBtn.style.borderColor = '';
+                pBtn.style.color = '';
+                pBtn.textContent = curL === 'zh' ? '▶️ 播放' : (curL === 'km' ? '▶️ មើល & លេង' : '▶️ Play');
+            }
+        }
+    });
 
     const card = document.getElementById('dmDramaCard');
     const iframe = document.getElementById('dmVideoPlayer');
@@ -430,6 +566,15 @@ async function playDailymotionDrama(videoIdOrItem) {
     // Smoothly scroll to the detail player card
     if (card) {
         card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    // Update Star (PIN) button state
+    const dmStarBtn = document.getElementById('dmStarBtn');
+    if (dmStarBtn) {
+        const isStarred = (typeof isDramaStarred === 'function') && isDramaStarred(videoId, 'dailymotion');
+        dmStarBtn.innerHTML = isStarred ? '⭐ បាន PIN' : '☆ ចំណាំទុក (PIN)';
+        dmStarBtn.classList.toggle('btn-primary', isStarred);
+        dmStarBtn.classList.toggle('btn-secondary', !isStarred);
     }
 
     // Update Output Dir Display
@@ -553,7 +698,32 @@ function closeDmDramaCard() {
     }
 
     _activeDmPlayerVideo = null;
+    window._dmActiveVideoId = null;
+    if (_dmItems && _dmItems.length > 0) {
+        renderDailymotionCards(_dmItems);
+    }
 }
+
+/**
+ * Reset Dailymotion Feed to Full Recommendation View (Back Button)
+ */
+function resetDailymotionFeed() {
+    const input = document.getElementById('dmDramaInput');
+    if (input) input.value = '';
+
+    const resetBtn = document.getElementById('btnDmResetFeed');
+    if (resetBtn) resetBtn.style.display = 'none';
+
+    const title = document.getElementById('dmSectionTitle');
+    const curLang = window.currentLang || 'km';
+    if (title) {
+        title.innerHTML = `<span>🎬</span> <span>${curLang === 'km' ? 'រឿងភាគល្បីៗ' : (curLang === 'zh' ? '热门华语短剧' : 'Popular Short Dramas')}</span>`;
+    }
+
+    window._dmActiveVideoId = null;
+    loadDailymotionFeed(1, false);
+}
+window.resetDailymotionFeed = resetDailymotionFeed;
 
 /**
  * Pick Output Folder for Dailymotion
@@ -562,11 +732,12 @@ async function pickDmFolder() {
     if (window.electronAPI && typeof window.electronAPI.selectFolder === 'function') {
         const folder = await window.electronAPI.selectFolder();
         if (folder) {
-            const outDirEl = document.getElementById('dmOutputDirDisplay');
-            if (outDirEl) {
-                outDirEl.textContent = folder;
-                outDirEl.title = folder;
-            }
+            if (typeof updateDownloadFolderUI === 'function') updateDownloadFolderUI(folder);
+            fetch('/dl/config', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ output_dir: folder })
+            }).catch(() => {});
         }
     }
 }
@@ -595,12 +766,15 @@ function downloadCurrentDailymotionVideo() {
 /**
  * Trigger Dailymotion Video Download via yt-dlp
  */
-async function downloadDailymotionVideo(id, title, url = null) {
+async function downloadDailymotionVideo(id, title, url = null, thumbnail = null) {
     const curLang = window.currentLang || 'km';
     if (typeof showToast === 'function') {
         const msg = curLang === 'zh' ? '已加入 Dailymotion 下载队列 ⚡' : 'បានបញ្ជូនទៅកាន់បញ្ជីទាញយក Dailymotion ⚡';
         showToast(msg);
     }
+
+    const activeItem = (_activeDmPlayerVideo && _activeDmPlayerVideo.id === id) ? _activeDmPlayerVideo : ((_dmItems || []).find(it => it && it.id === id) || null);
+    const thumbUrl = thumbnail || (activeItem && (activeItem.thumbnail || activeItem.poster)) || '';
 
     try {
         const res = await fetch('/api/dailymotion/download', {
@@ -609,7 +783,8 @@ async function downloadDailymotionVideo(id, title, url = null) {
             body: JSON.stringify({
                 video_id: id,
                 title: title || 'Dailymotion_Drama',
-                url: url || `https://www.dailymotion.com/video/${id}`
+                url: url || `https://www.dailymotion.com/video/${id}`,
+                thumbnail: thumbUrl
             })
         });
 
@@ -623,6 +798,7 @@ async function downloadDailymotionVideo(id, title, url = null) {
         if (tasksContainer) tasksContainer.style.display = 'block';
         startDmTasksPolling();
         fetchDmTasks();
+        if (typeof startDownloadPolling === 'function') startDownloadPolling(true);
 
     } catch (err) {
         if (typeof showToast === 'function') {
@@ -750,3 +926,33 @@ window.stopDmTasksPolling = stopDmTasksPolling;
 window.fetchDmTasks = fetchDmTasks;
 window.cancelDmTask = cancelDmTask;
 window.openDmFolder = openDmFolder;
+
+// PIN (Star) Favorite Handlers
+function toggleDailymotionCardStar(event, videoId) {
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+    const item = _dmItems.find(x => x.id === videoId) || (_activeDmPlayerVideo && _activeDmPlayerVideo.id === videoId ? _activeDmPlayerVideo : null);
+    if (!item && !videoId) return;
+    const title = (item && item.title) || (_activeDmPlayerVideo && _activeDmPlayerVideo.title) || 'Dailymotion Short Drama';
+    const cover = (item && (item.thumbnail || item.poster)) || '/ps_logo.jpg';
+    const duration = (item && (item.duration_str || item.remarks)) || '30+ នាទី';
+    if (typeof toggleDramaStar === 'function') {
+        toggleDramaStar({
+            id: videoId,
+            title: title,
+            cover: cover,
+            platform: 'dailymotion',
+            remarks: duration,
+            eps: 1
+        });
+    }
+}
+window.toggleDailymotionCardStar = toggleDailymotionCardStar;
+
+function toggleDailymotionDetailStar() {
+    if (!_activeDmPlayerVideo || !_activeDmPlayerVideo.id) return;
+    toggleDailymotionCardStar(null, _activeDmPlayerVideo.id);
+}
+window.toggleDailymotionDetailStar = toggleDailymotionDetailStar;

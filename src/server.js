@@ -4,8 +4,14 @@
  * on-the-fly CENC Decryption for audio/video playback, and Download controls.
  */
 
+const dns = require('dns');
+if (dns && typeof dns.setDefaultResultOrder === 'function') {
+  dns.setDefaultResultOrder('ipv4first');
+}
+
 const http = require('http');
 const https = require('https');
+const os = require('os');
 const path = require('path');
 const fs = require('fs');
 const { exec } = require('child_process');
@@ -35,11 +41,16 @@ const { haosouDownloader } = require('./haosou_downloader.js');
 const { mvffmDownloader } = require('./mvffm_downloader.js');
 const { dailymotionDownloader } = require('./dailymotion_downloader.js');
 const { tiktokDownloader } = require('./tiktok_downloader.js');
+const { beeplayletDownloader } = require('./beeplaylet_downloader.js');
+const { anitakuDownloader } = require('./anitaku_downloader.js');
+const { animexinDownloader } = require('./animexin_downloader.js');
 const { downloadMemoryManager } = require('./download_memory_manager.js');
+const { mergeDramaEpisodes } = require('./video_merger.js');
 const { checkForUpdates, applyUpdate, getUpdateProgress } = require('./updater.js');
 const { probeDramaQuality, probeBatch } = require('./video_prober.js');
 const {
   getLicenseStatus,
+  getLicenseStatusForDevice,
   activateLicense,
   deactivateLicense,
   getDeviceId,
@@ -59,9 +70,11 @@ const {
   clearFailedAttemptsHistory,
   clearPaymentRequests,
   setDeviceCustomName,
+  syncDeviceFromCloud,
   adjustDeviceDays,
   revokeDeviceLicense,
   transferDeviceLicense,
+  deleteTrackedDevice,
   recordPaymentNotification,
   getPaymentRequests,
   registerPendingCheckout,
@@ -80,22 +93,79 @@ function setNativeFolderPicker(cb) {
 
 /**
  * Guards API endpoints that require an active license.
+ * Distinguishes between local Desktop PC requests vs Mobile / Remote LAN requests.
  * When unlicensed or expired, blocks execution and returns 403 Forbidden.
  */
-function requireLicenseAuth(res) {
-  const lic = getLicenseStatus();
-  if (!lic.activated) {
+function requireLicenseAuth(res, explicitReq = null) {
+  const req = explicitReq || res.req || null;
+  let clientDevId = null;
+  let isMobileClient = false;
+  if (req) {
+    try {
+      const parsed = new URL(req.url, `http://${req.headers?.host || '127.0.0.1'}`);
+      clientDevId = parsed.searchParams.get('device_id') || req.headers?.['x-device-id'] || null;
+      isMobileClient = req.headers?.['x-device-type'] === 'mobile' ||
+        Boolean(clientDevId && clientDevId.startsWith('HG-M')) ||
+        /mobile|android|iphone|ipad/i.test(req.headers?.['user-agent'] || '');
+    } catch (_) {}
+  }
+
+  // Determine remote IP vs localhost
+  const remoteIp = req?.socket?.remoteAddress || req?.connection?.remoteAddress || '';
+  const isLocalhost = remoteIp === '127.0.0.1' || remoteIp === '::1' || remoteIp === '::ffff:127.0.0.1';
+
+  let lic;
+  if (isMobileClient || !isLocalhost || (clientDevId && clientDevId.startsWith('HG-M'))) {
+    // Mobile device or external WiFi access MUST have an active device license
+    if (!clientDevId) {
+      sendJson(res, 403, {
+        ok: false,
+        error: 'ឧបករណ៍ទូរសព្ទដៃត្រូវការ License Key ដើម្បីទាញយក ឬចាក់វីដេអូ! សូមបញ្ចូល License Key។',
+        license_required: true,
+        remaining_days: 0
+      });
+      return false;
+    }
+    lic = getLicenseStatusForDevice(clientDevId);
+  } else {
+    // Desktop PC running locally
+    lic = getLicenseStatus();
+  }
+
+  if (!lic || !lic.activated) {
     sendJson(res, 403, {
       ok: false,
-      error: lic.expired ? 'License របស់អ្នកបានផុតកំណត់ហើយ! សូមទាក់ទង Admin ឬទិញបន្ថែម។' : 'កម្មវិធីមិនទាន់បាន Activate ឡើយ! សូមបញ្ចូល License Key។',
-      expired: !!lic.expired,
+      error: lic && lic.expired ? 'License របស់អ្នកបានផុតកំណត់ហើយ! សូមទាក់ទង Admin ឬទិញបន្ថែម។' : 'ឧបករណ៍នេះមិនទាន់មាន License ឡើយ! សូមបញ្ចូល License Key។',
+      expired: !!(lic && lic.expired),
       license_required: true,
-      device_id: lic.device_id,
-      remaining_days: lic.remaining_days || 0
+      device_id: (lic && lic.device_id) || clientDevId,
+      remaining_days: (lic && lic.remaining_days) || 0
     });
     return false;
   }
   return true;
+}
+
+/**
+ * Attaches real-time Khmer translations to drama item lists from the local translation cache.
+ */
+async function attachKhmerTranslations(items) {
+  if (!Array.isArray(items) || items.length === 0) return items;
+  try {
+    const titles = items.map(it => it.title || it.series_title).filter(Boolean);
+    if (titles.length > 0) {
+      const transMap = await translateBatchTitles(titles, 'km');
+      items.forEach(it => {
+        const raw = it.title || it.series_title;
+        if (raw && transMap[raw]) {
+          it.title_km = transMap[raw];
+        }
+      });
+    }
+  } catch (e) {
+    console.warn('[Server] attachKhmerTranslations error:', e.message);
+  }
+  return items;
 }
 
 // In-memory image cache (url -> { buffer, contentType })
@@ -157,26 +227,6 @@ function sendError(res, statusCode, message) {
   sendJson(res, statusCode, { error: true, message, detail: message });
 }
 
-/**
- * Enforces machine license validation for protected action endpoints
- * (video playback, episode extraction, downloads, YouTube/HaoSou/MvFfm fetching).
- * Returns true if valid/activated; otherwise sends 403 Forbidden with license info.
- */
-function requireLicenseAuth(res) {
-  const lic = getLicenseStatus();
-  if (!lic || !lic.activated) {
-    sendJson(res, 403, {
-      ok: false,
-      error: 'អ្នកមិនមាន License ឬ License របស់អ្នកបានផុតកំណត់ហើយ។ សូមធ្វើការ Activate License ជាមុនសិន!',
-      license_required: true,
-      expired: (lic && lic.expired) ? true : false,
-      remaining_days: (lic && typeof lic.remaining_days === 'number') ? lic.remaining_days : 0,
-      device_id: (lic && lic.device_id) || getDeviceId()
-    });
-    return false;
-  }
-  return true;
-}
 
 /**
  * Fetch image following all 301/302 redirects with correct Referer header.
@@ -188,10 +238,23 @@ function fetchImageWithRedirects(targetUrl, maxRedirects = 5) {
     const parsed = new URL(targetUrl);
     const client = parsed.protocol === 'https:' ? https : http;
 
+    let reqReferer = 'https://hongguoduanju.com/';
+    if (parsed.hostname.includes('1dfx.com') || parsed.hostname.includes('lzipic.com')) {
+      reqReferer = 'https://dj.1dfx.com/';
+    } else if (parsed.hostname.includes('anitaku')) {
+      reqReferer = 'https://anitaku.com.ro/';
+    } else if (parsed.hostname.includes('animexin')) {
+      reqReferer = 'https://animexin.dev/';
+    } else if (parsed.hostname.includes('mvffm')) {
+      reqReferer = 'https://mvffm.net/';
+    } else if (parsed.hostname.includes('dailymotion')) {
+      reqReferer = 'https://www.dailymotion.com/';
+    }
+
     const req = client.get(targetUrl, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-        'Referer': 'https://hongguoduanju.com/',
+        'Referer': reqReferer,
         'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
         'Accept-Language': 'zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7'
       },
@@ -228,7 +291,7 @@ function fetchImageWithRedirects(targetUrl, maxRedirects = 5) {
 /**
  * Stream local MP4 file with full HTTP 206 Range requests support.
  */
-function streamLocalFile(filePath, req, res) {
+function streamLocalFile(filePath, req, res, filename = null) {
   const stat = fs.statSync(filePath);
   const fileSize = stat.size;
   const range = req.headers.range;
@@ -236,6 +299,10 @@ function streamLocalFile(filePath, req, res) {
   res.setHeader('Accept-Ranges', 'bytes');
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Expose-Headers', 'Content-Range, Content-Length, Accept-Ranges');
+  if (filename) {
+    res.setHeader('Content-Type', 'application/octet-stream');
+    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(filename)}"`);
+  }
 
   if (range) {
     const parts = range.replace(/bytes=/, '').split('-');
@@ -254,7 +321,7 @@ function streamLocalFile(filePath, req, res) {
     res.writeHead(206, {
       'Content-Range': `bytes ${start}-${end}/${fileSize}`,
       'Content-Length': chunksize,
-      'Content-Type': 'video/mp4'
+      'Content-Type': filename ? 'application/octet-stream' : 'video/mp4'
     });
 
     const stream = fs.createReadStream(filePath, { start, end });
@@ -262,7 +329,7 @@ function streamLocalFile(filePath, req, res) {
   } else {
     res.writeHead(200, {
       'Content-Length': fileSize,
-      'Content-Type': 'video/mp4'
+      'Content-Type': filename ? 'application/octet-stream' : 'video/mp4'
     });
     fs.createReadStream(filePath).pipe(res);
   }
@@ -483,29 +550,46 @@ function pruneVideoCache(maxBytes = 200 * 1024 * 1024) {
   } catch (_) {}
 }
 
-function startServer(port = PORT, host = HOST) {
-  pruneVideoCache();
-  setInterval(pruneVideoCache, 3600000);
-  const server = http.createServer(async (req, res) => {
-    // CORS headers
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, DELETE');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Range, Authorization');
-    res.setHeader('Access-Control-Expose-Headers', 'Content-Range, Content-Length, Accept-Ranges');
+async function handleServerRequest(req, res, fallbackHost = HOST, fallbackPort = PORT) {
+  const host = fallbackHost;
+  const port = fallbackPort;
 
-    if (req.method === 'OPTIONS') {
-      res.writeHead(204);
-      return res.end();
-    }
+  // CORS headers
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, DELETE');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Range, Authorization');
+  res.setHeader('Access-Control-Expose-Headers', 'Content-Range, Content-Length, Accept-Ranges');
 
-    const baseUrl = `http://${req.headers.host || `${host}:${port}`}`;
-    const parsedUrl = new URL(req.url, baseUrl);
-    const pathname = parsedUrl.pathname;
-    const query = Object.fromEntries(parsedUrl.searchParams.entries());
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204);
+    return res.end();
+  }
 
-    try {
-      // 1. Web UI: GET / and GET /dl
-      if (pathname === '/' || pathname === '/dl') {
+  const baseUrl = `http://${req.headers.host || `${host}:${port}`}`;
+  const parsedUrl = new URL(req.url, baseUrl);
+  const pathname = parsedUrl.pathname;
+  const query = Object.fromEntries(parsedUrl.searchParams.entries());
+
+  try {
+      // 1. Web UI & Mobile Routing
+      const cleanPath = pathname.replace(/\/+$/, '') || '/';
+      const userAgent = req.headers['user-agent'] || '';
+      const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(userAgent);
+      const forceDesktop = query.desktop === '1' || query.mode === 'desktop';
+      const forceMobile = query.mobile === '1' || query.mode === 'mobile';
+
+      // 1a-2. Mobile Web App UI: GET /mobile, GET /m, GET /app, or automatic mobile client on root /
+      if (cleanPath === '/mobile' || cleanPath === '/m' || cleanPath === '/app' || (cleanPath === '/' && isMobileUA && !forceDesktop) || forceMobile) {
+        const mobilePath = path.join(WEB_DIR, 'mobile.html');
+        if (fs.existsSync(mobilePath)) {
+          const content = fs.readFileSync(mobilePath, 'utf-8');
+          res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+          return res.end(content);
+        }
+      }
+
+      // 1. Web UI: GET / and GET /dl (Desktop)
+      if (cleanPath === '/' || cleanPath === '/dl') {
         const indexPath = path.join(WEB_DIR, 'index.html');
         if (fs.existsSync(indexPath)) {
           const content = fs.readFileSync(indexPath, 'utf-8');
@@ -517,7 +601,7 @@ function startServer(port = PORT, host = HOST) {
       }
 
       // 1a. Admin Generator Web UI: GET /admin
-      if (pathname === '/admin') {
+      if (cleanPath === '/admin') {
         const adminPath = path.join(WEB_DIR, 'admin.html');
         if (fs.existsSync(adminPath)) {
           const content = fs.readFileSync(adminPath, 'utf-8');
@@ -553,15 +637,21 @@ function startServer(port = PORT, host = HOST) {
       if (pathname === '/img') {
         const imgUrl = query.url;
         if (!imgUrl) return sendError(res, 400, 'Missing url query parameter');
+        const isDownload = query.download === '1' || query.dl === '1';
+        const downloadFilename = query.filename || 'poster.jpg';
 
         // Check in-memory cache
         if (_IMG_CACHE.has(imgUrl)) {
           const cached = _IMG_CACHE.get(imgUrl);
-          res.writeHead(200, {
+          const headers = {
             'Content-Type': cached.contentType,
             'Cache-Control': 'public, max-age=86400',
             'Access-Control-Allow-Origin': '*'
-          });
+          };
+          if (isDownload) {
+            headers['Content-Disposition'] = `attachment; filename="${encodeURIComponent(downloadFilename)}"; filename*=UTF-8''${encodeURIComponent(downloadFilename)}`;
+          }
+          res.writeHead(200, headers);
           return res.end(cached.buffer);
         }
 
@@ -570,33 +660,66 @@ function startServer(port = PORT, host = HOST) {
           if (_IMG_CACHE.size < 1000) {
             _IMG_CACHE.set(imgUrl, { buffer, contentType });
           }
-          res.writeHead(200, {
+          const headers = {
             'Content-Type': contentType,
             'Cache-Control': 'public, max-age=86400',
             'Access-Control-Allow-Origin': '*'
-          });
+          };
+          if (isDownload) {
+            headers['Content-Disposition'] = `attachment; filename="${encodeURIComponent(downloadFilename)}"; filename*=UTF-8''${encodeURIComponent(downloadFilename)}`;
+          }
+          res.writeHead(200, headers);
           return res.end(buffer);
         } catch (err) {
           return sendError(res, 502, `Failed to proxy image: ${err.message}`);
         }
       }
 
-      // 3. Library Poster: GET /api/library/poster?folder=...
+      // 3. Library Poster: GET /api/library/poster?folder=... or ?path=...
       if (pathname === '/api/library/poster') {
-        const folder = query.folder;
-        if (!folder) return sendError(res, 400, 'Missing folder parameter');
+        const folder = query.folder || '';
+        const customPath = query.path || '';
+        if (!folder && !customPath) return sendError(res, 400, 'Missing folder parameter');
 
-        const folderPath = path.join(getOutputDir(), folder);
-        for (const fname of ['poster.jpg', 'cover.jpg', 'poster.png', 'cover.png']) {
-          const p = path.join(folderPath, fname);
-          if (fs.existsSync(p)) {
-            const ext = path.extname(fname).toLowerCase();
-            const mime = ext === '.png' ? 'image/png' : 'image/jpeg';
-            res.writeHead(200, {
-              'Content-Type': mime,
-              'Cache-Control': 'public, max-age=86400'
-            });
-            return fs.createReadStream(p).pipe(res);
+        const outRoot = getOutputDir();
+        const candidateFolders = [];
+        if (customPath && fs.existsSync(customPath)) {
+          try {
+            if (fs.statSync(customPath).isDirectory()) {
+              candidateFolders.push(customPath);
+            } else {
+              const ext = path.extname(customPath).toLowerCase();
+              const mime = ext === '.png' ? 'image/png' : (ext === '.webp' ? 'image/webp' : 'image/jpeg');
+              res.writeHead(200, { 'Content-Type': mime, 'Cache-Control': 'public, max-age=86400' });
+              return fs.createReadStream(customPath).pipe(res);
+            }
+          } catch (_) {}
+        }
+        if (folder) {
+          candidateFolders.push(path.join(outRoot, folder));
+          for (const sub of ['HaoSou', 'MVFFM', 'Beeplaylet', 'Animexin', 'Anitaku', 'Dailymotion', 'TikTok', 'YouTube']) {
+            candidateFolders.push(path.join(outRoot, sub, folder));
+          }
+        }
+
+        const imgNames = ['poster.jpg', 'cover.jpg', 'poster.png', 'cover.png', 'poster.webp', 'cover.webp'];
+        if (folder) {
+          imgNames.push(`${folder}.jpg`, `${folder}.png`, `${folder}.webp`);
+        }
+
+        for (const dir of candidateFolders) {
+          if (!fs.existsSync(dir)) continue;
+          for (const fname of imgNames) {
+            const p = path.join(dir, fname);
+            if (fs.existsSync(p)) {
+              const ext = path.extname(fname).toLowerCase();
+              const mime = ext === '.png' ? 'image/png' : (ext === '.webp' ? 'image/webp' : 'image/jpeg');
+              res.writeHead(200, {
+                'Content-Type': mime,
+                'Cache-Control': 'public, max-age=86400'
+              });
+              return fs.createReadStream(p).pipe(res);
+            }
           }
         }
         return sendError(res, 404, 'Poster not found');
@@ -612,11 +735,13 @@ function startServer(port = PORT, host = HOST) {
         const streamUrl = query.stream_url || null;
         const spadeA = query.spade_a || null;
         const codec = query.codec || null;
+        const isDownload = query.download === '1' || query.dl === '1';
+        const customFilename = query.filename || `video_${vid}.mp4`;
 
         try {
           const playable = await ensurePlayableVideoFile(vid, seriesId, quality, streamUrl, spadeA, codec);
           if (playable.localFile) {
-            return streamLocalFile(playable.localFile, req, res);
+            return streamLocalFile(playable.localFile, req, res, isDownload ? customFilename : null);
           }
 
           // Unencrypted raw CDN stream fallback with HTTP Range seeking
@@ -634,10 +759,13 @@ function startServer(port = PORT, host = HOST) {
           const client = parsedTarget.protocol === 'https:' ? https : http;
           const proxyReq = client.get(rawUrl, { headers: targetHeaders, timeout: 25000 }, (proxyRes) => {
             const resHeaders = {
-              'Content-Type': proxyRes.headers['content-type'] || 'video/mp4',
+              'Content-Type': isDownload ? 'application/octet-stream' : (proxyRes.headers['content-type'] || 'video/mp4'),
               'Accept-Ranges': 'bytes',
               'Access-Control-Allow-Origin': '*'
             };
+            if (isDownload) {
+              resHeaders['Content-Disposition'] = `attachment; filename="${encodeURIComponent(customFilename)}"`;
+            }
             if (proxyRes.headers['content-range']) resHeaders['Content-Range'] = proxyRes.headers['content-range'];
             if (proxyRes.headers['content-length']) resHeaders['Content-Length'] = proxyRes.headers['content-length'];
 
@@ -738,7 +866,11 @@ function startServer(port = PORT, host = HOST) {
         const page = parseInt(query.page || 1, 10);
         const pageSize = parseInt(query.page_size || 24, 10);
         const category = query.category || 'all';
-        const rankData = await scraper.getRankings(category, page, pageSize);
+        const refresh = query.refresh === '1' || query.refresh === 'true';
+        const rankData = await scraper.getRankings(category, page, pageSize, refresh);
+        if (rankData && Array.isArray(rankData.items)) {
+          await attachKhmerTranslations(rankData.items);
+        }
         return sendJson(res, 200, rankData);
       }
 
@@ -749,6 +881,9 @@ function startServer(port = PORT, host = HOST) {
         const page = parseInt(query.page || 1, 10);
         const pageSize = parseInt(query.page_size || 24, 10);
         const catData = await scraper.getRankings(category, page, pageSize);
+        if (catData && Array.isArray(catData.items)) {
+          await attachKhmerTranslations(catData.items);
+        }
         return sendJson(res, 200, catData);
       }
 
@@ -758,6 +893,9 @@ function startServer(port = PORT, host = HOST) {
         const page = parseInt(query.page || 1, 10);
         const pageSize = parseInt(query.page_size || 24, 10);
         const searchData = await scraper.searchDramas(q, page, pageSize);
+        if (searchData && Array.isArray(searchData.items)) {
+          await attachKhmerTranslations(searchData.items);
+        }
         return sendJson(res, 200, searchData);
       }
 
@@ -793,10 +931,15 @@ function startServer(port = PORT, host = HOST) {
         try {
           const detail = await scraper.getSeriesDetail(seriesId);
           if (detail && detail.series_id) {
+            if (detail.title) {
+              const transMap = await translateBatchTitles([detail.title], 'km');
+              detail.title_km = transMap[detail.title] || detail.title;
+            }
             downloadMemoryManager.addMemory({
               id: detail.series_id,
               platform: 'hongguo',
               title: detail.title,
+              title_km: detail.title_km || '',
               cover: detail.cover || '',
               total_episodes: detail.episode_cnt || 0
             }).catch(() => {});
@@ -950,6 +1093,30 @@ function startServer(port = PORT, host = HOST) {
         }
       }
 
+      // 13d. Merge Existing Downloaded Drama Episodes into Full Video
+      if (pathname === '/api/drama/merge-existing' && req.method === 'POST') {
+        if (!requireLicenseAuth(res)) return;
+        const body = await parseJsonBody(req);
+        const folder = body.folder || '';
+        const title = body.title || folder || 'Drama';
+        const outDir = getOutputDir();
+        const dramaDir = path.isAbsolute(folder) ? folder : path.join(outDir, folder);
+        if (!fs.existsSync(dramaDir)) {
+          return sendJson(res, 404, { ok: false, message: 'រកមិនឃើញ Folder រឿងនេះឡើយ' });
+        }
+        try {
+          const mergeResult = await mergeDramaEpisodes({
+            dramaDir,
+            seriesTitle: title,
+            mode: 'merged',
+            onLog: (msg) => console.log(`[MergeExisting] ${msg}`)
+          });
+          return sendJson(res, 200, { ok: true, result: mergeResult, message: 'បានបញ្ចូលរឿងជាវីដេអូពេញជោគជ័យ!' });
+        } catch (err) {
+          return sendJson(res, 500, { ok: false, error: err.message });
+        }
+      }
+
       // 14. Downloads: POST /dl/submit
       if (pathname === '/dl/submit' && req.method === 'POST') {
         if (!requireLicenseAuth(res)) return;
@@ -973,11 +1140,28 @@ function startServer(port = PORT, host = HOST) {
       // 15. Downloads: GET /dl/status
       if (pathname === '/dl/status') {
         const baseStatus = downloadManager.getStatus();
-        const hsTasks = Array.from(haosouDownloader.tasks.values()).filter(t => ['downloading', 'merging'].includes(t.status));
-        const mvTasks = Array.from(mvffmDownloader.tasks.values()).filter(t => ['downloading', 'merging'].includes(t.status));
+        const hsTasks = (haosouDownloader && haosouDownloader.tasks) ? Array.from(haosouDownloader.tasks.values()).filter(t => ['downloading', 'merging'].includes(t.status)) : [];
+        const mvTasks = (mvffmDownloader && mvffmDownloader.tasks) ? Array.from(mvffmDownloader.tasks.values()).filter(t => ['downloading', 'merging'].includes(t.status)) : [];
+        const bpTasks = (beeplayletDownloader && beeplayletDownloader.tasks) ? Array.from(beeplayletDownloader.tasks.values()).filter(t => ['downloading', 'merging'].includes(t.status)) : [];
+        const axTasks = (animexinDownloader && animexinDownloader.tasks) ? Array.from(animexinDownloader.tasks.values()).filter(t => ['downloading', 'merging', 'queued', 'pending'].includes(t.status)) : [];
+        const aniTasks = (anitakuDownloader && anitakuDownloader.tasks) ? Array.from(anitakuDownloader.tasks.values()).filter(t => ['downloading', 'merging', 'queued', 'pending'].includes(t.status)) : [];
+        const dmTasks = (dailymotionDownloader && dailymotionDownloader.tasks) ? Array.from(dailymotionDownloader.tasks.values()).filter(t => ['downloading', 'merging', 'queued', 'pending'].includes(t.status)) : [];
+
         baseStatus.haosou_tasks = hsTasks;
         baseStatus.mvffm_tasks = mvTasks;
-        baseStatus.total_active_all = (baseStatus.running ? 1 : 0) + hsTasks.length + mvTasks.length;
+        baseStatus.beeplaylet_tasks = bpTasks;
+        baseStatus.animexin_tasks = axTasks;
+        baseStatus.anitaku_tasks = aniTasks;
+        baseStatus.dailymotion_tasks = dmTasks;
+
+        baseStatus.all_animexin_tasks = (animexinDownloader && animexinDownloader.tasks) ? Array.from(animexinDownloader.tasks.values()) : [];
+        baseStatus.all_anitaku_tasks = (anitakuDownloader && anitakuDownloader.tasks) ? Array.from(anitakuDownloader.tasks.values()) : [];
+        baseStatus.all_dailymotion_tasks = (dailymotionDownloader && dailymotionDownloader.tasks) ? Array.from(dailymotionDownloader.tasks.values()) : [];
+        baseStatus.all_haosou_tasks = (haosouDownloader && haosouDownloader.tasks) ? Array.from(haosouDownloader.tasks.values()) : [];
+        baseStatus.all_mvffm_tasks = (mvffmDownloader && mvffmDownloader.tasks) ? Array.from(mvffmDownloader.tasks.values()) : [];
+        baseStatus.all_beeplaylet_tasks = (beeplayletDownloader && beeplayletDownloader.tasks) ? Array.from(beeplayletDownloader.tasks.values()) : [];
+
+        baseStatus.total_active_all = (baseStatus.running ? 1 : 0) + hsTasks.length + mvTasks.length + bpTasks.length + axTasks.length + aniTasks.length + dmTasks.length;
         return sendJson(res, 200, baseStatus);
       }
 
@@ -990,6 +1174,12 @@ function startServer(port = PORT, host = HOST) {
         }
         downloadManager.cancelAll();
         return sendJson(res, 200, { ok: true, message: 'All downloads canceled' });
+      }
+
+      // 16b. Downloads Clear Finished / Canceled: POST /dl/clear-history
+      if ((pathname === '/dl/clear-history' || pathname === '/dl/clear-finished') && req.method === 'POST') {
+        const resData = downloadManager.clearCompletedOrCanceled();
+        return sendJson(res, 200, resData);
       }
 
       // 17. Downloads: POST /dl/resume
@@ -1100,6 +1290,32 @@ function startServer(port = PORT, host = HOST) {
           }
         }
 
+        // 3b. Beeplaylet
+        if (beeplayletDownloader && beeplayletDownloader.tasks) {
+          for (const t of beeplayletDownloader.tasks.values()) {
+            if (['downloading', 'merging', 'queued', 'pending'].includes(t.status)) {
+              const sId = String(t.drama_id || t.seriesId || '');
+              if (sId) activeSeriesIds.add(sId);
+              const tClean = (t.title || t.dramaTitle || '').trim().toLowerCase();
+              const fClean = (t.folderName || t.title || '').trim().replace(/[\\/*?:"<>|\r\n\t]/g, '_').toLowerCase();
+              if (tClean) activeTitles.add(tClean);
+              if (fClean) activeFolders.add(fClean);
+              if (sId) {
+                activeSeriesMap.set(sId, {
+                  series_id: sId,
+                  platform: 'beeplaylet',
+                  title: t.title || t.dramaTitle || `Beeplaylet Drama ${sId}`,
+                  cover: t.cover || '',
+                  done: t.completed_episodes || 0,
+                  total: t.total_episodes || 0,
+                  progress: t.progress_pct || 0,
+                  status: 'downloading'
+                });
+              }
+            }
+          }
+        }
+
         // 4. YouTube
         if (youtubeDownloader && youtubeDownloader.tasks) {
           for (const t of youtubeDownloader.tasks.values()) {
@@ -1107,6 +1323,82 @@ function startServer(port = PORT, host = HOST) {
               if (t.name) activeYtFiles.add(t.name.trim().toLowerCase());
               if (t.filePath) activeYtFiles.add(path.basename(t.filePath).trim().toLowerCase());
               if (t.id) activeYtFiles.add(String(t.id).toLowerCase());
+            }
+          }
+        }
+
+        // 5. AnimeXin
+        if (animexinDownloader && animexinDownloader.tasks) {
+          for (const t of animexinDownloader.tasks.values()) {
+            if (['downloading', 'merging', 'queued', 'pending'].includes(t.status)) {
+              const sId = String(t.anime_id || t.id || t.task_id || '');
+              if (sId) activeSeriesIds.add(sId);
+              const tClean = (t.title || '').trim().toLowerCase();
+              const fClean = (t.folderName || t.title || '').trim().replace(/[\\/*?:"<>|\r\n\t]/g, '_').toLowerCase();
+              if (tClean) activeTitles.add(tClean);
+              if (fClean) activeFolders.add(fClean);
+              if (sId) {
+                activeSeriesMap.set(sId, {
+                  series_id: sId,
+                  platform: 'animexin',
+                  title: t.title || `AnimeXin Donghua ${sId}`,
+                  cover: t.cover || '',
+                  done: t.completed_episodes || 0,
+                  total: t.total_episodes || 0,
+                  progress: t.progress_pct || 0,
+                  status: 'downloading'
+                });
+              }
+            }
+          }
+        }
+
+        // 6. AniTaku
+        if (anitakuDownloader && anitakuDownloader.tasks) {
+          for (const t of anitakuDownloader.tasks.values()) {
+            if (['downloading', 'merging', 'queued', 'pending'].includes(t.status)) {
+              const sId = String(t.anime_id || t.id || t.task_id || '');
+              if (sId) activeSeriesIds.add(sId);
+              const tClean = (t.title || '').trim().toLowerCase();
+              const fClean = (t.folderName || t.title || '').trim().replace(/[\\/*?:"<>|\r\n\t]/g, '_').toLowerCase();
+              if (tClean) activeTitles.add(tClean);
+              if (fClean) activeFolders.add(fClean);
+              if (sId) {
+                activeSeriesMap.set(sId, {
+                  series_id: sId,
+                  platform: 'anitaku',
+                  title: t.title || `AniTaku Anime ${sId}`,
+                  cover: t.cover || '',
+                  done: t.completed_episodes || 0,
+                  total: t.total_episodes || 0,
+                  progress: t.progress_pct || 0,
+                  status: 'downloading'
+                });
+              }
+            }
+          }
+        }
+
+        // 7. Dailymotion
+        if (dailymotionDownloader && dailymotionDownloader.tasks) {
+          for (const t of dailymotionDownloader.tasks.values()) {
+            if (['downloading', 'merging', 'queued', 'pending'].includes(t.status)) {
+              const sId = String(t.video_id || t.id || t.task_id || '');
+              if (sId) activeSeriesIds.add(sId);
+              const tClean = (t.title || '').trim().toLowerCase();
+              if (tClean) activeTitles.add(tClean);
+              if (sId) {
+                activeSeriesMap.set(sId, {
+                  series_id: sId,
+                  platform: 'dailymotion',
+                  title: t.title || `Dailymotion ${sId}`,
+                  cover: t.cover || '',
+                  done: t.progress_pct >= 100 ? 1 : 0,
+                  total: 1,
+                  progress: t.progress_pct || 0,
+                  status: 'downloading'
+                });
+              }
             }
           }
         }
@@ -1353,31 +1645,19 @@ function startServer(port = PORT, host = HOST) {
         return sendJson(res, 200, { status: 'canceled' });
       }
 
-      // 24. Software Updater Check: GET /api/update/check or /dl/update/check
+      // 24. Software Updater Check (Disabled - Portable Distribution)
       if (pathname === '/api/update/check' || pathname === '/dl/update/check') {
-        const repo = query.repo || null;
-        try {
-          const result = await checkForUpdates(repo);
-          return sendJson(res, 200, result);
-        } catch (err) {
-          return sendJson(res, 500, { error: err.message });
-        }
+        return sendJson(res, 200, { ok: true, is_latest: true, has_update: false, current_version: APP_VERSION });
       }
 
-      // 24b. Software Updater Progress: GET /api/update/progress or /dl/update/progress
+      // 24b. Software Updater Progress (Disabled)
       if (pathname === '/api/update/progress' || pathname === '/dl/update/progress') {
-        return sendJson(res, 200, getUpdateProgress());
+        return sendJson(res, 200, { active: false });
       }
 
-      // 24c. Software Updater Apply: POST /api/update/apply or /dl/update/apply
+      // 24c. Software Updater Apply (Disabled)
       if ((pathname === '/api/update/apply' || pathname === '/dl/update/apply') && req.method === 'POST') {
-        const body = await parseJsonBody(req);
-        try {
-          const result = await applyUpdate(body.download_url, body.repo);
-          return sendJson(res, 200, result);
-        } catch (err) {
-          return sendJson(res, 500, { error: err.message });
-        }
+        return sendJson(res, 200, { status: 'disabled', message: 'Manual portable distribution mode' });
       }
 
       // ==========================================
@@ -1420,6 +1700,7 @@ function startServer(port = PORT, host = HOST) {
             url: body.url,
             quality: body.quality || 'best',
             title: body.title,
+            thumbnail: body.thumbnail || '',
             customDir: body.customDir
           });
           if (task && task.name) libraryManager.unclearYoutube(task.name);
@@ -1507,12 +1788,21 @@ function startServer(port = PORT, host = HOST) {
 
               try {
                 const stat = fs.statSync(fullPath);
+                const base = f.substring(0, f.lastIndexOf('.'));
+                let thumbUrl = '';
+                for (const tExt of ['.jpg', '.webp', '.png', '.jpeg']) {
+                  if (fs.existsSync(path.join(outDir, `${base}${tExt}`))) {
+                    thumbUrl = `/api/youtube/thumbnail?file=${encodeURIComponent(`${base}${tExt}`)}`;
+                    break;
+                  }
+                }
                 items.push({
                   name: f,
                   filePath: fullPath,
                   size: stat.size,
                   modified: stat.mtimeMs,
-                  ext: ext.replace('.', '').toUpperCase()
+                  ext: ext.replace('.', '').toUpperCase(),
+                  thumbnail: thumbUrl
                 });
               } catch (e) {}
             }
@@ -1524,6 +1814,21 @@ function startServer(port = PORT, host = HOST) {
           output_dir: outDir,
           items
         });
+      }
+
+      // 25g-2. YouTube Companion Thumbnail: GET /api/youtube/thumbnail?file=...
+      if (pathname === '/api/youtube/thumbnail') {
+        const file = query.file;
+        if (!file) return sendError(res, 400, 'Missing file parameter');
+        const ytDir = path.join(getOutputDir(), 'YouTube');
+        const p = path.join(ytDir, path.basename(file));
+        if (fs.existsSync(p)) {
+          const ext = path.extname(p).toLowerCase();
+          const mime = ext === '.png' ? 'image/png' : (ext === '.webp' ? 'image/webp' : 'image/jpeg');
+          res.writeHead(200, { 'Content-Type': mime, 'Cache-Control': 'public, max-age=86400' });
+          return fs.createReadStream(p).pipe(res);
+        }
+        return sendError(res, 404, 'Thumbnail not found');
       }
 
       // 25h. YouTube Play File: POST /api/youtube/play
@@ -1615,6 +1920,7 @@ function startServer(port = PORT, host = HOST) {
           const task = await haosouDownloader.startDownload({
             book_id: body.book_id,
             title: body.title,
+            cover: body.cover || '',
             episodes: body.episodes || [],
             customDir: body.custom_dir,
             download_mode: body.download_mode || 'merged',
@@ -1727,6 +2033,7 @@ function startServer(port = PORT, host = HOST) {
           const task = await mvffmDownloader.startDownload({
             drama_id: body.drama_id,
             title: body.title,
+            cover: body.cover || '',
             episodes: body.episodes || [],
             customDir: body.custom_dir,
             download_mode: body.download_mode || 'merged',
@@ -1780,6 +2087,262 @@ function startServer(port = PORT, host = HOST) {
       }
 
       // ==========================================
+      // 27-ANI. ANITAKU (anitaku.com.ro) Anime Endpoints
+      // ==========================================
+
+      // 27ani-a. Recommendations: GET /api/anitaku/recommend
+      if (pathname === '/api/anitaku/recommend' && req.method === 'GET') {
+        const category = parsedUrl.searchParams.get('category') || 'popular';
+        try {
+          const items = await anitakuDownloader.getRecommendations(category);
+          return sendJson(res, 200, { ok: true, data: items, category });
+        } catch (err) {
+          return sendError(res, 500, err.message || 'Failed to fetch Anitaku recommendations');
+        }
+      }
+
+      // 27ani-b. Search: GET /api/anitaku/search?q=...
+      if (pathname === '/api/anitaku/search' && req.method === 'GET') {
+        const q = parsedUrl.searchParams.get('q') || '';
+        try {
+          const items = await anitakuDownloader.search(q);
+          return sendJson(res, 200, { ok: true, data: items });
+        } catch (err) {
+          return sendError(res, 500, err.message || 'Failed to search Anitaku');
+        }
+      }
+
+      // 27ani-c. Detail: POST /api/anitaku/detail
+      if (pathname === '/api/anitaku/detail' && req.method === 'POST') {
+        if (!requireLicenseAuth(res)) return;
+        const body = await parseJsonBody(req);
+        if (!body.query) {
+          return sendError(res, 400, 'សូមបញ្ចូលឈ្មោះ ឬ URL Anime (Please provide anime title or URL)');
+        }
+        try {
+          const detail = await anitakuDownloader.getDetail(body.query);
+          return sendJson(res, 200, { ok: true, data: detail });
+        } catch (err) {
+          return sendError(res, 500, err.message || 'Failed to parse anime details');
+        }
+      }
+
+      // 27ani-d. Episode Stream Info: POST /api/anitaku/stream
+      if (pathname === '/api/anitaku/stream' && req.method === 'POST') {
+        if (!requireLicenseAuth(res)) return;
+        const body = await parseJsonBody(req);
+        if (!body.ep_url) {
+          return sendError(res, 400, 'Episode URL is required');
+        }
+        try {
+          const streamInfo = await anitakuDownloader.getEpisodeStream(body.ep_url);
+          return sendJson(res, 200, { ok: true, data: streamInfo });
+        } catch (err) {
+          return sendError(res, 500, err.message || 'Failed to extract episode stream');
+        }
+      }
+
+      // 27ani-e. Start Download: POST /api/anitaku/download
+      if (pathname === '/api/anitaku/download' && req.method === 'POST') {
+        if (!requireLicenseAuth(res)) return;
+        const body = await parseJsonBody(req);
+        try {
+          if (body && body.anime_id) {
+            downloadMemoryManager.addMemory({
+              series_id: String(body.anime_id),
+              id: String(body.anime_id),
+              title: body.title,
+              platform: 'anitaku',
+              cover: body.cover || '',
+              total_episodes: (body.episodes || []).length,
+              downloaded_episodes: (body.episodes || []).map(e => e.episode),
+              download_dir: anitakuDownloader.getAnitakuOutputDir(),
+              status: 'downloading'
+            }).catch(() => {});
+          }
+          const task = await anitakuDownloader.startDownload({
+            anime_id: body.anime_id,
+            title: body.title,
+            cover: body.cover || '',
+            episodes: body.episodes,
+            customDir: body.custom_dir || null,
+            range: body.range || 'all',
+            download_mode: body.download_mode || 'separate',
+            quality: body.quality || 'original'
+          });
+          return sendJson(res, 200, { ok: true, task });
+        } catch (err) {
+          return sendError(res, 500, err.message || 'Failed to start Anitaku download');
+        }
+      }
+
+      // 27ani-f. Tasks: GET /api/anitaku/tasks
+      if (pathname === '/api/anitaku/tasks' && req.method === 'GET') {
+        return sendJson(res, 200, {
+          ok: true,
+          tasks: anitakuDownloader.getTasks(),
+          output_dir: anitakuDownloader.getAnitakuOutputDir()
+        });
+      }
+
+      // 27ani-g. Cancel Task: POST /api/anitaku/cancel
+      if (pathname === '/api/anitaku/cancel' && req.method === 'POST') {
+        const body = await parseJsonBody(req);
+        const ok = anitakuDownloader.cancelTask(body.task_id);
+        return sendJson(res, 200, { ok });
+      }
+
+      // 27ani-h. Clear Finished: POST /api/anitaku/clear
+      if (pathname === '/api/anitaku/clear' && req.method === 'POST') {
+        const remaining = anitakuDownloader.clearFinished();
+        return sendJson(res, 200, { ok: true, tasks: remaining });
+      }
+
+      // 27ani-i. Open Folder: POST /api/anitaku/open_folder
+      if (pathname === '/api/anitaku/open_folder' && req.method === 'POST') {
+        const body = await parseJsonBody(req);
+        let target = body.path || anitakuDownloader.getAnitakuOutputDir();
+        if (!fs.existsSync(target)) {
+          target = anitakuDownloader.getAnitakuOutputDir();
+        }
+        if (process.platform === 'win32') {
+          exec(`explorer.exe "${target}"`);
+        } else if (process.platform === 'darwin') {
+          exec(`open "${target}"`);
+        } else {
+          exec(`xdg-open "${target}"`);
+        }
+        return sendJson(res, 200, { ok: true, opened: target });
+      }
+
+      // ==========================================
+      // 27-AX. ANIMEXIN (animexin.dev) Donghua Endpoints
+      // ==========================================
+
+      // 27ax-a. Recommendations: GET /api/animexin/recommend
+      if (pathname === '/api/animexin/recommend' && req.method === 'GET') {
+        const category = parsedUrl.searchParams.get('category') || 'all';
+        try {
+          const items = await animexinDownloader.getRecommendations(category);
+          return sendJson(res, 200, { ok: true, data: items, category });
+        } catch (err) {
+          return sendError(res, 500, err.message || 'Failed to fetch Animexin recommendations');
+        }
+      }
+
+      // 27ax-b. Search: GET /api/animexin/search?q=...
+      if (pathname === '/api/animexin/search' && req.method === 'GET') {
+        const q = parsedUrl.searchParams.get('q') || '';
+        try {
+          const items = await animexinDownloader.search(q);
+          return sendJson(res, 200, { ok: true, data: items });
+        } catch (err) {
+          return sendError(res, 500, err.message || 'Failed to search Animexin');
+        }
+      }
+
+      // 27ax-c. Detail: POST /api/animexin/detail
+      if (pathname === '/api/animexin/detail' && req.method === 'POST') {
+        if (!requireLicenseAuth(res)) return;
+        const body = await parseJsonBody(req);
+        if (!body.query) {
+          return sendError(res, 400, 'សូមបញ្ចូលឈ្មោះ ឬ URL Donghua (Please provide anime title or URL)');
+        }
+        try {
+          const detail = await animexinDownloader.getDetail(body.query);
+          return sendJson(res, 200, { ok: true, data: detail });
+        } catch (err) {
+          return sendError(res, 500, err.message || 'Failed to parse Donghua details');
+        }
+      }
+
+      // 27ax-d. Episode Stream Info: POST /api/animexin/stream
+      if (pathname === '/api/animexin/stream' && req.method === 'POST') {
+        if (!requireLicenseAuth(res)) return;
+        const body = await parseJsonBody(req);
+        if (!body.ep_url) {
+          return sendError(res, 400, 'Episode URL is required');
+        }
+        try {
+          const streamInfo = await animexinDownloader.getEpisodeStream(body.ep_url);
+          return sendJson(res, 200, { ok: true, data: streamInfo });
+        } catch (err) {
+          return sendError(res, 500, err.message || 'Failed to extract episode stream');
+        }
+      }
+
+      // 27ax-e. Start Download: POST /api/animexin/download
+      if (pathname === '/api/animexin/download' && req.method === 'POST') {
+        if (!requireLicenseAuth(res)) return;
+        const body = await parseJsonBody(req);
+        try {
+          if (body && body.anime_id) {
+            downloadMemoryManager.addMemory({
+              series_id: String(body.anime_id),
+              id: String(body.anime_id),
+              title: body.title,
+              platform: 'animexin',
+              cover: body.cover || '',
+              total_episodes: (body.episodes || []).length,
+              downloaded_episodes: (body.episodes || []).map(e => e.episode),
+              download_dir: animexinDownloader.getAnimexinOutputDir(),
+              status: 'downloading'
+            }).catch(() => {});
+          }
+          const task = await animexinDownloader.startDownload({
+            anime_id: body.anime_id,
+            title: body.title,
+            cover: body.cover || '',
+            episodes: body.episodes,
+            download_mode: body.download_mode || 'separate',
+            quality: body.quality || 'original'
+          });
+          return sendJson(res, 200, { ok: true, task });
+        } catch (err) {
+          return sendError(res, 500, err.message || 'Failed to start Animexin download');
+        }
+      }
+
+      // 27ax-f. Tasks: GET /api/animexin/tasks
+      if (pathname === '/api/animexin/tasks' && req.method === 'GET') {
+        return sendJson(res, 200, {
+          ok: true,
+          tasks: animexinDownloader.getTasks(),
+          output_dir: animexinDownloader.getAnimexinOutputDir()
+        });
+      }
+
+      // 27ax-g. Cancel Task: POST /api/animexin/cancel
+      if (pathname === '/api/animexin/cancel' && req.method === 'POST') {
+        const body = await parseJsonBody(req);
+        const ok = animexinDownloader.cancelTask(body.task_id);
+        return sendJson(res, 200, { ok });
+      }
+
+      // 27ax-h. Clear Finished: POST /api/animexin/clear
+      if (pathname === '/api/animexin/clear' && req.method === 'POST') {
+        const remaining = animexinDownloader.clearFinishedTasks();
+        return sendJson(res, 200, { ok: true, tasks: remaining });
+      }
+
+      // 27ax-i. Open Folder: POST /api/animexin/open_folder
+      if (pathname === '/api/animexin/open_folder' && req.method === 'POST') {
+        const body = await parseJsonBody(req);
+        let target = body.path || animexinDownloader.getAnimexinOutputDir();
+        if (!fs.existsSync(target)) {
+          target = animexinDownloader.getAnimexinOutputDir();
+        }
+        if (process.platform === 'win32') {
+          exec(`explorer.exe "${target}"`);
+        } else if (process.platform === 'darwin') {
+          exec(`open "${target}"`);
+        } else {
+          exec(`xdg-open "${target}"`);
+        }
+        return sendJson(res, 200, { ok: true, opened: target });
+      }
+
+      // ==========================================
       // 27-DM. Dailymotion Chinese Short Drama Endpoints
       // ==========================================
 
@@ -1820,6 +2383,7 @@ function startServer(port = PORT, host = HOST) {
 
       // 27dm-c2. Direct Stream URL (.m3u8): GET /api/dailymotion/stream?id=...
       if (pathname === '/api/dailymotion/stream' && req.method === 'GET') {
+        if (!requireLicenseAuth(res, req)) return;
         const id = parsedUrl.searchParams.get('id') || '';
         try {
           const streamUrl = await dailymotionDownloader.getStreamUrl(id);
@@ -1891,6 +2455,7 @@ function startServer(port = PORT, host = HOST) {
             video_id: body.video_id,
             url: body.url,
             title: body.title,
+            thumbnail: body.thumbnail || body.cover || '',
             customDir: body.custom_dir
           });
           return sendJson(res, 200, { ok: true, data: task });
@@ -1934,6 +2499,7 @@ function startServer(port = PORT, host = HOST) {
 
       // 27tt-a. Analyze Video: POST /api/tiktok/analyze
       if (pathname === '/api/tiktok/analyze' && req.method === 'POST') {
+        if (!requireLicenseAuth(res, req)) return;
         const body = await parseJsonBody(req);
         try {
           const info = await tiktokDownloader.analyzeVideo(body.url, body.platform);
@@ -1955,6 +2521,8 @@ function startServer(port = PORT, host = HOST) {
             title: body.title,
             author: body.author,
             platform: body.platform,
+            cover: body.cover || '',
+            music_url: body.music_url || '',
             customDir: body.custom_dir
           });
           return sendJson(res, 200, { ok: true, data: task });
@@ -2041,9 +2609,150 @@ function startServer(port = PORT, host = HOST) {
         }
       }
 
+      // ==========================================
+      // 27-BP. Beeplaylet (beeplaylet.com) Short Drama Endpoints
+      // ==========================================
+
+      // 27bp-a. Recommendations: GET /api/beeplaylet/recommend
+      if (pathname === '/api/beeplaylet/recommend' && req.method === 'GET') {
+        const category = parsedUrl.searchParams.get('category') || 'hot';
+        try {
+          const items = await beeplayletDownloader.getRecommendations(category);
+          return sendJson(res, 200, { ok: true, data: items, category });
+        } catch (err) {
+          return sendError(res, 500, err.message || 'Failed to fetch Beeplaylet recommendations');
+        }
+      }
+
+      // 27bp-b. Search: GET /api/beeplaylet/search?query=...
+      if (pathname === '/api/beeplaylet/search' && req.method === 'GET') {
+        const q = parsedUrl.searchParams.get('query') || parsedUrl.searchParams.get('wd') || '';
+        try {
+          const items = await beeplayletDownloader.search(q);
+          return sendJson(res, 200, { ok: true, data: items });
+        } catch (err) {
+          return sendError(res, 500, err.message || 'Failed to search Beeplaylet');
+        }
+      }
+
+      // 27bp-c. Drama Detail: POST /api/beeplaylet/detail
+      if (pathname === '/api/beeplaylet/detail' && req.method === 'POST') {
+        if (!requireLicenseAuth(res)) return;
+        const body = await parseJsonBody(req);
+        if (!body.query) {
+          return sendError(res, 400, 'សូមបញ្ចូលលីង ឬ ID រឿង (Please provide drama URL or ID)');
+        }
+        try {
+          const detail = await beeplayletDownloader.getDetail(body.query);
+          if (detail && detail.id) {
+            downloadMemoryManager.addMemory({
+              id: detail.id,
+              platform: 'beeplaylet',
+              title: detail.title,
+              cover: detail.cover || '',
+              total_episodes: (detail.episodes || []).length
+            }).catch(() => {});
+          }
+          return sendJson(res, 200, { ok: true, data: detail });
+        } catch (err) {
+          return sendError(res, 404, err.message || 'Beeplaylet drama not found');
+        }
+      }
+
+      // 27bp-d. Start Download: POST /api/beeplaylet/download
+      if (pathname === '/api/beeplaylet/download' && req.method === 'POST') {
+        if (!requireLicenseAuth(res)) return;
+        const body = await parseJsonBody(req);
+        try {
+          if (body && body.drama_id) {
+            downloadMemoryManager.addMemory({
+              id: body.drama_id,
+              platform: 'beeplaylet',
+              title: body.title,
+              cover: body.cover || '',
+              total_episodes: (body.episodes || []).length
+            }).catch(() => {});
+          }
+          const task = await beeplayletDownloader.startDownload({
+            drama_id: body.drama_id,
+            title: body.title,
+            cover: body.cover || '',
+            episodes: body.episodes || [],
+            customDir: body.custom_dir,
+            download_mode: body.download_mode || 'merged',
+            quality: body.quality || 'original',
+            fps: body.fps || null,
+            target_height: body.target_height || null
+          });
+          return sendJson(res, 200, { ok: true, data: task });
+        } catch (err) {
+          return sendError(res, 500, err.message || 'Failed to start download');
+        }
+      }
+
+      // 27bp-e. Tasks List: GET /api/beeplaylet/tasks
+      if (pathname === '/api/beeplaylet/tasks' && req.method === 'GET') {
+        return sendJson(res, 200, {
+          ok: true,
+          tasks: beeplayletDownloader.getTasks(),
+          output_dir: beeplayletDownloader.getBeeplayletOutputDir()
+        });
+      }
+
+      // 27bp-f. Cancel Task: POST /api/beeplaylet/cancel
+      if (pathname === '/api/beeplaylet/cancel' && req.method === 'POST') {
+        const body = await parseJsonBody(req);
+        const ok = beeplayletDownloader.cancelTask(body.task_id);
+        return sendJson(res, 200, { ok });
+      }
+
+      // 27bp-g. Clear Finished Tasks: POST /api/beeplaylet/clear
+      if (pathname === '/api/beeplaylet/clear' && req.method === 'POST') {
+        const remaining = beeplayletDownloader.clearFinished();
+        return sendJson(res, 200, { ok: true, tasks: remaining });
+      }
+
+      // 27bp-h. Open Folder: POST /api/beeplaylet/open_folder
+      if (pathname === '/api/beeplaylet/open_folder' && req.method === 'POST') {
+        const body = await parseJsonBody(req);
+        let target = body.path || beeplayletDownloader.getBeeplayletOutputDir();
+        if (!fs.existsSync(target)) {
+          target = beeplayletDownloader.getBeeplayletOutputDir();
+        }
+        if (process.platform === 'win32') {
+          exec(`explorer.exe "${target}"`);
+        } else if (process.platform === 'darwin') {
+          exec(`open "${target}"`);
+        } else {
+          exec(`xdg-open "${target}"`);
+        }
+        return sendJson(res, 200, { ok: true, opened: target });
+      }
+
       // 28. License & Device Tracking API Endpoints
       // 28a. License Status: GET /api/license/status
       if (pathname === '/api/license/status' && req.method === 'GET') {
+        const clientDevId = query.device_id || req.headers['x-device-id'] || null;
+        const deviceType = query.device_type || (clientDevId && clientDevId.startsWith('HG-M') ? 'mobile' : 'desktop');
+        const phoneModel = query.model || '';
+
+        // If client specifies mobile device ID or is mobile client
+        if (clientDevId && (deviceType === 'mobile' || clientDevId.startsWith('HG-M'))) {
+          syncDeviceFromCloud(clientDevId).catch(() => {});
+          const lic = getLicenseStatusForDevice(clientDevId);
+          // Trigger mobile app launch Telegram notification once per session
+          sendAppLaunchTelegramNotification({
+            deviceId: clientDevId,
+            deviceType: 'mobile',
+            model: phoneModel || 'Mobile Device (Android/iOS)',
+            computerName: phoneModel ? `Phone: ${phoneModel}` : 'Mobile Client',
+            userAgent: req.headers['user-agent'],
+            hasActiveLicense: lic.activated,
+            licenseStatusHtml: lic.activated ? (lic.is_lifetime ? '👑 VIP ពេញមួយជីវិត (Lifetime VIP)' : `🟢 ភ្ញៀវ VIP (${lic.remaining_days} ថ្ងៃ)`) : '🔴 ម៉ាស៊ីនថ្មី (មិនទាន់មាន License)'
+          }).catch(() => {});
+          return sendJson(res, 200, lic);
+        }
+
         let lic = getLicenseStatus();
         if (!lic || !lic.activated) {
           try {
@@ -2059,9 +2768,11 @@ function startServer(port = PORT, host = HOST) {
       // 28b. Activate with Key: POST /api/license/activate
       if (pathname === '/api/license/activate' && req.method === 'POST') {
         const body = await parseJsonBody(req);
+        const targetDeviceId = body.deviceId || body.targetDeviceId || null;
         const result = await activateLicense(body.key, {
+          targetDeviceId: targetDeviceId,
           telegramUser: body.telegramUser,
-          computerName: body.computerName
+          computerName: body.computerName || body.model || ''
         });
         return sendJson(res, result.success ? 200 : 400, result);
       }
@@ -2103,6 +2814,28 @@ function startServer(port = PORT, host = HOST) {
           telegramUser: body.telegramUser,
           customName: body.customName
         });
+
+        // Instantly sync to 24/7 Render Cloud Server so customer tool receives authorization immediately
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 4000);
+          fetch('https://ps-download-bot-irhw.onrender.com/api/license/sync-auth', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            signal: controller.signal,
+            body: JSON.stringify({
+              deviceId: body.deviceId,
+              days: body.days,
+              telegramUser: body.telegramUser,
+              customName: body.customName,
+              key: result.key,
+              expiresAt: result.expiresAt,
+              label: result.label
+            })
+          }).catch(() => {});
+          clearTimeout(timeoutId);
+        } catch (_) {}
+
         return sendJson(res, result.success ? 200 : 400, result);
       }
 
@@ -2112,6 +2845,13 @@ function startServer(port = PORT, host = HOST) {
 
         if (shouldSyncCloud) {
           try {
+            // Read blacklisted deleted devices
+            let deletedList = [];
+            const delFile = path.join(path.dirname(__dirname), 'data', 'deleted_devices.json');
+            if (fs.existsSync(delFile)) {
+              try { deletedList = JSON.parse(fs.readFileSync(delFile, 'utf-8')) || []; } catch (_) {}
+            }
+
             // 1. Fetch live active devices from 24/7 Render Cloud
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 2500);
@@ -2123,7 +2863,7 @@ function startServer(port = PORT, host = HOST) {
               const ctData = await cloudTrackedRes.json();
               if (ctData && Array.isArray(ctData.devices)) {
                 for (const cd of ctData.devices) {
-                  if (cd.deviceId) {
+                  if (cd.deviceId && !deletedList.includes(cd.deviceId)) {
                     await recordDeviceTracking({
                       deviceId: cd.deviceId,
                       telegramUser: cd.telegramUser,
@@ -2132,7 +2872,10 @@ function startServer(port = PORT, host = HOST) {
                       key: cd.key,
                       status: cd.status,
                       expiresAt: cd.expiresAt,
-                      skipAlert: true
+                      lastSeen: cd.lastSeen,
+                      firstSeen: cd.firstSeen,
+                      skipAlert: true,
+                      isSync: true
                     });
                   }
                 }
@@ -2142,9 +2885,16 @@ function startServer(port = PORT, host = HOST) {
         }
 
         const devices = getTrackedDevicesWithLicenseInfo();
+        let deletedList = [];
+        const delFile = path.join(path.dirname(__dirname), 'data', 'deleted_devices.json');
+        if (fs.existsSync(delFile)) {
+          try { deletedList = JSON.parse(fs.readFileSync(delFile, 'utf-8')) || []; } catch (_) {}
+        }
+        const filtered = devices.filter(d => d.deviceId && !deletedList.includes(d.deviceId));
         return sendJson(res, 200, {
           success: true,
-          devices: devices
+          devices: filtered,
+          deletedDevices: deletedList
         });
       }
 
@@ -2152,6 +2902,13 @@ function startServer(port = PORT, host = HOST) {
       if (pathname === '/api/license/admin/sync-cloud' && req.method === 'POST') {
         let syncedCount = 0;
         try {
+          // Read blacklisted deleted devices
+          let deletedList = [];
+          const delFile = path.join(path.dirname(__dirname), 'data', 'deleted_devices.json');
+          if (fs.existsSync(delFile)) {
+            try { deletedList = JSON.parse(fs.readFileSync(delFile, 'utf-8')) || []; } catch (_) {}
+          }
+
           // 1. Fetch all active machines tracked by Cloud Server
           try {
             const controller = new AbortController();
@@ -2163,8 +2920,10 @@ function startServer(port = PORT, host = HOST) {
             if (cloudTrackedRes.ok) {
               const ctData = await cloudTrackedRes.json();
               if (ctData && Array.isArray(ctData.devices)) {
+                const localAuthMap = getAuthorizedDevicesMap();
+
                 for (const cd of ctData.devices) {
-                  if (cd.deviceId) {
+                  if (cd.deviceId && !deletedList.includes(cd.deviceId)) {
                     await recordDeviceTracking({
                       deviceId: cd.deviceId,
                       telegramUser: cd.telegramUser,
@@ -2172,7 +2931,25 @@ function startServer(port = PORT, host = HOST) {
                       customName: cd.customName,
                       key: cd.key,
                       status: cd.status,
-                    if (cd.key && (cd.status === 'active' || String(cd.status).includes('ថ្ងៃ') || cd.expiresAt)) {
+                      expiresAt: cd.expiresAt,
+                      lastSeen: cd.lastSeen,
+                      firstSeen: cd.firstSeen,
+                      skipAlert: true,
+                      isSync: true
+                    });
+
+                    // Only adopt authorization from Cloud if local DOES NOT have an active record with greater days/expiry
+                    const localAuth = localAuthMap[cd.deviceId];
+                    let localHasLongerTime = false;
+                    if (localAuth && localAuth.expiresAt) {
+                      const localExp = new Date(localAuth.expiresAt).getTime();
+                      const cloudExp = cd.expiresAt ? new Date(cd.expiresAt).getTime() : 0;
+                      if (localExp >= cloudExp || (localAuth.days && localAuth.days > (cd.days || 0))) {
+                        localHasLongerTime = true;
+                      }
+                    }
+
+                    if (!localHasLongerTime && cd.key && (cd.status === 'active' || String(cd.status).includes('ថ្ងៃ') || cd.expiresAt)) {
                       authorizeDevice({
                         deviceId: cd.deviceId,
                         days: cd.days || 0,
@@ -2180,7 +2957,8 @@ function startServer(port = PORT, host = HOST) {
                         telegramUser: cd.telegramUser || '',
                         customLabel: cd.label || cd.status,
                         customExpiresAt: cd.expiresAt || null,
-                        customAuthorizedAt: cd.firstSeen ? (typeof cd.firstSeen === 'number' ? new Date(cd.firstSeen).toISOString() : cd.firstSeen) : null
+                        customAuthorizedAt: cd.firstSeen ? (typeof cd.firstSeen === 'number' ? new Date(cd.firstSeen).toISOString() : cd.firstSeen) : null,
+                        isSync: true
                       });
                     }
                     syncedCount++;
@@ -2190,39 +2968,44 @@ function startServer(port = PORT, host = HOST) {
             }
           } catch (_) {}
 
-          // 2. Also check license status for local devices
-          const devices = getTrackedDevicesWithLicenseInfo();
-          const checkPromises = devices.map(async (d) => {
-            try {
-              const controller = new AbortController();
-              const timeoutId = setTimeout(() => controller.abort(), 2000);
-              const resp = await fetch(`https://ps-download-bot-irhw.onrender.com/api/license/check?deviceId=${encodeURIComponent(d.deviceId)}`, {
-                signal: controller.signal
-              });
-              clearTimeout(timeoutId);
-              if (resp.ok) {
-                const cloudData = await resp.json();
-                if (cloudData && cloudData.authorized && cloudData.key) {
-                  authorizeDevice({
-                    deviceId: d.deviceId,
-                    days: cloudData.days || 30,
-                    customName: cloudData.customName || d.customName || '',
-                    customLabel: cloudData.label,
-                    customExpiresAt: cloudData.expiresAt,
-                    customAuthorizedAt: cloudData.authorizedAt
-                  });
-                  syncedCount++;
-                }
-              }
-            } catch (_) {}
+          // 2. PUSH local authorizations to Cloud so Cloud has Admin's latest days (e.g. 35 days)
+          const localAuthMap = getAuthorizedDevicesMap();
+          const pushPromises = Object.values(localAuthMap).map(async (auth) => {
+            if (auth && auth.deviceId && auth.key && !deletedList.includes(auth.deviceId)) {
+              try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 3500);
+                await fetch('https://ps-download-bot-irhw.onrender.com/api/license/sync-auth', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  signal: controller.signal,
+                  body: JSON.stringify({
+                    deviceId: auth.deviceId,
+                    days: auth.days,
+                    key: auth.key,
+                    expiresAt: auth.expiresAt,
+                    customName: auth.customName || '',
+                    telegramUser: auth.telegramUser || '',
+                    label: auth.label || '',
+                    status: auth.status || 'active',
+                    revoked: Boolean(auth.revoked || auth.status === 'revoked' || auth.status === 'expired')
+                  })
+                });
+                clearTimeout(timeoutId);
+                syncedCount++;
+              } catch (_) {}
+            }
           });
-          await Promise.allSettled(checkPromises);
+          await Promise.allSettled(pushPromises);
         } catch (_) {}
 
+        const allDevs = getTrackedDevicesWithLicenseInfo();
+        const filteredDevs = allDevs.filter(d => d.deviceId && !deletedList.includes(d.deviceId));
         return sendJson(res, 200, {
           success: true,
           syncedCount,
-          devices: getTrackedDevicesWithLicenseInfo()
+          devices: filteredDevs,
+          deletedDevices: deletedList
         });
       }
 
@@ -2252,8 +3035,29 @@ function startServer(port = PORT, host = HOST) {
         const body = await parseJsonBody(req);
         const result = adjustDeviceDays({
           deviceId: body.deviceId,
-          daysChange: body.daysChange
+          daysChange: body.daysChange,
+          setDays: body.setDays !== undefined ? body.setDays : null
         });
+
+        // Instantly sync adjusted days & expiresAt to 24/7 Render Cloud Server
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 4000);
+          fetch('https://ps-download-bot-irhw.onrender.com/api/license/sync-auth', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            signal: controller.signal,
+            body: JSON.stringify({
+              deviceId: body.deviceId,
+              days: result.newDays,
+              expiresAt: result.newExpiresAt,
+              key: result.key,
+              label: `${result.newDays} ថ្ងៃ`
+            })
+          }).catch(() => {});
+          clearTimeout(timeoutId);
+        } catch (_) {}
+
         return sendJson(res, result.success ? 200 : 400, result);
       }
 
@@ -2261,6 +3065,25 @@ function startServer(port = PORT, host = HOST) {
       if (pathname === '/api/license/admin/revoke' && req.method === 'POST') {
         const body = await parseJsonBody(req);
         const result = revokeDeviceLicense(body.deviceId);
+
+        // Sync revocation to 24/7 Render Cloud Server
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 4000);
+          fetch('https://ps-download-bot-irhw.onrender.com/api/license/sync-auth', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            signal: controller.signal,
+            body: JSON.stringify({
+              deviceId: body.deviceId,
+              revoked: true,
+              days: 0,
+              status: 'expired'
+            })
+          }).catch(() => {});
+          clearTimeout(timeoutId);
+        } catch (_) {}
+
         return sendJson(res, result.success ? 200 : 400, result);
       }
 
@@ -2272,7 +3095,122 @@ function startServer(port = PORT, host = HOST) {
           toDeviceId: body.toDeviceId,
           newCustomName: body.newCustomName
         });
+
+        // Sync both old revoked and new transferred machine to Render Cloud
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 4000);
+          fetch('https://ps-download-bot-irhw.onrender.com/api/license/sync-auth', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            signal: controller.signal,
+            body: JSON.stringify({
+              deviceId: body.toDeviceId,
+              days: result.transferredDays,
+              key: result.newKey,
+              expiresAt: result.expiresAt,
+              customName: result.customName,
+              label: `${result.transferredDays} ថ្ងៃ (ផ្ទេរ)`
+            })
+          }).catch(() => {});
+          clearTimeout(timeoutId);
+        } catch (_) {}
+
         return sendJson(res, result.success ? 200 : 400, result);
+      }
+
+      // 28g6. Admin Delete Device: POST /api/license/admin/delete-device
+      if (pathname === '/api/license/admin/delete-device' && req.method === 'POST') {
+        const body = await parseJsonBody(req);
+        const result = deleteTrackedDevice(body.deviceId);
+
+        // Instantly sync deletion to 24/7 Render Cloud Server
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 4000);
+          fetch('https://ps-download-bot-irhw.onrender.com/api/license/sync-auth', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            signal: controller.signal,
+            body: JSON.stringify({
+              deviceId: body.deviceId,
+              deleted: true
+            })
+          }).catch(() => {});
+          clearTimeout(timeoutId);
+        } catch (_) {}
+
+        return sendJson(res, result.success ? 200 : 400, result);
+      }
+
+      // 28g7. Admin Sync Single Customer to Cloud: POST /api/license/admin/sync-single-device
+      if (pathname === '/api/license/admin/sync-single-device' && req.method === 'POST') {
+        const body = await parseJsonBody(req);
+        const cleanId = String(body.deviceId || '').trim().toUpperCase();
+        if (!cleanId) {
+          return sendJson(res, 400, { success: false, error: 'Missing deviceId' });
+        }
+
+        const authMap = getAuthorizedDevicesMap();
+        const auth = authMap[cleanId];
+        const trackerList = getTrackedDevices();
+        const tracked = trackerList.find(d => d.deviceId === cleanId);
+
+        const customName = (auth && auth.customName) || (tracked && tracked.customName) || '';
+        const key = (auth && auth.key) || (tracked && tracked.key) || '';
+        const days = (auth && auth.days !== undefined) ? auth.days : (tracked && tracked.days !== undefined ? tracked.days : 0);
+        const expiresAt = (auth && auth.expiresAt) || (tracked && tracked.expiresAt) || null;
+        const status = (auth && auth.status) || (tracked && tracked.status) || 'active';
+        const label = (auth && auth.label) || `${days} ថ្ងៃ`;
+        const telegramUser = (auth && auth.telegramUser) || (tracked && tracked.telegramUser) || '';
+
+        let cloudSynced = false;
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 4500);
+          const cloudResp = await fetch('https://ps-download-bot-irhw.onrender.com/api/license/sync-auth', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            signal: controller.signal,
+            body: JSON.stringify({
+              deviceId: cleanId,
+              days,
+              key,
+              expiresAt,
+              customName,
+              telegramUser,
+              label,
+              status
+            })
+          });
+          clearTimeout(timeoutId);
+          if (cloudResp.ok) cloudSynced = true;
+        } catch (_) {}
+
+        // Also sync customName
+        try {
+          if (customName) {
+            const controller2 = new AbortController();
+            const timeoutId2 = setTimeout(() => controller2.abort(), 3500);
+            fetch('https://ps-download-bot-irhw.onrender.com/api/license/set-name', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              signal: controller2.signal,
+              body: JSON.stringify({ deviceId: cleanId, customName })
+            }).catch(() => {});
+            clearTimeout(timeoutId2);
+          }
+        } catch (_) {}
+
+        return sendJson(res, 200, {
+          success: true,
+          deviceId: cleanId,
+          customName: customName || cleanId,
+          cloudSynced,
+          days,
+          key,
+          message: `បាន Sync ភ្ញៀវ ${customName || cleanId} ទៅ Cloud រួចរាល់!`
+        });
       }
 
       // 28h. Admin Generate Key: POST /api/license/admin/generate
@@ -2554,22 +3492,41 @@ function startServer(port = PORT, host = HOST) {
         return sendJson(res, 200, result);
       }
 
+      // 28r. Ping / Server Health Check: GET /api/ping
+      if (pathname === '/api/ping') {
+        return sendJson(res, 200, {
+          ok: true,
+          app: APP_TITLE,
+          version: APP_VERSION,
+          port,
+          ip: getLocalIp()
+        });
+      }
+
       sendJson(res, 404, { error: 'Not found', path: pathname });
     } catch (err) {
       console.error(`[Server Error] ${pathname}:`, err);
       sendError(res, 500, err.message || 'Internal Server Error');
     }
-  });
+}
+
+function startServer(port = PORT, host = HOST, retryCount = 0) {
+  pruneVideoCache();
+  setInterval(pruneVideoCache, 3600000);
+  const server = http.createServer((req, res) => handleServerRequest(req, res, host, port));
 
   return new Promise((resolve, reject) => {
     server.listen(port, host, () => {
-      console.log(`[Desktop Server] Listening on http://${host}:${port}`);
+      const localIp = getLocalIp();
+      console.log(`[Desktop Server] Listening on:`);
+      console.log(`  - Local:   http://127.0.0.1:${port}`);
+      console.log(`  - Mobile:  http://${localIp}:${port}/m`);
       // Notify Admin on Telegram when server is started
       try {
         sendAppLaunchTelegramNotification().catch(() => {});
       } catch (_) {}
-      // Auto-start Telegram Bot listener for incoming commands & key generation (Only for local dev/admin, never on client builds)
-      if (!isPackaged) {
+      // Auto-start Telegram Bot listener only if explicitly requested (Render Cloud handles bot 24/7)
+      if (!isPackaged && process.env.START_BOT === '1') {
         try {
           startTelegramBot();
         } catch (e) {
@@ -2580,8 +3537,16 @@ function startServer(port = PORT, host = HOST) {
     });
     server.on('error', (err) => {
       if (err.code === 'EADDRINUSE') {
+        // If default port (1994) is occupied during app restart, retry up to 2 times before incrementing port
+        if (port === PORT && retryCount < 2) {
+          console.warn(`[Desktop Server] Port ${port} busy (restarting?), retrying in 600ms (attempt ${retryCount + 1}/2)...`);
+          setTimeout(() => {
+            resolve(startServer(port, host, retryCount + 1));
+          }, 600);
+          return;
+        }
         console.warn(`[Desktop Server] Port ${port} in use, retrying on port ${port + 1}...`);
-        resolve(startServer(port + 1, host));
+        resolve(startServer(port + 1, host, 0));
       } else {
         reject(err);
       }
@@ -2589,8 +3554,28 @@ function startServer(port = PORT, host = HOST) {
   });
 }
 
+function getLocalIp() {
+  try {
+    const nets = os.networkInterfaces();
+    for (const name of Object.keys(nets)) {
+      for (const net of nets[name]) {
+        if (net.family === 'IPv4' && !net.internal && !net.address.startsWith('169.254')) {
+          return net.address;
+        }
+      }
+    }
+  } catch (_) {}
+  return '127.0.0.1';
+}
+
 module.exports = {
   startServer,
+  handleServerRequest,
   setNativeFolderPicker,
-  translateText
+  translateText,
+  getLocalIp
 };
+
+if (require.main === module) {
+  startServer();
+}

@@ -154,7 +154,7 @@ async function analyzeCurrentTtUrl() {
             return;
         }
     } else if (_currentTtSubPlatform === 'kuaishou') {
-        const isKs = lowerVal.includes('kuaishou.com') || lowerVal.includes('kuaishouapp.com') || lowerVal.includes('gifshow.com');
+        const isKs = lowerVal.includes('kuaishou.com') || lowerVal.includes('kuaishouapp.com') || lowerVal.includes('gifshow.com') || lowerVal.includes('kwai.com');
         if (!isKs) {
             if (typeof showToast === 'function') {
                 showToast('⚠️ លីងនេះមិនមែនជាលីង ខៅស៊ូ (Kuaishou) ឡើយ! សូមបិទភ្ជាប់លីង Kuaishou (kuaishou.com)', 'warning');
@@ -324,6 +324,7 @@ async function downloadCurrentTtVideo() {
             body: JSON.stringify({
                 url: _analyzedTtVideo.raw_url,
                 play_url: downloadUrl,
+                music_url: _analyzedTtVideo.music_url || '',
                 format: _selectedTtFormat,
                 title: _analyzedTtVideo.title,
                 author: _analyzedTtVideo.author?.nickname || '',
@@ -477,11 +478,12 @@ async function pickTtFolder() {
     if (window.electronAPI && typeof window.electronAPI.selectFolder === 'function') {
         const folder = await window.electronAPI.selectFolder();
         if (folder) {
-            const outDirEl = document.getElementById('ttOutputDirDisplay');
-            if (outDirEl) {
-                outDirEl.textContent = folder;
-                outDirEl.title = folder;
-            }
+            if (typeof updateDownloadFolderUI === 'function') updateDownloadFolderUI(folder);
+            fetch('/dl/config', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ output_dir: folder })
+            }).catch(() => {});
         }
     }
 }

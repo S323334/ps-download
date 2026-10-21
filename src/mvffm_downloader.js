@@ -11,7 +11,7 @@ const http = require('http');
 const https = require('https');
 const { getOutputDir, DATA_DIR } = require('./config.js');
 const { mergeDramaEpisodes } = require('./video_merger.js');
-const { libraryManager } = require('./library_manager.js');
+const { libraryManager, downloadAndSaveCover, saveSeriesMetadata } = require('./library_manager.js');
 
 function sanitizeFilename(name) {
   const cleaned = String(name || '').replace(/[\\/*?:"<>|\r\n\t]/g, '_').trim();
@@ -430,7 +430,7 @@ class MvffmDownloader {
   /**
    * Start batch downloading episodes of an MVFFM drama
    */
-  async startDownload({ drama_id, title, episodes = [], customDir = null, range = 'all', download_mode = 'merged', quality = 'original', fps = null, target_height = null }) {
+  async startDownload({ drama_id, title, episodes = [], customDir = null, range = 'all', download_mode = 'merged', quality = 'original', fps = null, target_height = null, cover = '' }) {
     if (!episodes || episodes.length === 0) {
       throw new Error('គ្មានភាគសម្រាប់ទាញយកទេ (No episodes selected to download)');
     }
@@ -447,6 +447,7 @@ class MvffmDownloader {
       task_id: taskId,
       drama_id: String(drama_id),
       title: title || 'MVFFM Drama',
+      cover: cover || '',
       drama_dir: dramaDir,
       total_episodes: episodes.length,
       completed_episodes: 0,
@@ -464,20 +465,19 @@ class MvffmDownloader {
       target_height: target_height ? parseInt(target_height, 10) : (quality && parseInt(quality, 10) ? parseInt(quality, 10) : null)
     };
 
-    // Save metadata file in drama folder for persistent library & memory tracking
-    try {
-      const meta = {
-        series_id: String(drama_id),
-        platform: 'mvffm',
-        title: title || 'MVFFM Drama',
-        cover: '',
-        episode_cnt: episodes.length,
-        saved_at: new Date().toISOString()
-      };
-      fs.writeFileSync(path.join(dramaDir, '.series.json'), JSON.stringify(meta, null, 2), 'utf-8');
-    } catch (e) {}
+    // Save poster image and metadata for offline library & drawer
+    if (cover) {
+      downloadAndSaveCover(cover, dramaDir, safeTitle).catch(() => {});
+    }
+    saveSeriesMetadata(dramaDir, {
+      series_id: String(drama_id),
+      platform: 'mvffm',
+      title: title || 'MVFFM Drama',
+      cover: cover || '',
+      total_episodes: episodes.length
+    });
 
-    libraryManager.registerSeries(drama_id, title, '', episodes.length, range || 'all', 'mvffm').catch(() => {});
+    libraryManager.registerSeries(drama_id, title, cover || '', episodes.length, range || 'all', 'mvffm').catch(() => {});
 
     this.tasks.set(taskId, task);
     this._runDownloadQueue(task);
@@ -530,19 +530,26 @@ class MvffmDownloader {
     }
 
     if (task.status !== 'canceled') {
-      if (task.completed_episodes > 0 && task.download_mode !== 'separate') {
-        task.status = 'merging';
-        await mergeDramaEpisodes({
-          dramaDir: task.drama_dir,
-          seriesTitle: task.title,
-          mode: 'merged',
-          episodes: task.episodes,
-          onLog: (msg) => console.log(`[MVFFM] ${msg}`)
-        });
-      }
       task.status = task.completed_episodes > 0 ? 'completed' : 'error';
       task.progress_pct = 100;
       task.speed_str = '';
+      if (task.completed_episodes > 0 && task.download_mode !== 'separate') {
+        task.status = 'merging';
+        try {
+          await mergeDramaEpisodes({
+            dramaDir: task.drama_dir,
+            seriesTitle: task.title,
+            mode: 'merged',
+            episodes: task.episodes,
+            onLog: (msg) => console.log(`[MVFFM] ${msg}`)
+          });
+        } catch (err) {
+          console.warn(`[MVFFM] Merge notice: ${err.message}`);
+        }
+      }
+
+      task.status = 'completed';
+      task.progress_pct = 100;
       if (task.completed_episodes >= task.total_episodes) {
         libraryManager.markCompleted(task.drama_id);
       }

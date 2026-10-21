@@ -519,20 +519,23 @@
         async function browseYouTubeFolder() {
             const dict = I18N_DICT[currentLang] || I18N_DICT['zh'];
             try {
+                let selected = null;
                 if (window.electronAPI && window.electronAPI.selectFolder) {
-                    const selected = await window.electronAPI.selectFolder();
-                    if (selected) {
-                        const outEl = document.getElementById('ytOutputDirDisplay');
-                        if (outEl) outEl.textContent = selected;
-                        showToast(dict.ytToastFolderSelected || 'Selected new download folder!', '📁');
-                        return;
+                    selected = await window.electronAPI.selectFolder();
+                } else {
+                    const res = await fetch('/dl/browse_folder', { method: 'POST' });
+                    const data = await res.json();
+                    if (data.status === 'success' && data.path) {
+                        selected = data.path;
                     }
                 }
-                const res = await fetch('/dl/browse_folder', { method: 'POST' });
-                const data = await res.json();
-                if (data.status === 'success' && data.path) {
-                    const outEl = document.getElementById('ytOutputDirDisplay');
-                    if (outEl) outEl.textContent = data.path;
+                if (selected) {
+                    if (typeof updateDownloadFolderUI === 'function') updateDownloadFolderUI(selected);
+                    fetch('/dl/config', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ output_dir: selected })
+                    }).catch(() => {});
                     showToast(dict.ytToastFolderSelected || 'Selected new download folder!', '📁');
                 }
             } catch (e) {

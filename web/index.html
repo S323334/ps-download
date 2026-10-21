@@ -14,8 +14,11 @@
     <link rel="stylesheet" href="/css/main.css">
     <link rel="stylesheet" href="/css/hongguo.css">
     <link rel="stylesheet" href="/css/haosou.css">
+    <link rel="stylesheet" href="/css/beeplaylet.css">
     <link rel="stylesheet" href="/css/mvffm.css">
     <link rel="stylesheet" href="/css/dailymotion.css">
+    <link rel="stylesheet" href="/css/anitaku.css">
+    <link rel="stylesheet" href="/css/animexin.css">
     <link rel="stylesheet" href="/css/youtube.css">
     <link rel="stylesheet" href="/css/tiktok.css">
     <link rel="stylesheet" href="/css/starred.css">
@@ -71,7 +74,35 @@
                         <span class="platform-sparkle hs-sparkle">1DFX</span>
                     </button>
 
-                    <!-- Tab 3: MVFFM (mvffm.net) Short Dramas -->
+                    <!-- Tab 3: Beeplaylet (beeplaylet.com) Short Dramas -->
+                    <button type="button" class="platform-tab-btn" id="tabPlatformBeeplaylet" onclick="switchPlatform('beeplaylet')" role="tab" aria-selected="false" title="BEEPLAYLET (beeplaylet.com) - ឃ្លាំងរឿងភាគខ្លី Beeplaylet">
+                        <div class="bp-badge-icon" onclick="onBeeplayletLogoClick(event)" title="ចុច Logo ដើម្បីបើកវេបសាយផ្ទាល់ (beeplaylet.com) ↗" style="width:22px; height:22px; border-radius:6px; background:linear-gradient(135deg, #f59e0b, #d97706); display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:13px;">
+                            🐝
+                        </div>
+                        <span class="platform-title bp-title" id="bpTabLabel">BEEPLAYLET</span>
+                        <span class="platform-sparkle bp-sparkle" style="background:rgba(245,158,11,0.2); color:#fbbf24; border:1px solid rgba(245,158,11,0.4); border-radius:6px; font-size:0.62rem; padding:1px 4px; font-weight:800;">HD</span>
+                    </button>
+
+                    <!-- Tab: ANITAKU (anitaku.com.ro) Anime -->
+                    <button type="button" class="platform-tab-btn" id="tabPlatformAnitaku" onclick="switchPlatform('anitaku')" role="tab" aria-selected="false" title="ANITAKU (anitaku.com.ro) - Anime Streaming & Downloader">
+                        <div class="ani-badge-icon" onclick="onAnitakuLogoClick(event)" title="ចុច Logo ដើម្បីបើកវេបសាយផ្ទាល់ (anitaku.com.ro) ↗" style="width:22px; height:22px; border-radius:6px; overflow:hidden; display:flex; align-items:center; justify-content:center; cursor:pointer; background:linear-gradient(135deg, #f97316, #ea580c);">
+                            <img src="/anitaku_logo.png" alt="AniTaku" style="width:100%; height:100%; object-fit:cover;" onerror="this.outerHTML='<span style=\'font-size:12px;\'>🍥</span>'">
+                        </div>
+                        <span class="platform-title ani-title" id="aniTabLabel">ANITAKU</span>
+                        <span class="platform-sparkle ani-sparkle" style="background:rgba(249,115,22,0.2); color:#fb923c; border:1px solid rgba(249,115,22,0.4); border-radius:6px; font-size:0.62rem; padding:1px 4px; font-weight:800;">ANIME</span>
+                    </button>
+
+                    <!-- Tab: ANIMEXIN (animexin.dev) Donghua 3D & Anime -->
+                    <button type="button" class="platform-tab-btn" id="tabPlatformAnimexin" onclick="switchPlatform('animexin')" role="tab" aria-selected="false" title="ANIMEXIN (animexin.dev) - Donghua 3D & Anime Hub">
+                        <div class="ax-badge-icon" onclick="onAnimexinLogoClick(event)" title="ចុច Logo ដើម្បីបើកវេបសាយផ្ទាល់ (animexin.dev) ↗" style="width:22px; height:22px; border-radius:6px; overflow:hidden; display:flex; align-items:center; justify-content:center; cursor:pointer; background:#000;">
+                            <img src="/animexin_lotus.png" alt="AnimeXin" style="width:100%; height:100%; object-fit:contain;" onerror="this.outerHTML='<span style=\'font-size:12px;\'>🌸</span>'">
+                        </div>
+                        <span class="platform-title ax-title" id="axTabLabel">ANIMEXIN</span>
+                        <span class="platform-sparkle ax-sparkle" style="background:rgba(16,185,129,0.2); color:#34d399; border:1px solid rgba(16,185,129,0.4); border-radius:6px; font-size:0.62rem; padding:1px 4px; font-weight:800;">DONGHUA</span>
+                    </button>
+
+
+                    <!-- Tab 4: MVFFM (mvffm.net) Short Dramas -->
                     <button type="button" class="platform-tab-btn" id="tabPlatformMvffm" onclick="switchPlatform('mvffm')" role="tab" aria-selected="false" title="MVFFM (mvffm.net) - ចុច Logo ដើម្បីបើកវេបសាយផ្ទាល់">
                         <div class="mv-badge-icon" onclick="onMvffmLogoClick(event)" title="ចុច Logo ដើម្បីបើកវេបសាយផ្ទាល់ (mvffm.net/drama/) ↗" style="width:22px; height:22px; border-radius:6px; background:linear-gradient(135deg, #e11d48, #be123c); display:flex; align-items:center; justify-content:center; cursor:pointer;">
                             <span style="font-size:12px;">🎬</span>
@@ -182,7 +213,7 @@
         <!-- Sidebar Footer (Pinned to bottom) -->
         <div class="sidebar-footer">
             <!-- License Status Pill with Live Days/Hours/Minutes Countdown -->
-            <button type="button" class="btn btn-license-badge unactivated" id="btnHeaderLicenseStatus" onclick="openLicenseActivationModal(true)" title="ស្ថានភាព License (ចុចដើម្បី Activate)">
+            <button type="button" class="btn btn-license-badge unactivated" id="btnHeaderLicenseStatus" onclick="handleLicenseBadgeClick(event)" title="ស្ថានភាព License">
                 <span id="headerLicenseIcon" style="display:none;"></span>
                 <span id="headerLicenseText" style="width:100%; display:block;">គ្មាន License</span>
             </button>
@@ -191,9 +222,8 @@
                 <button type="button" class="btn btn-sidebar-setting" id="btnHeaderSettings" onclick="openSettingsModal()" title="Settings">
                     <span>⚙️</span>
                     <span>ការកំណត់</span>
-                    <span id="settingsUpdateDot" style="display:none;" class="header-update-dot"></span>
                 </button>
-                <span class="sidebar-version-tag">v3.2.3</span>
+                <span class="sidebar-version-tag">v3.3.0</span>
             </div>
         </div>
     </header>
@@ -201,7 +231,7 @@
     <!-- Native Window Draggable Topbar Strip -->
     <div class="app-topbar" id="appTopbar">
         <div class="app-topbar-breadcrumb" id="topbarBreadcrumb">
-            <span id="topbarPlatformIcon" style="font-size:1.15rem;">🎬</span>
+            <span id="topbarPlatformIcon" style="display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; margin-right:6px;"><img src="/hongguo_icon.svg" alt="Hongguo" style="width:20px; height:20px; object-fit:contain; border-radius:5px;"></span>
             <span id="topbarPlatformName" style="font-weight:700; font-size:0.86rem; color:#f8fafc; letter-spacing:0.5px;">HONGGUO SHORT DRAMA</span>
         </div>
         <div class="app-topbar-spacer" style="-webkit-app-region: drag; flex: 1; height: 100%;"></div>
@@ -261,7 +291,7 @@
                         </div>
                         <div>
                             <h1 class="hg-hero-title">
-                                <span class="hg-title-grad">HONGGUO</span> <span style="font-weight:400; color:#cbd5e1; font-size:1.15rem; margin-left:6px;">DRAMA</span>
+                                <span class="hg-title-grad">HONGGUO</span> <span style="font-weight:400; color:#cbd5e1; font-size:1.15rem; margin-left:6px;">SHORT DRAMA</span>
                             </h1>
                         </div>
                     </div>
@@ -292,8 +322,8 @@
         <div class="nav-tabs" id="hongguoNavTabs">
             <button class="tab-btn active" data-cat="all" onclick="selectCategory(this, 'all')">🔥 ពេញនិយម (Hot)</button>
             <button class="tab-btn" data-cat="real-drama" onclick="selectCategory(this, 'real-drama')">🎭 រឿងសម្ដែងពិត (Real Drama)</button>
-            <button class="tab-btn" data-cat="comic-drama" onclick="selectCategory(this, 'comic-drama')">🎨 គំនូរជីវចល (Comic)</button>
             <button class="tab-btn" data-cat="ai-drama" onclick="selectCategory(this, 'ai-drama')">🤖 រឿង AI (AI Drama)</button>
+            <button class="tab-btn" data-cat="new" onclick="selectCategory(this, 'new')">⚡ រឿងថ្មីៗ (New)</button>
         </div>
 
         <!-- Main Container -->
@@ -424,10 +454,17 @@
                     <!-- Episode Grid -->
                     <div style="margin-top:8px;">
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; flex-wrap:wrap; gap:6px;">
-                            <span style="font-weight:600; color:#e2e8f0; font-size:0.9rem;">
-                                <span>📑 បញ្ជីភាគ (Episodes): </span>
-                                <span id="hsEpisodeCount" style="color:#818cf8; font-weight:700;">0</span>
-                            </span>
+                            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                                <span style="font-weight:600; color:#e2e8f0; font-size:0.9rem;">
+                                    <span>📑 បញ្ជីភាគ (Episodes): </span>
+                                    <span id="hsEpisodeCount" style="color:#818cf8; font-weight:700;">0</span>
+                                </span>
+                                <div class="hs-batch-sel-group" style="display:inline-flex; gap:6px; align-items:center;">
+                                    <button type="button" class="btn btn-secondary btn-xs" onclick="toggleHsSelectAll(true)" style="padding:2px 8px; font-size:0.75rem; border-radius:6px; background:rgba(255,255,255,0.08); color:#cbd5e1;" title="ជ្រើសរើសភាគទាំងអស់">☑️ ទាំងអស់</button>
+                                    <button type="button" class="btn btn-secondary btn-xs" onclick="toggleHsSelectAll(false)" style="padding:2px 8px; font-size:0.75rem; border-radius:6px; background:rgba(255,255,255,0.08); color:#cbd5e1;" title="ដោះគ្រីសទាំងអស់">⬜ ដោះគ្រីស</button>
+                                    <span id="hsSelectedCountBadge" style="font-size:0.76rem; color:#818cf8; font-weight:700; padding:2px 8px; background:rgba(99,102,241,0.15); border-radius:6px; border:1px solid rgba(99,102,241,0.3);">ជ្រើសបាន 0 ភាគ</span>
+                                </div>
+                            </div>
                             <div style="display:flex; align-items:center; gap:8px;">
                                 <span id="hsMemoryStatusBadge" style="display:none;"></span>
                                 <span id="hsCurrentPlayingEp" style="font-size:0.8rem; color:#38bdf8;"></span>
@@ -445,11 +482,7 @@
                             <span id="hsOutputDirDisplay" style="font-size:0.82rem; color:#38bdf8; font-family:monospace; background:rgba(0,0,0,0.3); padding:4px 8px; border-radius:6px; max-width:260px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">...</span>
                             <button type="button" class="btn btn-secondary" onclick="pickHsFolder()" style="padding:4px 10px; font-size:0.8rem; border-radius:6px;">ប្តូរ</button>
                         </div>
-                        <div id="hsDownloadModeBar" style="display:flex; align-items:center; gap:6px;">
-                            <span style="font-size:0.78rem; color:#94a3b8; font-weight:600;">ទម្រង់:</span>
-                            <button type="button" class="btn-dl-mode-chip active" id="hsChipModeMerged" onclick="setQuickDownloadMode('merged')" title="បញ្ចូលភាគទាំងអស់ជាវីដេអូពេញមួយខ្សែ (Merged)">🎞️ បញ្ចូលរឿង</button>
-                            <button type="button" class="btn-dl-mode-chip" id="hsChipModeSeparate" onclick="setQuickDownloadMode('separate')" title="រក្សាទុកជាភាគរាយៗដាច់ដោយឡែក (Separate)">📁 រាយភាគ</button>
-                        </div>
+                        <div id="hsDownloadModeBar" style="display:none !important;"></div>
                         <button type="button" class="hs-dl-btn" id="btnHsDownload" onclick="startHsBatchDownload()">
                             <span>⬇️</span>
                             <span id="hsDownloadBtnText">ទាញយកភាគទាំងអស់ (Download All)</span>
@@ -531,6 +564,516 @@
         </div>
     </div>
 
+    <!-- Beeplaylet (beeplaylet.com) Short Drama View -->
+    <div id="beeplayletView" class="beeplaylet-view-container" style="display:none;">
+        <div class="bp-content-wrapper">
+            <!-- Hero Banner -->
+            <div class="bp-hero-banner">
+                <div class="bp-hero-glow"></div>
+                <div class="bp-hero-content">
+                    <div class="bp-hero-header-row">
+                        <div class="bp-hero-left">
+                            <div class="bp-logo-clickable" onclick="openBeeplayletWebsite()" title="ចុច Logo នេះដើម្បីចូលទៅដល់វេបសាយផ្ទាល់ (beeplaylet.com)">
+                                <span>🐝</span>
+                            </div>
+                            <div>
+                                <h1 class="bp-hero-title">
+                                    <span class="bp-title-grad">BEEPLAYLET</span> <span style="font-weight:400; color:#cbd5e1; font-size:1.15rem; margin-left:6px;">蜜蜂短剧 HD</span>
+                                </h1>
+                                <p class="bp-hero-subtitle">ទាញយករឿងភាគខ្លីពី Beeplaylet កម្រិតច្បាស់ Full HD 1080p ឥតគិតថ្លៃ</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- URL / Search Input Box -->
+                    <div class="bp-search-card">
+                        <span style="font-size:18px;">🐝</span>
+                        <input type="text" id="bpDramaInput" class="bp-search-input" placeholder="ស្វែងរករឿង ឬបិទភ្ជាប់លីង Beeplaylet (https://beeplaylet.com/playlet/PlayletPlay/9968)..." onkeydown="onBpInputKeyDown(event)" autocomplete="off" spellcheck="false">
+                        <button type="button" class="btn btn-secondary" onclick="pasteBpFromClipboard()" title="Paste URL" style="font-size:0.84rem; padding:8px 14px; border-radius:10px;">
+                            <span>📋</span> <span>Paste URL</span>
+                        </button>
+                        <button type="button" class="bp-btn-search" id="btnBpSearch" onclick="submitBpSearch()">
+                            <span class="bp-btn-spinner" id="bpSearchSpinner" style="display:none;">⏳</span>
+                            <span id="bpSearchBtnText">🔍 ស្វែងរក / វិភាគ</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Drama Detail & Player Card (Appears when a drama is selected) -->
+            <div id="bpDramaCard" class="bp-detail-panel" style="display:none;">
+                <div class="bp-detail-top">
+                    <div class="bp-player-container">
+                        <video id="bpVideoPlayer" class="bp-video-element" controls preload="metadata"></video>
+                    </div>
+
+                    <div class="bp-detail-meta">
+                        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px;">
+                            <div>
+                                <h2 class="bp-detail-title" id="bpCardTitle">Drama Title</h2>
+                                <div id="bpCardTags" style="display:flex; gap:6px; flex-wrap:wrap; margin-top:8px;"></div>
+                            </div>
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <button type="button" class="btn btn-secondary" id="bpStarBtn" onclick="toggleBeeplayletDetailStar()" title="Pin / ចំណាំទុក" style="padding:6px 12px; border-radius:8px; font-size:0.82rem;">☆ PIN</button>
+                                <button type="button" class="btn btn-secondary" onclick="closeBpDramaCard()" title="Close" style="padding:6px 12px; border-radius:8px; font-size:0.82rem;">✕</button>
+                            </div>
+                        </div>
+
+                        <p class="bp-detail-desc" id="bpCardDesc"></p>
+
+                        <!-- Episodes selection -->
+                        <div class="bp-episodes-section">
+                            <div class="bp-ep-controls-bar">
+                                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                                    <span style="font-weight:700; color:#e2e8f0; font-size:0.92rem;">
+                                        <span>📑 បញ្ជីភាគ: </span>
+                                        <span id="bpEpisodeCount" style="color:#fbbf24; font-weight:800;">0</span>
+                                    </span>
+                                    <div class="bp-batch-sel-group" style="display:inline-flex; gap:6px; align-items:center;">
+                                        <button type="button" class="btn btn-secondary btn-xs" onclick="toggleBpSelectAll(true)" style="padding:2px 8px; font-size:0.75rem; border-radius:6px; background:rgba(255,255,255,0.08); color:#cbd5e1;" title="ជ្រើសរើសភាគទាំងអស់">☑️ ទាំងអស់</button>
+                                        <button type="button" class="btn btn-secondary btn-xs" onclick="toggleBpSelectAll(false)" style="padding:2px 8px; font-size:0.75rem; border-radius:6px; background:rgba(255,255,255,0.08); color:#cbd5e1;" title="ដោះគ្រីសទាំងអស់">⬜ ដោះគ្រីស</button>
+                                        <span id="bpSelectedCountBadge" style="font-size:0.76rem; color:#fbbf24; font-weight:700; padding:2px 8px; background:rgba(245,158,11,0.15); border-radius:6px; border:1px solid rgba(245,158,11,0.3);">ជ្រើសបាន 0 ភាគ</span>
+                                    </div>
+                                </div>
+                                <span id="bpCurrentPlayingEp" style="font-size:0.84rem; color:#fbbf24; font-weight:600;"></span>
+                            </div>
+                            <div class="bp-ep-grid nice-scroll" id="bpEpisodeGrid">
+                                <!-- Episodes injected dynamically -->
+                            </div>
+                        </div>
+
+                        <!-- Download Options -->
+                        <div style="margin-top:16px; padding-top:14px; border-top:1px solid rgba(255,255,255,0.08); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <span style="font-size:0.84rem; color:#94a3b8;">📂 រក្សាទុកនៅ:</span>
+                                <span id="bpOutputDirDisplay" style="font-size:0.82rem; color:#38bdf8; font-family:monospace; background:rgba(0,0,0,0.3); padding:4px 8px; border-radius:6px; max-width:260px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">...</span>
+                                <button type="button" class="btn btn-secondary" onclick="pickBpFolder()" style="padding:4px 10px; font-size:0.8rem; border-radius:6px;">ប្តូរ</button>
+                                <button type="button" class="btn btn-secondary" onclick="openBeeplayletFolder()" title="បើក Folder" style="padding:4px 10px; font-size:0.8rem; border-radius:6px;">📁 បើក</button>
+                            </div>
+                            <div id="bpDownloadModeBar" style="display:none !important;"></div>
+                            <button type="button" class="hs-dl-btn" id="btnBpDownload" onclick="startBpBatchDownload()">
+                                <span>⬇️</span>
+                                <span id="bpDownloadBtnText">ទាញយកភាគទាំងអស់ (Download All)</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Categories Chips -->
+            <div class="bp-cat-bar" id="bpCatBar">
+                <button type="button" class="bp-cat-chip active" data-cat="hot" onclick="selectBeeplayletCategory('hot')">
+                    <span>🔥</span> <span>ពេញនិយម (Hot)</span>
+                </button>
+                <button type="button" class="bp-cat-chip" data-cat="latest" onclick="selectBeeplayletCategory('latest')">
+                    <span>⚡</span> <span>ចេញថ្មីៗ (Latest)</span>
+                </button>
+                <button type="button" class="bp-cat-chip" data-cat="ranking" onclick="selectBeeplayletCategory('ranking')">
+                    <span>🏆</span> <span>ចំណាត់ថ្នាក់ (Ranking)</span>
+                </button>
+                <button type="button" class="bp-cat-chip" data-cat="free" onclick="selectBeeplayletCategory('free')">
+                    <span>🎁</span> <span>រឿង Free</span>
+                </button>
+            </div>
+
+            <!-- Section Header -->
+            <div class="bp-section-header">
+                <div class="bp-section-title">
+                    <span id="bpSectionIcon">🔥</span>
+                    <span id="bpSectionTitle">រឿងភាគកំពុងល្បី (Hot Recommendations)</span>
+                </div>
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <button type="button" class="btn btn-secondary" onclick="shuffleBeeplayletFeed()" title="ច្របល់រឿងថ្មីៗ" style="font-size:0.84rem; padding:6px 14px; border-radius:8px;">
+                        <span>🔄</span> <span>ច្របល់រឿងថ្មីៗ</span>
+                    </button>
+                    <button type="button" class="btn btn-secondary" id="btnBpBackToRecs" onclick="loadBeeplayletRecommendations('hot')" style="display:none; font-size:0.84rem; padding:6px 14px; border-radius:8px;">
+                        <span>🔙</span> <span>ត្រឡប់ទៅរឿងពេញនិយម</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Drama Grid -->
+            <div class="bp-drama-grid" id="bpRecsGrid">
+                <!-- Cards injected dynamically -->
+            </div>
+
+            <!-- Load More Container -->
+            <div id="bpLoadMoreContainer" style="display:none; justify-content:center; margin:20px 0;">
+                <button type="button" class="btn btn-secondary" onclick="loadMoreBeeplayletDramas()" style="padding:10px 24px; border-radius:10px; font-weight:700;">
+                    <span>⏬</span> <span>បង្ហាញរឿងបន្ថែមទៀត</span>
+                </button>
+            </div>
+
+            <!-- Tasks Queue -->
+            <div id="bpTasksSection" class="bp-tasks-card" style="display:none;">
+                <div class="bp-section-header">
+                    <div class="bp-section-title">
+                        <span>⬇️</span> <span>បញ្ជីទាញយក Beeplaylet (Downloads)</span>
+                    </div>
+                    <div style="display:flex; gap:8px;">
+                        <button type="button" class="btn btn-secondary" onclick="openBeeplayletFolder()" style="font-size:0.84rem; padding:6px 14px; border-radius:8px;">
+                            <span>📁</span> <span>បើក Folder</span>
+                        </button>
+                        <button type="button" class="btn btn-secondary" onclick="clearBeeplayletFinishedTasks()" style="font-size:0.84rem; padding:6px 14px; border-radius:8px;">
+                            <span>🧹</span> <span>សម្អាតដែលចប់</span>
+                        </button>
+                    </div>
+                </div>
+                <div id="bpTasksList">
+                    <!-- Tasks injected dynamically -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ANITAKU (anitaku.com.ro) Anime View -->
+    <div id="anitakuView" class="anitaku-view-container" style="display:none;">
+        <div class="ani-content-wrapper">
+            <!-- Hero Banner -->
+            <div class="ani-hero-banner">
+                <div class="ani-hero-glow"></div>
+                <div class="ani-hero-content">
+                    <div class="ani-hero-header-row">
+                        <div class="ani-hero-left">
+                            <div class="ani-logo-clickable" onclick="openAnitakuWebsite()" title="ចុច Logo នេះដើម្បីចូលទៅដល់វេបសាយផ្ទាល់ (anitaku.com.ro)" style="width:52px; height:52px; border-radius:14px; overflow:hidden; display:flex; align-items:center; justify-content:center; box-shadow:0 6px 18px rgba(249,115,22,0.45); cursor:pointer; background:#1e1b4b;">
+                                <img src="/anitaku_logo.png" alt="AniTaku Logo" style="width:100%; height:100%; object-fit:cover;" onerror="this.outerHTML='<span style=\'font-size:24px;\'>🍥</span>'">
+                            </div>
+                            <div>
+                                <h2 class="ani-hero-title">ANITAKU ANIME HUB</h2>
+                                <p class="ani-hero-desc">ទស្សនា និងទាញយក Anime ជប៉ុន &amp; សកល កម្រិតច្បាស់ Full HD 1080P លឿនបំផុត</p>
+                            </div>
+                        </div>
+                        <div class="ani-hero-badges">
+                            <span class="ani-badge ani-badge-accent">🍥 ANITAKU.COM.RO</span>
+                            <span class="ani-badge">⚡ Megaplays Fast CDN</span>
+                            <span class="ani-badge">🎬 Sub &amp; Dub Full HD</span>
+                        </div>
+                    </div>
+
+                    <!-- Search & Link Bar -->
+                    <div class="ani-search-container">
+                        <span class="ani-search-icon">🔍</span>
+                        <input type="text" id="aniInput" class="ani-search-input" placeholder="វាយឈ្មោះរឿង Anime ឬបិទភ្ជាប់តំណ (ឧ. One Piece, Bleach ឬ https://anitaku.com.ro/...)" autocomplete="off">
+                        <div class="ani-search-btn-group">
+                            <button type="button" class="btn btn-secondary" onclick="pasteAnitakuUrl()" title="បិទភ្ជាប់តំណពី Clipboard" style="font-size:0.82rem; padding:6px 12px; border-radius:8px;">
+                                <span>📋 Paste</span>
+                            </button>
+                            <button type="button" class="btn btn-secondary" onclick="clearAnitakuInput()" title="សម្អាត" style="font-size:0.82rem; padding:6px 10px; border-radius:8px;">
+                                <span>✕</span>
+                            </button>
+                            <button type="button" class="btn btn-primary" onclick="handleAnitakuSearch()" style="background:linear-gradient(135deg, #f97316, #ea580c); border:none; font-size:0.88rem; padding:7px 16px; border-radius:8px; font-weight:700;">
+                                <span>ស្វែងរក / ផ្ទុក</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Category Filter Chips -->
+            <div class="ani-cat-bar">
+                <button type="button" class="ani-cat-chip active" data-cat="all" onclick="selectAnitakuCategory('all')">🍥 ទាំងអស់ (All)</button>
+                <button type="button" class="ani-cat-chip" data-cat="action" onclick="selectAnitakuCategory('action')">⚔️ Action</button>
+                <button type="button" class="ani-cat-chip" data-cat="romance" onclick="selectAnitakuCategory('romance')">🌸 Romance</button>
+                <button type="button" class="ani-cat-chip" data-cat="fantasy" onclick="selectAnitakuCategory('fantasy')">🏰 Fantasy</button>
+                <button type="button" class="ani-cat-chip" data-cat="supernatural" onclick="selectAnitakuCategory('supernatural')">✨ Supernatural</button>
+                <button type="button" class="ani-cat-chip" data-cat="comedy" onclick="selectAnitakuCategory('comedy')">😂 Comedy</button>
+                <button type="button" class="ani-cat-chip" data-cat="drama" onclick="selectAnitakuCategory('drama')">🎭 Drama</button>
+                <button type="button" class="ani-cat-chip" data-cat="sci-fi" onclick="selectAnitakuCategory('sci-fi')">🚀 Sci-Fi</button>
+                <button type="button" class="ani-cat-chip" onclick="refreshAnitakuFeed()" style="margin-left:auto; background:rgba(249,115,22,0.15); border-color:rgba(249,115,22,0.4); color:#fb923c;">🔄 ច្របល់រឿង (Refresh)</button>
+            </div>
+
+            <!-- Anime Detail & Player Card (Matching HaoSou 2-Column UX) -->
+            <div id="aniShowcaseCard" class="ani-detail-card" style="display:none;">
+                <!-- Left Column: Video Player Screen & Server Switcher -->
+                <div class="ani-detail-player-col">
+                    <div class="ani-player-header-bar">
+                        <span id="aniPlayerEpTitle" class="ani-player-ep-title">▶ កំពុងចាក់...</span>
+                        <div id="aniPlayerServers" class="ani-player-servers"></div>
+                    </div>
+                    <div class="ani-player-wrapper">
+                        <video id="aniVideoPlayer" class="ani-video-player" controls playsinline preload="metadata"></video>
+                        <iframe id="aniEmbedIframe" class="ani-player-iframe" src="about:blank" allow="autoplay; fullscreen" allowfullscreen sandbox="allow-scripts allow-same-origin allow-forms" style="display:none;"></iframe>
+                    </div>
+                    <div class="ani-player-action-row">
+                        <button type="button" id="aniStarBtn" class="btn btn-secondary ani-btn-action" onclick="toggleStarAnitaku()">
+                            ☆ ចំណាំទុក
+                        </button>
+                        <button type="button" id="aniWebBtn" class="btn btn-secondary ani-btn-action" onclick="openAnitakuInBrowser()" title="បើកមើលលើវេបសាយដើម">
+                            ↗ បើកលើវេបសាយ
+                        </button>
+                        <button type="button" class="btn btn-secondary ani-btn-action" onclick="closeAnitakuPlayer()" title="បិទ Player / Reset">
+                            ✕ បិទ Player
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Right Column: Anime Info, Synopsis, Episodes & Download Options -->
+                <div class="ani-card-info-col">
+                    <div class="ani-info-header-row">
+                        <div style="flex:1; min-width:0;">
+                            <h3 id="aniShowcaseTitle" class="ani-detail-title">Anime Title</h3>
+                            <div id="aniShowcaseAltTitle" class="ani-detail-alt-title" style="display:none;">Alt Title</div>
+                            <div class="ani-badges-wrap" style="display:flex; align-items:center; gap:6px; margin-top:6px; flex-wrap:wrap;">
+                                <span class="ani-badge ani-badge-accent" id="aniShowcaseEpCount">0 ភាគ</span>
+                                <span class="ani-badge" id="aniShowcaseStatus">Ongoing</span>
+                                <span class="ani-badge" id="aniShowcaseYear">2026</span>
+                                <span class="ani-badge" id="aniShowcaseStudio" style="display:none;"></span>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-secondary ani-card-close-btn" onclick="closeAnitakuDetailCard()" title="បិទផ្ទាំង (Close)">✕</button>
+                    </div>
+
+                    <!-- Genre Tags -->
+                    <div id="aniShowcaseTags" class="ani-tags-row" style="margin-top:10px;"></div>
+
+                    <!-- Synopsis -->
+                    <div id="aniShowcaseSynopsis" class="ani-synopsis" style="margin-top:10px;"></div>
+
+                    <!-- Episodes Section -->
+                    <div class="ani-episodes-section" style="margin-top:12px;">
+                        <div class="ani-ep-header-bar">
+                            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                                <span style="font-weight:700; color:#e2e8f0; font-size:0.88rem;">📑 បញ្ជីភាគ (Episodes):</span>
+                                <div class="ani-batch-sel-group">
+                                    <button type="button" class="btn btn-secondary btn-xs" onclick="selectAllAnitakuEps(true)">☑️ ទាំងអស់</button>
+                                    <button type="button" class="btn btn-secondary btn-xs" onclick="selectAllAnitakuEps(false)">⬜ ដោះគ្រីស</button>
+                                    <button type="button" class="btn btn-secondary btn-xs" onclick="invertAnitakuEpSelection()">🔄 បញ្ច្រាស</button>
+                                    <span id="aniSelectedCountLabel" class="ani-selected-count-badge">ជ្រើសបាន 0 ភាគ</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="aniEpisodesGrid" class="ani-ep-grid nice-scroll"></div>
+                    </div>
+
+                    <!-- Download Options Bar -->
+                    <div class="ani-download-bar">
+                        <div class="ani-download-mode-group">
+                            <span style="font-size:0.78rem; color:#94a3b8; font-weight:600;">ទម្រង់:</span>
+                            <button type="button" class="ani-mode-chip active" data-mode="separate" onclick="setAnitakuDownloadMode('separate')" title="ទាញយករាយភាគដាច់ៗជា MP4">📁 រាយភាគ</button>
+                            <button type="button" class="ani-mode-chip" data-mode="merged" onclick="setAnitakuDownloadMode('merged')" title="ផ្គុំចូលគ្នាជារឿងពេញមួយ File">🎬 បញ្ចូលរឿង</button>
+                            <button type="button" class="ani-mode-chip" data-mode="both" onclick="setAnitakuDownloadMode('both')" title="ទុកទាំងរាយភាគ និងរឿងពេញ">✨ ទាំងពីរ</button>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <button type="button" class="btn btn-primary ani-dl-btn" onclick="startAnitakuDownloadSelected()" style="background:linear-gradient(135deg, #f97316, #ea580c);">
+                                <span>⬇️ ទាញយកដែលជ្រើស</span>
+                            </button>
+                            <button type="button" class="btn btn-primary ani-dl-btn" onclick="startAnitakuDownloadAll()" style="background:linear-gradient(135deg, #ea580c, #c2410c);">
+                                <span>⚡ ទាញយកទាំងអស់</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recommendation & Search Catalog Grid -->
+            <div class="ani-grid-header">
+                <h3 class="ani-grid-title">
+                    <span>🍥 បណ្តុំរឿង ANIME ទាំងអស់</span>
+                    <button type="button" id="aniBackToAllBtn" class="btn btn-secondary" onclick="restoreAnitakuAllCards()" style="display:none; font-size:0.78rem; padding:4px 10px; margin-left:10px;">
+                        🔙 ត្រឡប់ទៅរឿងទាំងអស់
+                    </button>
+                </h3>
+            </div>
+            <div id="aniDramaGrid" class="ani-card-grid"></div>
+
+            <!-- Load More Anime Button -->
+            <div id="aniLoadMoreContainer" style="text-align:center; margin: 20px 0 35px 0;">
+                <button type="button" class="btn btn-secondary" id="aniLoadMoreBtn" onclick="loadMoreAnitakuAnime()" style="padding: 10px 24px; border-radius: 12px; font-weight: 700; font-size: 0.9rem; background: rgba(249,115,22,0.15); border: 1px solid rgba(249,115,22,0.4); color: #fb923c; cursor:pointer;">
+                    <span>🍥 ផ្ទុក Anime បន្ថែមទៀត (Load More)</span>
+                </button>
+            </div>
+
+            <!-- Download Tasks & Queue Section -->
+            <div id="aniTasksSection" class="ani-tasks-card">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+                    <div style="font-weight:700; font-size:0.95rem; color:#ffffff; display:flex; align-items:center; gap:6px;">
+                        <span>📥 តារាងទាញយក Anime (Download Tasks)</span>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <button type="button" class="btn btn-secondary" onclick="openAnitakuFolder()" style="font-size:0.8rem; padding:5px 12px; border-radius:8px;">
+                            <span>📁 បើក Folder</span>
+                        </button>
+                        <button type="button" class="btn btn-secondary" onclick="clearAnitakuFinishedTasks()" style="font-size:0.8rem; padding:5px 12px; border-radius:8px;">
+                            <span>🧹 សម្អាតដែលចប់</span>
+                        </button>
+                    </div>
+                </div>
+                <div id="aniTasksList"></div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ANIMEXIN (animexin.dev) Donghua 3D & Anime View -->
+    <div id="animexinView" class="animexin-view-container" style="display:none;">
+        <div class="ax-content-wrapper">
+            <!-- Hero Banner -->
+            <div class="ax-hero-banner">
+                <div class="ax-hero-glow"></div>
+                <div class="ax-hero-content">
+                    <div class="ax-hero-header-row">
+                        <div class="ax-hero-left">
+                            <div class="ax-logo-clickable" onclick="openAnimexinWebsite()" title="ចុច Logo នេះដើម្បីចូលទៅដល់វេបសាយផ្ទាល់ (animexin.dev)" style="width:52px; height:52px; border-radius:14px; background:radial-gradient(circle, rgba(16,185,129,0.2) 0%, #030d08 100%); border:1px solid rgba(16,185,129,0.45); display:flex; align-items:center; justify-content:center; box-shadow:0 0 18px rgba(16,185,129,0.35); cursor:pointer;">
+                                <img src="/animexin_lotus.png" alt="AnimeXin Lotus" style="height:42px; width:42px; object-fit:contain; filter:drop-shadow(0 0 8px rgba(16,185,129,0.85));" onerror="this.outerHTML='<span style=\'font-size:24px;\'>🌸</span>'">
+                            </div>
+                            <div>
+                                <h2 class="ax-hero-title">ANIMEXIN DONGHUA HUB</h2>
+                                <p class="ax-hero-desc">ទស្សនា និងទាញយក Donghua 3D ចិន &amp; Anime រាប់ពាន់រាប់ម៉ឺនរឿង Sub Indo/Eng Full HD លឿនបំផុត</p>
+                            </div>
+                        </div>
+                        <div class="ax-hero-badges">
+                            <span class="ax-badge"><span style="color:#10b981;">●</span> ANIMEXIN.DEV</span>
+                            <span class="ax-badge ax-badge-accent">⚡ Multi-Server Fast CDN</span>
+                            <span class="ax-badge">🎬 3D Donghua Full HD</span>
+                        </div>
+                    </div>
+
+                    <!-- Search Bar with Paste, Clear, Search Buttons -->
+                    <div class="ax-search-container">
+                        <span class="ax-search-icon">🔍</span>
+                        <input type="text" id="axInput" class="ax-search-input" placeholder="វាយឈ្មោះរឿង Donghua ឬបិទភ្ជាប់តំណរ (ឧ. Renegade Immortal, Swallowed Star ឬ https://animexin.dev/...)" autocomplete="off">
+                        <div class="ax-search-btn-group">
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="pasteAnimexinFromClipboard()" title="Paste Link">
+                                <span>📋 Paste</span>
+                            </button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="clearAnimexinInput()" title="Clear Input">
+                                <span>✕</span>
+                            </button>
+                            <button type="button" class="btn btn-primary btn-sm" onclick="handleAnimexinSearch()" style="background:linear-gradient(135deg, #10b981, #059669); font-weight:700;">
+                                <span>ស្វែងរក / បើក</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+
+            <!-- Active Donghua Detail & Player Card (2-Column HaoSou UX) -->
+            <div id="axShowcaseCard" class="ax-detail-card" style="display:none;">
+                <!-- Left Column: Player & Stream Controllers -->
+                <div class="ax-detail-player-col">
+                    <div class="ax-player-header-bar">
+                        <div class="ax-player-ep-title" id="axPlayerEpTitle">▶ កំពុងចាក់: ភាគ ១</div>
+                        <div class="ax-player-servers" id="axPlayerServers">
+                            <!-- Server buttons injected via JS -->
+                        </div>
+                    </div>
+                    <div class="ax-player-wrapper">
+                        <video id="axVideoPlayer" class="ax-video-player" controls playsinline style="display:none;"></video>
+                        <iframe id="axEmbedIframe" class="ax-player-iframe" src="about:blank" allowfullscreen allow="autoplay; fullscreen; picture-in-picture; web-share"></iframe>
+                    </div>
+                    <div class="ax-player-action-row">
+                        <button type="button" class="btn btn-secondary ax-btn-action" id="axStarBtn" onclick="toggleStarAnimexin()" title="បន្ថែមចូលបញ្ជីចំណាំ">
+                            ☆ ចំណាំទុក
+                        </button>
+                        <button type="button" class="btn btn-secondary ax-btn-action" onclick="openAnimexinInBrowser()" title="បើកមើលលើ Browser ផ្ទាល់">
+                            ↗ បើកលើ Browser
+                        </button>
+                        <button type="button" class="btn btn-secondary ax-btn-action" onclick="closeAnimexinPlayer()" title="បិទ Player / Reset">
+                            ✕ បិទ Player
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Right Column: Donghua Info, Synopsis, Episodes & Download Options -->
+                <div class="ax-card-info-col">
+                    <div class="ax-info-header-row">
+                        <div style="flex:1; min-width:0;">
+                            <h3 id="axShowcaseTitle" class="ax-detail-title">Donghua Title</h3>
+                            <div id="axShowcaseAltTitle" class="ax-detail-alt-title" style="display:none;">Alt Title</div>
+                            <div class="ax-badges-wrap" style="display:flex; align-items:center; gap:6px; margin-top:6px; flex-wrap:wrap;">
+                                <span class="ax-badge ax-badge-accent" id="axShowcaseEpCount">0 ភាគ</span>
+                                <span class="ax-badge" id="axShowcaseStatus">Ongoing</span>
+                                <span class="ax-badge" id="axShowcaseYear">2026</span>
+                                <span class="ax-badge" id="axShowcaseStudio" style="display:none;"></span>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-secondary ax-card-close-btn" onclick="closeAnimexinDetailCard()" title="បិទផ្ទាំង (Close)">✕</button>
+                    </div>
+
+                    <!-- Genre Tags -->
+                    <div id="axShowcaseTags" class="ax-tags-row" style="margin-top:10px;"></div>
+
+                    <!-- Synopsis -->
+                    <div id="axShowcaseSynopsis" class="ax-synopsis" style="margin-top:10px;"></div>
+
+                    <!-- Episodes Section -->
+                    <div class="ax-episodes-section" style="margin-top:12px;">
+                        <div class="ax-ep-header-bar">
+                            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                                <span style="font-weight:700; color:#e2e8f0; font-size:0.88rem;">📑 បញ្ជីភាគ (Episodes):</span>
+                                <div class="ax-batch-sel-group">
+                                    <button type="button" class="btn btn-secondary btn-xs" onclick="selectAllAnimexinEps(true)">☑️ ទាំងអស់</button>
+                                    <button type="button" class="btn btn-secondary btn-xs" onclick="selectAllAnimexinEps(false)">⬜ ដោះគ្រីស</button>
+                                    <button type="button" class="btn btn-secondary btn-xs" onclick="invertAnimexinEpSelection()">🔄 បញ្ច្រាស</button>
+                                    <span id="axSelectedCountLabel" class="ax-selected-count-badge">ជ្រើសបាន 0 ភាគ</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="axEpisodesGrid" class="ax-ep-grid nice-scroll"></div>
+                    </div>
+
+                    <!-- Download Options Bar -->
+                    <div class="ax-download-bar">
+                        <div class="ax-download-mode-group">
+                            <span style="font-size:0.78rem; color:#94a3b8; font-weight:600;">ទម្រង់:</span>
+                            <button type="button" class="ax-mode-chip active" data-mode="separate" onclick="setAnimexinDownloadMode('separate')" title="ទាញយករាយភាគដាច់ៗជា MP4">📁 រាយភាគ</button>
+                            <button type="button" class="ax-mode-chip" data-mode="merged" onclick="setAnimexinDownloadMode('merged')" title="ផ្គុំចូលគ្នាជារឿងពេញមួយ File">🎬 បញ្ចូលរឿង</button>
+                            <button type="button" class="ax-mode-chip" data-mode="both" onclick="setAnimexinDownloadMode('both')" title="ទុកទាំងរាយភាគ និងរឿងពេញ">✨ ទាំងពីរ</button>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <button type="button" class="btn btn-primary ax-dl-btn" onclick="startAnimexinDownloadSelected()" style="background:linear-gradient(135deg, #10b981, #059669);">
+                                <span>⬇️ ទាញយកដែលជ្រើស</span>
+                            </button>
+                            <button type="button" class="btn btn-primary ax-dl-btn" onclick="startAnimexinDownloadAll()" style="background:linear-gradient(135deg, #059669, #047857);">
+                                <span>⚡ ទាញយកទាំងអស់</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recommendation & Search Catalog Grid -->
+            <div class="ax-grid-header">
+                <h3 class="ax-grid-title">
+                    <span>🐉 បណ្តុំរឿង DONGHUA 3D ទាំងអស់</span>
+                    <button type="button" id="axBackToAllBtn" class="btn btn-secondary" onclick="restoreAnimexinAllCards()" style="display:none; font-size:0.78rem; padding:4px 10px; margin-left:10px;">
+                        🔙 ត្រឡប់ទៅរឿងទាំងអស់
+                    </button>
+                </h3>
+            </div>
+            <div id="axDramaGrid" class="ax-card-grid"></div>
+
+            <!-- Load More Donghua Button -->
+            <div id="axLoadMoreContainer" style="text-align:center; margin: 20px 0 35px 0;">
+                <button type="button" class="btn btn-secondary" id="axLoadMoreBtn" onclick="loadMoreAnimexinAnime()" style="padding: 10px 24px; border-radius: 12px; font-weight: 700; font-size: 0.9rem; background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.4); color: #34d399; cursor:pointer;">
+                    <span>🐉 ផ្ទុក Donghua បន្ថែមទៀត (Load More)</span>
+                </button>
+            </div>
+
+            <!-- Download Tasks & Queue Section -->
+            <div id="axTasksSection" class="ax-tasks-card">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+                    <div style="font-weight:700; font-size:0.95rem; color:#ffffff; display:flex; align-items:center; gap:6px;">
+                        <span>📥 តារាងទាញយក Donghua (Download Tasks)</span>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <button type="button" class="btn btn-secondary" onclick="openAnimexinFolder()" style="font-size:0.8rem; padding:5px 12px; border-radius:8px;">
+                            <span>📁 បើក Folder</span>
+                        </button>
+                        <button type="button" class="btn btn-secondary" onclick="clearAnimexinFinishedTasks()" style="font-size:0.8rem; padding:5px 12px; border-radius:8px;">
+                            <span>🧹 សម្អាតដែលចប់</span>
+                        </button>
+                    </div>
+                </div>
+                <div id="axTasksList"></div>
+            </div>
+        </div>
+    </div>
+
+
     <!-- MVFFM (mvffm.net) Short Drama View -->
     <div id="mvffmView" class="mvffm-view-container" style="display:none;">
         <div class="mv-content-wrapper">
@@ -603,11 +1146,7 @@
                         <div class="mv-dl-box">
                             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:6px;">
                                 <div style="font-size:0.8rem; font-weight:700; color:#cbd5e1;">ទាញយកវីដេអូ MP4 (Batch Download):</div>
-                                <div id="mvDownloadModeBar" style="display:flex; align-items:center; gap:6px;">
-                                    <span style="font-size:0.75rem; color:#94a3b8; font-weight:600;">ទម្រង់:</span>
-                                    <button type="button" class="btn-dl-mode-chip active" id="mvChipModeMerged" onclick="setQuickDownloadMode('merged')" title="បញ្ចូលភាគទាំងអស់ជាវីដេអូពេញមួយខ្សែ (Merged)">🎞️ បញ្ចូលរឿង</button>
-                                    <button type="button" class="btn-dl-mode-chip" id="mvChipModeSeparate" onclick="setQuickDownloadMode('separate')" title="រក្សាទុកជាភាគរាយៗដាច់ដោយឡែក (Separate)">📁 រាយភាគ</button>
-                                </div>
+                                <div id="mvDownloadModeBar" style="display:none !important;"></div>
                             </div>
                             <div class="mv-dl-options">
                                 <span style="font-size:0.78rem; color:#94a3b8;">ភាគពី:</span>
@@ -708,6 +1247,9 @@
                             <button type="button" class="dm-btn-search" onclick="searchDailymotionDramas()">
                                 <span>🔍</span> <span id="dmSearchBtnText">ស្វែងរក</span>
                             </button>
+                            <button type="button" class="btn btn-secondary" id="btnDmResetFeed" onclick="resetDailymotionFeed()" title="ត្រឡប់ទៅរឿងទាំងអស់ (All Dramas)" style="display:none; padding:8px 14px; border-radius:10px; font-size:0.84rem; align-items:center; gap:6px;">
+                                <span>🔙</span> <span>រឿងទាំងអស់</span>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -745,6 +1287,9 @@
                             <button type="button" class="btn btn-secondary" onclick="pickDmFolder()" style="padding:4px 10px; font-size:0.8rem; border-radius:6px;">ប្តូរ</button>
                         </div>
                         <div style="display:flex; align-items:center; gap:8px;">
+                            <button type="button" class="btn btn-secondary" id="dmStarBtn" onclick="toggleDailymotionDetailStar()" title="បន្ថែមចូលបញ្ជីចំណាំ (PIN)" style="padding:10px 14px; font-size:0.85rem; border-radius:10px; font-weight:600;">
+                                ☆ ចំណាំទុក (PIN)
+                            </button>
                             <button type="button" class="btn btn-secondary" onclick="openActiveDmExternal()" title="បើកមើលក្នុង Browser ផ្ទាល់" style="padding:10px 14px; font-size:0.85rem; border-radius:10px; font-weight:600;">
                                 <span>🌐</span> <span>បើកលើ Browser</span>
                             </button>
@@ -822,6 +1367,18 @@
                         </button>
                         <button type="button" class="starred-chip" data-platform="haosou" onclick="filterStarredPlatform('haosou')">
                             <span>🎬</span> <span>HAOSOU (1DFX)</span>
+                        </button>
+                        <button type="button" class="starred-chip" data-platform="beeplaylet" onclick="filterStarredPlatform('beeplaylet')">
+                            <span>🐝</span> <span>BEEPLAYLET</span>
+                        </button>
+                        <button type="button" class="starred-chip" data-platform="anitaku" onclick="filterStarredPlatform('anitaku')">
+                            <img src="/anitaku_logo.png" style="width:14px; height:14px; border-radius:3px; object-fit:cover; vertical-align:middle; display:inline-block; margin-right:2px;" onerror="this.outerHTML='🍥'"> <span>ANITAKU</span>
+                        </button>
+                        <button type="button" class="starred-chip" data-platform="animexin" onclick="filterStarredPlatform('animexin')">
+                            <img src="/animexin_lotus.png" style="height:14px; width:14px; object-fit:contain; vertical-align:middle; display:inline-block; margin-right:2px;" onerror="this.outerHTML='🌸'"> <span>ANIMEXIN</span>
+                        </button>
+                        <button type="button" class="starred-chip" data-platform="dailymotion" onclick="filterStarredPlatform('dailymotion')">
+                            <img src="/dailymotion_icon.svg" style="width:14px; height:14px; vertical-align:middle; display:inline-block; margin-right:2px;"> <span>DAILYMOTION</span>
                         </button>
                         <button type="button" class="starred-chip" data-platform="mvffm" onclick="filterStarredPlatform('mvffm')">
                             <span>🎥</span> <span>MVFFM</span>
@@ -1224,7 +1781,7 @@
             <span class="stream-modal-title" id="modalTopTitle"></span>
           </div>
           <div class="stream-topbar-right">
-            <div class="resume-pill" id="resumeBadge">
+            <div class="resume-pill" id="resumeBadge" style="display:none;">
               🕒 Resumed at Episode 1 of 100
             </div>
             <!-- Change Download Folder Button -->
@@ -1393,13 +1950,6 @@
                   <h3 id="drawerTotalTitle">Episodes (100 total)</h3>
                   <p id="drawerSubTitle">Complete Episode List</p>
                 </div>
-                <div class="auto-next-toggle">
-                  <span id="drawerAutoNextLabel">Auto-Next</span>
-                  <label class="switch">
-                    <input type="checkbox" id="autoNextSwitch" checked>
-                    <span class="slider"></span>
-                  </label>
-                </div>
               </div>
 
               <!-- Episode Filter Tabs -->
@@ -1410,20 +1960,8 @@
 
               <!-- Batch Action Bar: Check All, Range Selector, Download Selected -->
               <div class="batch-controls-card">
-                <!-- 1-Click Download Mode Selector (Only shown for multi-episode series) -->
-                <div class="batch-row-mode" id="hgDownloadModeBar" style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; padding:6px 10px; background:rgba(0,0,0,0.35); border-radius:8px; border:1px solid rgba(255,255,255,0.06); flex-wrap:wrap; gap:6px;">
-                  <span style="font-size:0.78rem; color:#94a3b8; display:flex; align-items:center; gap:5px; font-weight:600;">
-                    <span>⚙️ ទម្រង់ទាញយក:</span>
-                  </span>
-                  <div style="display:flex; gap:6px;">
-                    <button type="button" class="btn-dl-mode-chip active" id="chipModeMerged" onclick="setQuickDownloadMode('merged')" title="បញ្ចូលភាគទាំងអស់ជាវីដេអូពេញមួយខ្សែ (Merged Full Video)">
-                      <span>🎞️ បញ្ចូលរឿង</span>
-                    </button>
-                    <button type="button" class="btn-dl-mode-chip" id="chipModeSeparate" onclick="setQuickDownloadMode('separate')" title="រក្សាទុកជាភាគរាយៗដាច់ដោយឡែក (Separate Episodes)">
-                      <span>📁 រាយភាគ</span>
-                    </button>
-                  </div>
-                </div>
+                <!-- Mode bar removed as requested to keep drama episode downloading clean and simple -->
+                <div class="batch-row-mode" id="hgDownloadModeBar" style="display:none !important;"></div>
 
                 <div class="batch-row-top">
                   <button type="button" class="btn-batch-action" id="btnToggleCheckAll" onclick="toggleSelectAllEpisodes()">
@@ -1613,6 +2151,60 @@
                         <div id="drawerYtTasksContainer" style="display:flex; flex-direction:column; gap:8px;"></div>
                     </div>
 
+                    <!-- Section C: ANIMEXIN (Donghua) Downloads -->
+                    <div id="drawerAxSectionWrap" style="display:none;">
+                        <div class="drawer-section-header">
+                            <span class="drawer-section-title" id="drawerAxTitle">🌸 រឿងដុងហួរ (Animexin Donghua)</span>
+                            <span class="drawer-section-pill" id="drawerAxCount" style="background:rgba(16,185,129,0.18); color:#34d399;">0</span>
+                        </div>
+                        <div id="drawerAxTasksContainer" style="display:flex; flex-direction:column; gap:8px;"></div>
+                    </div>
+
+                    <!-- Section D: ANITAKU (Anime) Downloads -->
+                    <div id="drawerAniSectionWrap" style="display:none;">
+                        <div class="drawer-section-header">
+                            <span class="drawer-section-title" id="drawerAniTitle">🍥 រឿងអានីមេ (Anitaku Anime)</span>
+                            <span class="drawer-section-pill" id="drawerAniCount" style="background:rgba(56,189,248,0.18); color:#38bdf8;">0</span>
+                        </div>
+                        <div id="drawerAniTasksContainer" style="display:flex; flex-direction:column; gap:8px;"></div>
+                    </div>
+
+                    <!-- Section E: DAILYMOTION Downloads -->
+                    <div id="drawerDmSectionWrap" style="display:none;">
+                        <div class="drawer-section-header">
+                            <span class="drawer-section-title" id="drawerDmTitle">🎬 រឿងពេញ (Dailymotion Movie)</span>
+                            <span class="drawer-section-pill" id="drawerDmCount" style="background:rgba(249,115,22,0.18); color:#fb923c;">0</span>
+                        </div>
+                        <div id="drawerDmTasksContainer" style="display:flex; flex-direction:column; gap:8px;"></div>
+                    </div>
+
+                    <!-- Section F: HAOSOU (1DFX) Downloads -->
+                    <div id="drawerHsSectionWrap" style="display:none;">
+                        <div class="drawer-section-header">
+                            <span class="drawer-section-title" id="drawerHsTitle">⚡ រឿងភាគ HaoSou (1DFX)</span>
+                            <span class="drawer-section-pill" id="drawerHsCount" style="background:rgba(168,85,247,0.18); color:#c084fc;">0</span>
+                        </div>
+                        <div id="drawerHsTasksContainer" style="display:flex; flex-direction:column; gap:8px;"></div>
+                    </div>
+
+                    <!-- Section G: MVFFM Downloads -->
+                    <div id="drawerMvSectionWrap" style="display:none;">
+                        <div class="drawer-section-header">
+                            <span class="drawer-section-title" id="drawerMvTitle">🎥 រឿងភាគ MVFFM</span>
+                            <span class="drawer-section-pill" id="drawerMvCount" style="background:rgba(236,72,153,0.18); color:#f472b6;">0</span>
+                        </div>
+                        <div id="drawerMvTasksContainer" style="display:flex; flex-direction:column; gap:8px;"></div>
+                    </div>
+
+                    <!-- Section H: BEEPLAYLET Downloads -->
+                    <div id="drawerBpSectionWrap" style="display:none;">
+                        <div class="drawer-section-header">
+                            <span class="drawer-section-title" id="drawerBpTitle">🐝 រឿងភាគ Beeplaylet</span>
+                            <span class="drawer-section-pill" id="drawerBpCount" style="background:rgba(234,179,8,0.18); color:#facc15;">0</span>
+                        </div>
+                        <div id="drawerBpTasksContainer" style="display:flex; flex-direction:column; gap:8px;"></div>
+                    </div>
+
                     <!-- Failed Episodes Box -->
                     <div id="failedEpsBox" style="display:none; background:rgba(239, 68, 68, 0.08); border:1px solid rgba(239, 68, 68, 0.28); border-radius:8px; padding:10px; margin-top:4px;">
                         <div style="font-size:0.78rem; font-weight:700; color:#fca5a5; display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
@@ -1637,11 +2229,14 @@
                 <button class="btn btn-secondary" style="flex:1; justify-content:center;" onclick="openUnifiedFolder()">
                     <span id="dlOpenFolderBtnText">📁 បើក Folder</span>
                 </button>
+                <button class="btn btn-secondary" id="btnClearFinishedDownloads" style="background:rgba(56, 189, 248, 0.15); border-color:rgba(56, 189, 248, 0.35); color:#38bdf8; font-weight:700;" onclick="clearFinishedOrCanceledDownloads()" title="សម្អាតបញ្ជីដែលទាញយកចប់ ឬបានបោះបង់ចោល">
+                    <span id="dlClearBtnText">🧹 សម្អាត</span>
+                </button>
                 <button class="btn btn-secondary" id="btnRetryAllFailed" style="background:rgba(245, 158, 11, 0.15); border-color:rgba(245, 158, 11, 0.35); color:#fbbf24; font-weight:700;" onclick="retryAllFailedDownloads()" title="Retry any failed or partial episode downloads">
                     <span id="dlRetryBtnText">🔄 Retry</span>
                 </button>
                 <button class="btn btn-secondary" style="background:rgba(239, 68, 68, 0.15); border-color:rgba(239, 68, 68, 0.3); color:#fca5a5;" onclick="cancelAllUnifiedDownloads()">
-                    <span id="dlCancelBtnText">បោះបង់ (Cancel)</span>
+                    <span id="dlCancelBtnText">បោះបង់</span>
                 </button>
             </div>
         </div>
@@ -1733,71 +2328,12 @@
                         </div>
                     </div>
                     <div style="display:flex; gap:6px;">
-                        <button type="button" class="btn btn-secondary btn-sm" onclick="showChangeLicensePrompt()" style="height:32px; font-size:0.78rem; padding:0 12px; white-space:nowrap; flex-shrink:0;">
-                            <span>🔄</span> <span id="btnChangeLicenseText">ប្តូរ Key</span>
+                        <button type="button" class="btn btn-secondary btn-sm" id="btnRefreshLicenseStatus" onclick="refreshLicenseFromSettings(this)" title="ពិនិត្យ License ពីចម្ងាយ (Sync & Refresh License)" style="height:32px; font-size:0.78rem; padding:0 12px; white-space:nowrap; flex-shrink:0;">
+                            <span id="btnRefreshLicIcon">🔄</span> <span id="btnRefreshLicText">Refresh</span>
                         </button>
-                    </div>
-                </div>
-
-                <!-- Software Update (1-Click Seamless Auto-Updater) -->
-                <div class="settings-update-section">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-                        <div style="display:flex; align-items:center; gap:8px;">
-                            <span style="font-size:1.15rem;">🔄</span>
-                            <div>
-                                <div id="settingsUpdateTitle" style="font-size:0.92rem; font-weight:700; color:#fff;">
-                                    ធ្វើបច្ចុប្បន្នភាពកម្មវិធី (Software Update)
-                                </div>
-                                <div id="settingsUpdateSubtitle" style="font-size:0.75rem; color:var(--text-dim);">
-                                    ពិនិត្យមើល និង Update មុខងារថ្មីៗដោយស្វ័យប្រវត្តិ
-                                </div>
-                            </div>
-                        </div>
-                        <span class="badge" id="settingsCurrentVersionBadge" style="background:rgba(59,130,246,0.16); border:1px solid rgba(59,130,246,0.4); color:#93c5fd; padding:3px 10px; font-size:0.78rem; font-weight:700;">
-                            v3.2.3
-                        </span>
-                    </div>
-
-                    <!-- Single Clean Update Card -->
-                    <div id="updateCardBox" style="background:rgba(15,23,42,0.65); border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:12px 14px; transition:all 0.35s ease;">
-                        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
-                            <div style="display:flex; align-items:center; gap:10px; font-size:0.83rem;">
-                                <span id="updateStatusIcon" style="font-size:1.15rem;">✅</span>
-                                <div>
-                                    <div id="updateStatusText" style="color:#cbd5e1; font-weight:600;">
-                                        កម្មវិធីរបស់អ្នកជាកំណែចុងក្រោយបំផុតហើយ (v3.2.3)
-                                    </div>
-                                    <div id="updateStatusSubtext" style="font-size:0.73rem; color:var(--text-dim); display:none; margin-top:2px;"></div>
-                                </div>
-                            </div>
-
-                            <!-- Single Update Button: Disabled when up to date, Lights up & Clickable when update available! -->
-                            <button type="button" id="btnAppUpdateAction" disabled onclick="handleAppUpdateActionClick()" class="btn-update-action btn-update-disabled">
-                                <span id="btnUpdateActionIcon">🔄</span>
-                                <span id="btnUpdateActionText">Update</span>
-                            </button>
-                        </div>
-
-                        <!-- Real-time Progress Bar Box (Shown when downloading/updating) -->
-                        <div id="updateProgressBarContainer" style="display:none; margin-top:12px; padding:10px 12px; background:rgba(0,0,0,0.4); border-radius:10px; border:1px solid rgba(59,130,246,0.25);">
-                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; font-size:0.8rem;">
-                                <span id="updateProgressPhaseText" style="color:#93c5fd; font-weight:600; display:flex; align-items:center; gap:6px;">
-                                    <span style="display:inline-block;">📥</span>
-                                    <span>កំពុងទាញយកកូដថ្មី...</span>
-                                </span>
-                                <span id="updateProgressPercentText" style="color:#34d399; font-weight:800; font-size:0.95rem; font-family:Consolas, monospace;">0%</span>
-                            </div>
-                            <div style="width:100%; height:10px; background:rgba(255,255,255,0.08); border-radius:6px; overflow:hidden; position:relative; box-shadow:inset 0 1px 3px rgba(0,0,0,0.5);">
-                                <div id="updateProgressBarFill" style="width:0%; height:100%; background:linear-gradient(90deg, #3b82f6, #06b6d4, #10b981); border-radius:6px; transition:width 0.25s ease; box-shadow:0 0 12px rgba(16,185,129,0.6);"></div>
-                            </div>
-                            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:6px; font-size:0.73rem; color:#94a3b8;">
-                                <span id="updateProgressBytesText">0 MB / 0 MB</span>
-                                <span id="updateProgressSpeedText" style="color:#38bdf8; font-weight:600;">0 KB/s</span>
-                            </div>
-                        </div>
-
-                        <!-- Changelog preview (Shown only when update available) -->
-                        <div id="updateChangelogBox" style="display:none; margin-top:10px; background:rgba(0,0,0,0.35); border-radius:6px; padding:8px 10px; font-size:0.76rem; color:#e2e8f0; line-height:1.45; max-height:75px; overflow-y:auto; white-space:pre-wrap; border-left:3px solid #10b981;"></div>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="showChangeLicensePrompt()" style="height:32px; font-size:0.78rem; padding:0 12px; white-space:nowrap; flex-shrink:0;">
+                            <span>🔑</span> <span id="btnChangeLicenseText">ប្តូរ Key</span>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -1815,7 +2351,33 @@
             <button type="button" class="license-modal-close-btn" onclick="closeLicenseModalForBrowsing()" title="បិទផ្ទាំងនេះដើម្បីមើលផ្ទាំងរូបភាពរឿង (Browse Posters)">✕</button>
 
             <!-- Dynamic Alert Banner when user clicks a poster without a license -->
-            <div id="licenseActionNoticeBanner" style="display:none; background:rgba(239,68,68,0.22); border:1.5px solid #ef4444; border-radius:10px; padding:10px 14px; margin-bottom:12px; color:#fca5a5; font-size:0.82rem; text-align:left; line-height:1.5; box-shadow:0 0 15px rgba(239,68,68,0.2);"></div>
+            <div id="licenseActionNoticeBanner" style="display:none; background:rgba(239,68,68,0.22); border:1.5px solid #ef4444; border-radius:10px; padding:10px 14px; margin-bottom:12px; color:#fca5a5; font-size:0.82rem; text-align:left; line-line:1.5; box-shadow:0 0 15px rgba(239,68,68,0.2);"></div>
+
+            <!-- Active License Status Card (Shown when user already has an active license with remaining days) -->
+            <div id="licenseActiveInfoCard" style="display:none; background:linear-gradient(135deg, rgba(16,185,129,0.14), rgba(5,150,105,0.22)); border:1.5px solid rgba(16,185,129,0.45); border-radius:14px; padding:12px 16px; margin-bottom:14px; box-shadow:0 8px 24px rgba(16,185,129,0.15); text-align:left;">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                    <div style="display:flex; align-items:center; gap:12px;">
+                        <div style="font-size:1.8rem; background:rgba(16,185,129,0.2); border-radius:50%; width:44px; height:44px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">🛡️</div>
+                        <div>
+                            <div style="font-weight:800; font-size:0.96rem; color:#34d399; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                                <span id="activeCardStatusLabel">🟢 អាជ្ញាប័ណ្ណមានសុពលភាព (Active VIP)</span>
+                                <span id="activeCardCustomerName" style="background:rgba(255,255,255,0.12); border-radius:6px; padding:2px 8px; font-size:0.75rem; color:#f8fafc;">👤 VIP</span>
+                            </div>
+                            <div id="activeCardRemainingText" style="font-size:0.84rem; color:#e2e8f0; font-weight:700; margin-top:3px;">
+                                ⏳ នៅសល់ ...
+                            </div>
+                            <div id="activeCardKeyText" style="font-size:0.72rem; color:#94a3b8; font-family:monospace; margin-top:2px;">
+                                🔑 Key: ...
+                            </div>
+                        </div>
+                    </div>
+                    <div style="display:flex; gap:8px; align-items:center;">
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="refreshAndCheckAutoActivation()" title="ធ្វើបច្ចុប្បន្នភាពពី Cloud" style="height:34px; font-size:0.78rem; padding:0 12px; display:flex; align-items:center; gap:5px; border-color:rgba(56,189,248,0.4); color:#38bdf8;">
+                            <span>🔄</span> <span>Sync ពី Cloud</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
 
             <!-- Header Glow Icon & Title (Horizontal Layout) -->
             <div style="display:flex; align-items:center; justify-content:center; gap:12px; margin-bottom:14px; text-align:left;">
@@ -2154,6 +2716,9 @@
     <script src="/js/starred.js"></script>
     <script src="/js/hongguo.js"></script>
     <script src="/js/haosou.js"></script>
+    <script src="/js/beeplaylet.js"></script>
+    <script src="/js/anitaku.js"></script>
+    <script src="/js/animexin.js"></script>
     <script src="/js/mvffm.js"></script>
     <script src="/js/dailymotion.js"></script>
     <script src="/js/youtube.js"></script>

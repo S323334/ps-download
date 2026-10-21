@@ -1,6 +1,7 @@
         // HaoSou State Variables
         let currentHsDrama = null;
         let currentHsPlayingIndex = 0;
+        let selectedHsEpisodes = new Set();
         let hsHlsInstance = null;
         let hsTasksPollingTimer = null;
         let _hsRecsLoaded = false;
@@ -71,7 +72,14 @@
         function shuffleHaoSouFeed() {
             if (_allHaoSouItems && _allHaoSouItems.length > 0) {
                 if (typeof shuffleArray === 'function') {
-                    _allHaoSouItems = shuffleArray(_allHaoSouItems);
+                    if (currentHsDrama && currentHsDrama.id) {
+                        const activeId = String(currentHsDrama.id);
+                        const activeItem = _allHaoSouItems.find(x => String(x.id) === activeId) || _allHaoSouItems[0];
+                        const others = _allHaoSouItems.filter(x => String(x.id) !== String(activeItem.id));
+                        _allHaoSouItems = [activeItem, ...shuffleArray(others)];
+                    } else {
+                        _allHaoSouItems = shuffleArray(_allHaoSouItems);
+                    }
                 }
                 _haosouRenderLimit = 60;
                 _lastHaoSouItems = _allHaoSouItems.slice(0, _haosouRenderLimit);
@@ -110,7 +118,8 @@
             }
 
             grid.innerHTML = items.map((item, idx) => {
-                const cover = item.cover || '/uploads/image/20250311/5754a9f551b45a5f36800c0212460d0a.png';
+                const rawCover = (item.cover || '').trim();
+                const cover = rawCover.startsWith('http') ? `/img?url=${encodeURIComponent(rawCover)}` : (rawCover || '/logo.svg');
                 const remarks = item.remarks ? `<span class="hs-card-badge">${escapeHtml(item.remarks)}</span>` : '';
                 const displayTitle = getDisplayTitle(item.title);
                 const showSubOrig = (currentLang !== 'zh' && currentLang !== 'original');
@@ -256,6 +265,20 @@
                     });
                 }
                 renderHaoSouDetail(currentHsDrama);
+
+                // Place analyzed drama at Card #1 (index 0) in the recommendation feed below
+                if (currentHsDrama && currentHsDrama.id && _allHaoSouItems) {
+                    const hsCardItem = {
+                        id: currentHsDrama.id,
+                        title: currentHsDrama.title,
+                        cover: currentHsDrama.cover || '',
+                        total_episodes: (currentHsDrama.episodes || []).length
+                    };
+                    _allHaoSouItems = [hsCardItem, ..._allHaoSouItems.filter(x => String(x.id) !== String(currentHsDrama.id))];
+                    _lastHaoSouItems = _allHaoSouItems.slice(0, _haosouRenderLimit);
+                    renderHaoSouCards(_lastHaoSouItems);
+                }
+
                 showToast(`បានបើក "${currentHsDrama.title}"!`, '✅');
 
                 const card = document.getElementById('hsDramaCard');
@@ -289,7 +312,9 @@
                     queueTitleTranslation(drama.title);
                 }
             }
-            if (descEl) descEl.textContent = drama.desc || '好搜短劇屋精品短劇';
+            if (descEl) {
+                translateHaoSouDesc(drama.id, drama.desc);
+            }
 
             if (tagsEl) {
                 const isStarred = (typeof isDramaStarred === 'function') && isDramaStarred(drama.id, 'haosou');
@@ -308,12 +333,21 @@
             const epUnit = currentLang === 'zh' ? '集' : (currentLang === 'km' ? 'ភាគ' : 'Episodes');
             if (epCountEl) epCountEl.textContent = `${episodes.length} ${epUnit}`;
 
+            // Initialize episode selection: all selected by default
+            selectedHsEpisodes.clear();
+            episodes.forEach(ep => selectedHsEpisodes.add(ep.episode));
+            updateHsSelectedBadge();
+
             if (epGrid) {
-                epGrid.innerHTML = episodes.map((ep, idx) => `
-                    <div class="hs-ep-chip ${idx === 0 ? 'active' : ''}" id="hsEpChip_${idx}" onclick="playHaoSouEpisode(${idx})">
-                        ${escapeHtml(ep.label || `第${ep.episode}集`)}
+                epGrid.innerHTML = episodes.map((ep, idx) => {
+                    const isSel = selectedHsEpisodes.has(ep.episode);
+                    return `
+                    <div class="hs-ep-chip ${idx === 0 ? 'active' : ''} ${isSel ? 'selected' : ''}" id="hsEpChip_${idx}" onclick="handleHsEpTileClick(event, ${idx})" ondblclick="playHaoSouEpisode(${idx})" title="ចុចមួយដង = គ្រីស | ចុចពីរដង = មើលវីដេអូ">
+                        <input type="checkbox" class="hs-ep-checkbox" id="hsEpChk_${idx}" ${isSel ? 'checked' : ''} onclick="event.stopPropagation(); toggleHsEpCheck(${idx})" title="គ្រីសសម្រាប់ទាញយក" />
+                        <span class="hs-ep-label">${escapeHtml(ep.label || `第${ep.episode}集`)}</span>
                     </div>
-                `).join('');
+                `;
+                }).join('');
             }
 
             if (episodes.length > 0) {
@@ -364,6 +398,81 @@
                 }
             }).catch(() => {});
         }
+
+        function updateHsSelectedBadge() {
+            const badge = document.getElementById('hsSelectedCountBadge');
+            const dlBtnText = document.getElementById('hsDownloadBtnText');
+            const total = (currentHsDrama && currentHsDrama.episodes) ? currentHsDrama.episodes.length : 0;
+            const count = selectedHsEpisodes.size;
+
+            if (badge) {
+                badge.textContent = `ជ្រើសបាន ${count} ភាគ`;
+            }
+            if (dlBtnText) {
+                if (count > 0 && count < total) {
+                    dlBtnText.textContent = `ទាញយកភាគដែលបានជ្រើស (${count} ភាគ)`;
+                } else {
+                    dlBtnText.textContent = 'ទាញយកភាគទាំងអស់ (Download All)';
+                }
+            }
+        }
+        window.updateHsSelectedBadge = updateHsSelectedBadge;
+
+        function toggleHsEpCheck(idx) {
+            if (!currentHsDrama || !currentHsDrama.episodes || !currentHsDrama.episodes[idx]) return;
+            const epNum = currentHsDrama.episodes[idx].episode || (idx + 1);
+            if (selectedHsEpisodes.has(epNum)) {
+                selectedHsEpisodes.delete(epNum);
+            } else {
+                selectedHsEpisodes.add(epNum);
+            }
+
+            const tile = document.getElementById(`hsEpChip_${idx}`);
+            const chk = document.getElementById(`hsEpChk_${idx}`);
+            if (tile) tile.classList.toggle('selected', selectedHsEpisodes.has(epNum));
+            if (chk) chk.checked = selectedHsEpisodes.has(epNum);
+
+            updateHsSelectedBadge();
+        }
+        window.toggleHsEpCheck = toggleHsEpCheck;
+
+        function toggleHsSelectAll(selectAll) {
+            if (!currentHsDrama || !currentHsDrama.episodes) return;
+            if (selectAll) {
+                currentHsDrama.episodes.forEach(ep => {
+                    selectedHsEpisodes.add(ep.episode);
+                });
+            } else {
+                selectedHsEpisodes.clear();
+            }
+
+            currentHsDrama.episodes.forEach((ep, idx) => {
+                const tile = document.getElementById(`hsEpChip_${idx}`);
+                const chk = document.getElementById(`hsEpChk_${idx}`);
+                const isSel = selectedHsEpisodes.has(ep.episode);
+                if (tile) tile.classList.toggle('selected', isSel);
+                if (chk) chk.checked = isSel;
+            });
+
+            updateHsSelectedBadge();
+        }
+        window.toggleHsSelectAll = toggleHsSelectAll;
+
+        function handleHsEpTileClick(event, idx) {
+            if (!currentHsDrama || !currentHsDrama.episodes || !currentHsDrama.episodes[idx]) return;
+            currentHsPlayingIndex = idx;
+
+            document.querySelectorAll('.hs-ep-chip').forEach((t, i) => {
+                t.classList.toggle('active', i === idx);
+            });
+
+            toggleHsEpCheck(idx);
+
+            const ep = currentHsDrama.episodes[idx];
+            const curLabel = document.getElementById('hsCurrentPlayingEp');
+            if (curLabel) curLabel.textContent = `▶️ កំពុងចាក់: ${ep.label || `Episode ${ep.episode}`}`;
+        }
+        window.handleHsEpTileClick = handleHsEpTileClick;
 
         function playHaoSouEpisode(index) {
             if (!currentHsDrama || !currentHsDrama.episodes || !currentHsDrama.episodes[index]) return;
@@ -435,7 +544,17 @@
                 return;
             }
 
-            const epCount = currentHsDrama.episodes.length;
+            let targetEpisodes = currentHsDrama.episodes || [];
+            if (selectedHsEpisodes.size > 0 && selectedHsEpisodes.size < targetEpisodes.length) {
+                targetEpisodes = targetEpisodes.filter(ep => selectedHsEpisodes.has(ep.episode));
+            }
+
+            if (targetEpisodes.length === 0) {
+                showToast('សូមគ្រីសជ្រើសរើសភាគយ៉ាងហោចណាស់ ១ ភាគ (Please select at least 1 episode)', 'warning');
+                return;
+            }
+
+            const epCount = targetEpisodes.length;
 
             const doSubmit = async (selectedMode) => {
                 const activeMode = (typeof window.getActiveDownloadMode === 'function') ? window.getActiveDownloadMode() : 'merged';
@@ -452,7 +571,8 @@
                         body: JSON.stringify({
                             book_id: currentHsDrama.id,
                             title: currentHsDrama.title,
-                            episodes: currentHsDrama.episodes,
+                            cover: (currentHsDrama && currentHsDrama.cover) || '',
+                            episodes: targetEpisodes,
                             download_mode: finalMode
                         })
                     });
@@ -462,6 +582,7 @@
 
                     showToast('បានបញ្ចូលទៅក្នុងបញ្ជីទាញយកដោយជោគជ័យ!', '✅');
                     fetchHaoSouTasks();
+                    if (typeof startDownloadPolling === 'function') startDownloadPolling(true);
                 } catch (err) {
                     showToast(`Error: ${err.message}`, '❌');
                 } finally {
@@ -583,11 +704,12 @@
             if (window.electronAPI && typeof window.electronAPI.selectFolder === 'function') {
                 const folder = await window.electronAPI.selectFolder();
                 if (folder) {
-                    const outDirEl = document.getElementById('hsOutputDirDisplay');
-                    if (outDirEl) {
-                        outDirEl.textContent = folder;
-                        outDirEl.title = folder;
-                    }
+                    if (typeof updateDownloadFolderUI === 'function') updateDownloadFolderUI(folder);
+                    fetch('/dl/config', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ output_dir: folder })
+                    }).catch(() => {});
                 }
             }
         }
@@ -619,6 +741,49 @@
                 }
             } catch (e) {}
         }
+
+        async function translateHaoSouDesc(dramaId, rawDesc) {
+            const descEl = document.getElementById('hsCardDesc');
+            if (!descEl) return;
+            const curLang = (typeof currentLang !== 'undefined') ? currentLang : 'km';
+            if (!rawDesc) {
+                descEl.textContent = (curLang === 'zh') ? '好搜短劇屋精品短劇' : 'រឿងភាគខ្លី HaoSou កំពុងពេញនិយម';
+                return;
+            }
+
+            descEl.setAttribute('data-original-desc', rawDesc);
+
+            if (curLang === 'original' || curLang === 'zh') {
+                descEl.textContent = rawDesc;
+                return;
+            }
+
+            const cacheKey = `hs_desc_${curLang}_${dramaId || rawDesc.slice(0, 30)}`;
+            try {
+                const cached = localStorage.getItem(cacheKey);
+                if (cached) {
+                    descEl.textContent = cached;
+                    return;
+                }
+            } catch (e) {}
+
+            descEl.textContent = rawDesc;
+
+            try {
+                const res = await fetch(`/api/translate?text=${encodeURIComponent(rawDesc)}&to=${encodeURIComponent(curLang)}`);
+                if (!res.ok) return;
+                const data = await res.json();
+                if (data && data.translated) {
+                    try { localStorage.setItem(cacheKey, data.translated); } catch (e) {}
+                    if (currentHsDrama && String(currentHsDrama.id) === String(dramaId) && ((typeof currentLang !== 'undefined' ? currentLang : 'km') === curLang)) {
+                        descEl.textContent = data.translated;
+                    }
+                }
+            } catch (err) {
+                console.warn('[HaoSou] Failed to translate description:', err.message);
+            }
+        }
+        window.translateHaoSouDesc = translateHaoSouDesc;
 
         let _ytInputDebounceTimer = null;
         let _lastAnalyzedYtUrl = '';

@@ -11,7 +11,7 @@ const https = require('https');
 const http = require('http');
 const querystring = require('querystring');
 const { getOutputDir } = require('./config.js');
-const { libraryManager } = require('./library_manager.js');
+const { libraryManager, downloadAndSaveCover } = require('./library_manager.js');
 
 function sanitizeFilename(name) {
   const cleaned = String(name || '').replace(/[\\/*?:"<>|\r\n\t]/g, '_').trim();
@@ -20,13 +20,16 @@ function sanitizeFilename(name) {
 
 function findYtDlp() {
   const candidates = [
+    path.join(__dirname, '..', 'bin', 'yt-dlp.exe'),
+    path.join(process.resourcesPath || '', 'bin', 'yt-dlp.exe'),
+    path.join(__dirname, '..', '..', 'bin', 'yt-dlp.exe'),
     path.join(process.env.LOCALAPPDATA || '', 'Programs', 'Python', 'Python311', 'Scripts', 'yt-dlp.exe'),
     path.join(process.env.USERPROFILE || '', 'AppData', 'Local', 'Programs', 'Python', 'Python311', 'Scripts', 'yt-dlp.exe'),
     path.join(__dirname, '..', 'lib', 'yt-dlp.exe'),
     'yt-dlp'
   ];
   for (const p of candidates) {
-    if (p !== 'yt-dlp' && fs.existsSync(p)) return p;
+    if (p !== 'yt-dlp' && p && fs.existsSync(p)) return p;
   }
   return 'yt-dlp';
 }
@@ -52,7 +55,7 @@ function formatBytes(bytes) {
 
 function extractFirstUrl(text) {
   if (!text) return '';
-  const match = String(text).match(/https?:\/\/[^\s"'<>]+/i);
+  const match = String(text).match(/https?:\/\/[^\s"'<>\u4e00-\u9fa5]+/i);
   return match ? match[0] : '';
 }
 
@@ -74,7 +77,7 @@ class TikTokDownloader {
 
   detectPlatform(url) {
     const u = String(url || '').toLowerCase();
-    if (u.includes('kuaishou.com') || u.includes('kuaishouapp.com')) return 'kuaishou';
+    if (u.includes('kuaishou.com') || u.includes('kuaishouapp.com') || u.includes('gifshow.com') || u.includes('kwai.com')) return 'kuaishou';
     if (u.includes('douyin.com') || u.includes('iesdouyin.com')) return 'douyin';
     if (u.includes('tiktok.com')) return 'tiktok';
     return null;
@@ -101,8 +104,8 @@ class TikTokDownloader {
       throw new Error(`លីងនេះជាលីង ${names[platform] || platform} មិនអាចទាញយកក្នុងផ្ទាំង ${names[expectedPlatform] || expectedPlatform} បានទេ! សូមជ្រើសរើសផ្ទាំងត្រឹមត្រូវ។`);
     }
 
-    // 1. TikTok & Douyin: Try tikwm.com API (Instant, No Watermark, HD)
-    if (platform === 'tiktok' || platform === 'douyin') {
+    // 1. TikTok (Global): Try tikwm.com API (Instant, No Watermark, HD)
+    if (platform === 'tiktok') {
       try {
         const tikwmData = await this._fetchTikwm(cleanUrl);
         if (tikwmData && tikwmData.code === 0 && tikwmData.data) {
@@ -111,7 +114,7 @@ class TikTokDownloader {
             ok: true,
             platform,
             id: d.id || `${Date.now()}`,
-            title: d.title || (platform === 'douyin' ? 'Douyin Short Video' : 'TikTok Short Video'),
+            title: d.title || 'TikTok Short Video',
             cover: d.cover || d.origin_cover || '',
             play_url: d.play || '',
             wmplay_url: d.wmplay || '',
@@ -119,7 +122,7 @@ class TikTokDownloader {
             duration: d.duration || 0,
             duration_str: formatDuration(d.duration),
             author: {
-              nickname: d.author?.nickname || (platform === 'douyin' ? 'Douyin Creator' : 'TikTok Creator'),
+              nickname: d.author?.nickname || 'TikTok Creator',
               unique_id: d.author?.unique_id || '',
               avatar: d.author?.avatar || ''
             },
@@ -131,8 +134,59 @@ class TikTokDownloader {
       }
     }
 
-    // 2. Kuaishou: Try Mobile Web Scraper
+    // 2. Douyin (TikTok ចិន): Dedicated Multi-Engine Resolver
+    if (platform === 'douyin') {
+      try {
+        let dyData = await this._fetchDouyinTioo(cleanUrl);
+        if (!dyData || !dyData.play_url) {
+          await new Promise(r => setTimeout(r, 500));
+          dyData = await this._fetchDouyinTioo(cleanUrl);
+        }
+        if (dyData && dyData.play_url) {
+          return dyData;
+        }
+      } catch (err) {
+        console.warn('[TikTokDownloader] Douyin tioo error:', err.message);
+      }
+
+      // Fallback: try tikwm in case it is supported
+      try {
+        const tikwmData = await this._fetchTikwm(cleanUrl);
+        if (tikwmData && tikwmData.code === 0 && tikwmData.data) {
+          const d = tikwmData.data;
+          return {
+            ok: true,
+            platform: 'douyin',
+            id: d.id || `${Date.now()}`,
+            title: d.title || 'Douyin Video',
+            cover: d.cover || d.origin_cover || '',
+            play_url: d.play || '',
+            wmplay_url: d.wmplay || '',
+            music_url: d.music || '',
+            duration: d.duration || 0,
+            duration_str: formatDuration(d.duration),
+            author: {
+              nickname: d.author?.nickname || 'Douyin Creator',
+              unique_id: d.author?.unique_id || '',
+              avatar: d.author?.avatar || ''
+            },
+            raw_url: cleanUrl
+          };
+        }
+      } catch (_) {}
+    }
+
+    // 3. Kuaishou (ខៅស៊ូ / ខាយស៊ូ): Dedicated Resolver & Mobile Scraper
     if (platform === 'kuaishou') {
+      try {
+        const ksTiooData = await this._fetchKuaishouTioo(cleanUrl);
+        if (ksTiooData && ksTiooData.play_url) {
+          return ksTiooData;
+        }
+      } catch (err) {
+        console.warn('[TikTokDownloader] Kuaishou tioo error:', err.message);
+      }
+
       try {
         const ksData = await this._scrapeKuaishou(cleanUrl);
         if (ksData && ksData.play_url) {
@@ -160,8 +214,144 @@ class TikTokDownloader {
       }
     }
 
-    // 3. Fallback: yt-dlp metadata extraction
+    // 4. Universal Fallback: Standalone yt-dlp binary metadata extraction
     return await this._analyzeWithYtDlp(cleanUrl, platform);
+  }
+
+  _fetchDouyinTioo(url) {
+    return new Promise((resolve) => {
+      const targetUrl = `https://backend1.tioo.eu.org/douyin?url=${encodeURIComponent(url)}`;
+      const req = https.get(targetUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
+        },
+        timeout: 15000
+      }, (res) => {
+        let d = '';
+        res.on('data', c => d += c);
+        res.on('end', () => {
+          try {
+            const json = JSON.parse(d);
+            if (json && (json.status === true || json.success === true) && json.data) {
+              const data = json.data;
+              const links = Array.isArray(data.links) ? data.links : [];
+
+              let playUrl = '';
+              let wmPlayUrl = '';
+              let musicUrl = '';
+
+              for (const l of links) {
+                const q = String(l.quality || '').toLowerCase();
+                const u = l.url || '';
+                if (q.includes('3') || q.includes('audio') || u.includes('.mp3')) {
+                  musicUrl = u;
+                } else if (q.includes('2') || q.includes('hd')) {
+                  playUrl = u;
+                } else if (!playUrl && u) {
+                  playUrl = u;
+                }
+              }
+
+              if (!playUrl && links.length > 0) {
+                playUrl = links[0].url || '';
+              }
+              if (!wmPlayUrl) wmPlayUrl = playUrl;
+
+              // If links contains JWT, extract direct CDN url if available as backup
+              let directCdn = '';
+              for (const l of links) {
+                if (l.url && l.url.includes('token=')) {
+                  try {
+                    const tokenPart = l.url.split('token=')[1].split('&')[0];
+                    const b64 = tokenPart.split('.')[1];
+                    if (b64) {
+                      const payload = JSON.parse(Buffer.from(b64, 'base64').toString('utf8'));
+                      if (payload && payload.url) {
+                        directCdn = payload.url;
+                        break;
+                      }
+                    }
+                  } catch (_) {}
+                }
+              }
+
+              const finalPlayUrl = playUrl || directCdn;
+              if (finalPlayUrl) {
+                return resolve({
+                  ok: true,
+                  platform: 'douyin',
+                  id: `${Date.now()}`,
+                  title: data.title || 'Douyin Video',
+                  cover: data.thumbnail || '',
+                  play_url: finalPlayUrl,
+                  wmplay_url: wmPlayUrl || finalPlayUrl,
+                  music_url: musicUrl,
+                  duration: 0,
+                  duration_str: '00:00',
+                  author: {
+                    nickname: 'Douyin Creator',
+                    unique_id: '',
+                    avatar: data.thumbnail || ''
+                  },
+                  raw_url: url
+                });
+              }
+            }
+            resolve(null);
+          } catch (_) {
+            resolve(null);
+          }
+        });
+      });
+      req.on('timeout', () => { req.destroy(); resolve(null); });
+      req.on('error', () => resolve(null));
+    });
+  }
+
+  _fetchKuaishouTioo(url) {
+    return new Promise((resolve) => {
+      const targetUrl = `https://backend1.tioo.eu.org/kuaishou?url=${encodeURIComponent(url)}`;
+      const req = https.get(targetUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
+        },
+        timeout: 15000
+      }, (res) => {
+        let d = '';
+        res.on('data', c => d += c);
+        res.on('end', () => {
+          try {
+            const json = JSON.parse(d);
+            if (json && (json.success === true || json.status === true) && json.videoUrl) {
+              const durSec = json.duration ? Math.round(Number(json.duration) > 1000 ? json.duration / 1000 : json.duration) : 0;
+              return resolve({
+                ok: true,
+                platform: 'kuaishou',
+                id: `${Date.now()}`,
+                title: json.title || 'Kuaishou Video',
+                cover: json.thumbnail || '',
+                play_url: json.videoUrl,
+                wmplay_url: json.videoUrl,
+                music_url: '',
+                duration: durSec,
+                duration_str: formatDuration(durSec),
+                author: {
+                  nickname: json.author?.name || 'Kuaishou Creator',
+                  unique_id: '',
+                  avatar: ''
+                },
+                raw_url: url
+              });
+            }
+            resolve(null);
+          } catch (_) {
+            resolve(null);
+          }
+        });
+      });
+      req.on('timeout', () => { req.destroy(); resolve(null); });
+      req.on('error', () => resolve(null));
+    });
   }
 
   _fetchTikwm(url) {
@@ -300,7 +490,11 @@ class TikTokDownloader {
             reject(new Error(`Failed to parse metadata from yt-dlp: ${e.message}`));
           }
         } else {
-          reject(new Error(stderr || `Analysis failed with code ${code}`));
+          let errMsg = (stderr || `Analysis failed with code ${code}`).trim();
+          if (errMsg.includes('Fresh cookies') || errMsg.includes('cookies')) {
+            errMsg = 'មិនអាចវិភាគវីដេអូ Douyin នេះបានទេ (សូមចុច "⚡ វិភាគវីដេអូ" ម្តងទៀត)';
+          }
+          reject(new Error(errMsg));
         }
       });
 
@@ -317,7 +511,7 @@ class TikTokDownloader {
   /**
    * Start video or audio download
    */
-  async startDownload({ url, play_url, format = 'no_watermark', title = '', author = '', platform = 'tiktok', customDir = null }) {
+  async startDownload({ url, play_url, format = 'no_watermark', title = '', author = '', platform = 'tiktok', customDir = null, cover = '', music_url = '' }) {
     const cleanTitle = sanitizeFilename(title || `${platform}_${Date.now()}`);
     const outDir = customDir && fs.existsSync(customDir) ? customDir : this.getTikTokOutputDir();
     const taskId = `tt_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
@@ -332,10 +526,13 @@ class TikTokDownloader {
       platform,
       title: cleanTitle,
       author: author || 'Creator',
+      cover: cover || '',
       format,
       output_dir: outDir,
       file_path: targetFilePath,
       filename,
+      raw_url: url || '',
+      music_url: music_url || '',
       status: 'downloading', // 'downloading', 'completed', 'error', 'canceled'
       progress_pct: 0,
       speed_str: '0.0 MB/s',
@@ -345,11 +542,17 @@ class TikTokDownloader {
       error_message: ''
     };
 
+    if (cover) {
+      downloadAndSaveCover(cover, outDir, cleanTitle).catch(() => {});
+    }
+
     this.tasks.set(taskId, task);
-    libraryManager.registerSeries(taskId, cleanTitle, '', 1, '1', platform).catch(() => {});
+    libraryManager.registerSeries(taskId, cleanTitle, cover || '', 1, '1', platform).catch(() => {});
 
     // If direct MP4/MP3 stream URL is available, download directly using fast stream
-    if (play_url && play_url.startsWith('http') && !play_url.includes('.m3u8')) {
+    if (isAudioOnly && music_url && music_url.startsWith('http')) {
+      this._downloadDirectStream(taskId, music_url, targetFilePath);
+    } else if (!isAudioOnly && play_url && play_url.startsWith('http') && !play_url.includes('.m3u8')) {
       this._downloadDirectStream(taskId, play_url, targetFilePath);
     } else {
       // Fallback to yt-dlp
@@ -359,9 +562,15 @@ class TikTokDownloader {
     return task;
   }
 
-  _downloadDirectStream(taskId, streamUrl, targetFilePath) {
+  _downloadDirectStream(taskId, streamUrl, targetFilePath, redirectCount = 0) {
     const task = this.tasks.get(taskId);
     if (!task) return;
+
+    if (redirectCount > 10) {
+      task.status = 'error';
+      task.error_message = 'Too many redirects';
+      return;
+    }
 
     try {
       const fileStream = fs.createWriteStream(targetFilePath);
@@ -373,20 +582,36 @@ class TikTokDownloader {
 
       const client = streamUrl.startsWith('https:') ? https : http;
       const headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
+        'Accept': '*/*',
+        'Referer': streamUrl.includes('douyin') ? 'https://www.douyin.com/' : (streamUrl.includes('kwaicdn') || streamUrl.includes('kwimgs') ? 'https://www.kuaishou.com/' : '')
       };
 
-      const req = client.get(streamUrl, { headers }, (res) => {
+      const req = client.get(streamUrl, { headers, timeout: 30000 }, (res) => {
         if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
           fileStream.close();
           try { fs.unlinkSync(targetFilePath); } catch (_) {}
-          return this._downloadDirectStream(taskId, res.headers.location, targetFilePath);
+          let nextLoc = res.headers.location;
+          if (!nextLoc.startsWith('http')) {
+            nextLoc = new URL(nextLoc, streamUrl).href;
+          }
+          return this._downloadDirectStream(taskId, nextLoc, targetFilePath, redirectCount + 1);
         }
 
         if (res.statusCode !== 200 && res.statusCode !== 206) {
+          fileStream.close();
+          try { fs.unlinkSync(targetFilePath); } catch (_) {}
+          this.activeProcesses.delete(taskId);
+
+          if (task.raw_url) {
+            console.log(`[TikTokDownloader] Direct stream failed (HTTP ${res.statusCode}), falling back to yt-dlp...`);
+            task.status = 'downloading';
+            task.error_message = '';
+            return this._downloadWithYtDlp(taskId, task.raw_url, targetFilePath, task.format === 'audio_only', task.platform);
+          }
+
           task.status = 'error';
           task.error_message = `HTTP Status: ${res.statusCode}`;
-          fileStream.close();
           return;
         }
 
@@ -436,18 +661,48 @@ class TikTokDownloader {
         res.on('error', (err) => {
           fileStream.close();
           this.activeProcesses.delete(taskId);
+          if (task.status === 'canceled') return;
+          if (task.raw_url) {
+            console.log(`[TikTokDownloader] Stream error (${err.message}), falling back to yt-dlp...`);
+            task.status = 'downloading';
+            task.error_message = '';
+            return this._downloadWithYtDlp(taskId, task.raw_url, targetFilePath, task.format === 'audio_only', task.platform);
+          }
           task.status = 'error';
           task.error_message = err.message;
         });
       });
 
-      this.activeProcesses.set(taskId, req);
+      req.on('timeout', () => {
+        req.destroy();
+        fileStream.close();
+        this.activeProcesses.delete(taskId);
+        if (task.status === 'canceled') return;
+        if (task.raw_url) {
+          console.log('[TikTokDownloader] Stream timeout, falling back to yt-dlp...');
+          task.status = 'downloading';
+          task.error_message = '';
+          return this._downloadWithYtDlp(taskId, task.raw_url, targetFilePath, task.format === 'audio_only', task.platform);
+        }
+        task.status = 'error';
+        task.error_message = 'Download timed out';
+      });
 
       req.on('error', (err) => {
+        fileStream.close();
         this.activeProcesses.delete(taskId);
+        if (task.status === 'canceled') return;
+        if (task.raw_url) {
+          console.log(`[TikTokDownloader] Request error (${err.message}), falling back to yt-dlp...`);
+          task.status = 'downloading';
+          task.error_message = '';
+          return this._downloadWithYtDlp(taskId, task.raw_url, targetFilePath, task.format === 'audio_only', task.platform);
+        }
         task.status = 'error';
         task.error_message = err.message;
       });
+
+      this.activeProcesses.set(taskId, req);
 
     } catch (err) {
       task.status = 'error';

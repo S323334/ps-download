@@ -1544,6 +1544,21 @@
       z-index: 3;
       box-shadow: 0 2px 6px rgba(0,0,0,0.5);
     }
+    .card-days-badge {
+      display: none !important;
+    }
+    .card-meta-days {
+      color: #f59e0b !important;
+      font-weight: 700 !important;
+      font-size: 0.76rem !important;
+      background: rgba(245, 158, 11, 0.12);
+      padding: 1px 6px;
+      border-radius: 4px;
+      border: 1px solid rgba(245, 158, 11, 0.28);
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+    }
     .star-btn {
       position: absolute;
       top: 6px;

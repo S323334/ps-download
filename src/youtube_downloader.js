@@ -197,7 +197,7 @@ class YouTubeDownloader {
    * Start YouTube download task
    */
   async startDownload(params) {
-    const { url, quality = 'best', title = '', customDir = '' } = params;
+    const { url, quality = 'best', title = '', customDir = '', thumbnail = '' } = params;
     if (!url) {
       throw new Error('URL is required');
     }
@@ -209,6 +209,7 @@ class YouTubeDownloader {
       id: taskId,
       url,
       title: title || 'YouTube Video',
+      thumbnail: thumbnail || '',
       quality,
       outputDir,
       percent: '0%',
@@ -229,6 +230,8 @@ class YouTubeDownloader {
     const args = [
       '--js-runtimes', 'node',
       '--newline',
+      '--write-thumbnail',
+      '--convert-thumbnails', 'jpg',
       '--progress-template', '%(progress._percent_str)s|%(progress._speed_str)s|%(progress._eta_str)s|%(progress._total_bytes_estimate_str)s|%(progress.filename)s',
       '--no-playlist'
     ];

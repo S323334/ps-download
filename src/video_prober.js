@@ -16,6 +16,7 @@ const fs = require('fs');
 const { DATA_DIR } = require('./config.js');
 const { scraper } = require('./scraper.js');
 const { haosouDownloader } = require('./haosou_downloader.js');
+const { beeplayletDownloader } = require('./beeplaylet_downloader.js');
 const { mvffmDownloader } = require('./mvffm_downloader.js');
 const { youtubeDownloader } = require('./youtube_downloader.js');
 const fqapi = require('../lib/fqapi.js');
@@ -298,6 +299,30 @@ async function probeDramaQuality(id, platform = 'hongguo') {
           origHeight = 1280;
           origFps = 30;
           scanMethod = 'haosou_fallback';
+        }
+      }
+    } else if (p === 'beeplaylet') {
+      const detail = await beeplayletDownloader.getDetail(id);
+      if (detail && detail.episodes && detail.episodes[0]) {
+        const ep1 = detail.episodes[0];
+        const bpHeaders = {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          'Referer': 'https://beeplaylet.com/'
+        };
+
+        const probed = await probeStreamWithFfprobe(ep1.url, bpHeaders);
+        if (probed && probed.width && probed.height) {
+          origWidth = probed.width;
+          origHeight = probed.height;
+          origFps = probed.fps || 30;
+          originalRes = classifyResolution(origWidth, origHeight);
+          scanMethod = 'beeplaylet_ffprobe_verified';
+        } else {
+          originalRes = '1080p';
+          origWidth = 1080;
+          origHeight = 1920;
+          origFps = 30;
+          scanMethod = 'beeplaylet_fallback';
         }
       }
     } else if (p === 'youtube') {

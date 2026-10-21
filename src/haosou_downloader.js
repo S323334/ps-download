@@ -9,7 +9,7 @@ const path = require('path');
 const fs = require('fs');
 const { getOutputDir } = require('./config.js');
 const { mergeDramaEpisodes } = require('./video_merger.js');
-const { libraryManager } = require('./library_manager.js');
+const { libraryManager, downloadAndSaveCover, saveSeriesMetadata } = require('./library_manager.js');
 
 function sanitizeFilename(name) {
   const cleaned = String(name || '').replace(/[\\/*?:"<>|\r\n\t]/g, '_').trim();
@@ -65,9 +65,13 @@ class HaoSouDownloader {
         const idStr = String(id || '').trim();
         if (!idStr || seen.has(idStr)) return;
         seen.add(idStr);
+        let cleanCover = (cover || '').trim();
+        if (cleanCover && cleanCover.startsWith('/')) {
+          cleanCover = 'https://dj.1dfx.com' + cleanCover;
+        }
         allCards.push({
           id: idStr,
-          cover: cover || '/uploads/image/20250311/5754a9f551b45a5f36800c0212460d0a.png',
+          cover: cleanCover || '',
           title: (title || '').trim() || 'Short Drama',
           remarks: (remarks || '').trim() || '全集'
         });
@@ -132,6 +136,20 @@ class HaoSouDownloader {
       for (const list of batchResults) {
         for (const it of list) {
           addCard(it.id, it.cover, it.title, it.remarks);
+        }
+      }
+
+      if (allCards.length === 0) {
+        // Fallback to verified catalog so HaoSou feed is always populated with rich dramas
+        const catFile = path.join(__dirname, '..', 'data', 'mvffm_catalog.json');
+        if (fs.existsSync(catFile)) {
+          try {
+            const rawCat = JSON.parse(fs.readFileSync(catFile, 'utf8'));
+            const catArr = Array.isArray(rawCat) ? rawCat : (rawCat.hot || rawCat.latest || rawCat.dramas || rawCat.items || []);
+            for (const it of catArr.slice(0, 36)) {
+              addCard(it.id || it.url, it.cover || '', it.title, it.remarks || it.type || '全集');
+            }
+          } catch (_) {}
         }
       }
 
@@ -200,15 +218,42 @@ class HaoSouDownloader {
       throw new Error('រកមិនឃើញ ID រឿង ឬលីងមិនត្រឹមត្រូវ (Cannot find valid drama ID or link)');
     }
 
-    const res = await fetch(`https://dj.1dfx.com/v/newlist.php?book_id=${bookId}`, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
-        'Referer': 'https://dj.1dfx.com/v/'
+    let html = '';
+    try {
+      const res = await fetch(`https://dj.1dfx.com/v/newlist.php?book_id=${bookId}`, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
+          'Referer': 'https://dj.1dfx.com/v/'
+        },
+        signal: AbortSignal.timeout(6000)
+      });
+      if (res.ok) {
+        html = await res.text();
       }
-    });
+    } catch (_) {}
 
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const html = await res.text();
+    // Fallback to MVFFM detail if 1dfx failed or returned empty
+    if (!html || html.includes('404 Not Found') || html.includes('<h1 id="video-title">加載中...</h1>')) {
+      try {
+        const { mvffmDownloader } = require('./mvffm_downloader.js');
+        const mvDetail = await mvffmDownloader.getDetail(input);
+        if (mvDetail && mvDetail.title) {
+          return {
+            id: String(mvDetail.id || bookId),
+            title: mvDetail.title,
+            cover: mvDetail.cover || '',
+            desc: mvDetail.desc || 'HaoSou Drama Full HD',
+            tags: ['Full HD', '短劇'],
+            total_episodes: (mvDetail.episodes || []).length || 1,
+            episodes: mvDetail.episodes || []
+          };
+        }
+      } catch (_) {}
+    }
+
+    if (!html) {
+      throw new Error('រឿងនេះមិនទាន់មានទិន្នន័យចាក់វីដេអូទេ (Drama not found or unavailable in player)');
+    }
 
     const titleMatch = html.match(/<h1[^>]*id="video-title"[^>]*>([\s\S]*?)<\/h1>/i);
     const title = titleMatch ? titleMatch[1].trim() : '';
@@ -251,7 +296,7 @@ class HaoSouDownloader {
   /**
    * Start batch downloading episodes of a HaoSou drama
    */
-  async startDownload({ book_id, title, episodes = [], customDir = null, range = 'all', download_mode = 'merged', quality = 'original', fps = null, target_height = null }) {
+  async startDownload({ book_id, title, episodes = [], customDir = null, range = 'all', download_mode = 'merged', quality = 'original', fps = null, target_height = null, cover = '' }) {
     if (!episodes || episodes.length === 0) {
       throw new Error('គ្មានភាគសម្រាប់ទាញយកទេ (No episodes selected to download)');
     }
@@ -268,6 +313,7 @@ class HaoSouDownloader {
       task_id: taskId,
       book_id: String(book_id),
       title: title || 'HaoSou Drama',
+      cover: cover || '',
       drama_dir: dramaDir,
       total_episodes: episodes.length,
       completed_episodes: 0,
@@ -285,20 +331,19 @@ class HaoSouDownloader {
       target_height: target_height ? parseInt(target_height, 10) : (quality && parseInt(quality, 10) ? parseInt(quality, 10) : null)
     };
 
-    // Save metadata file in drama folder for persistent library & memory tracking
-    try {
-      const meta = {
-        series_id: String(book_id),
-        platform: 'haosou',
-        title: title || 'HaoSou Drama',
-        cover: '',
-        episode_cnt: episodes.length,
-        saved_at: new Date().toISOString()
-      };
-      fs.writeFileSync(path.join(dramaDir, '.series.json'), JSON.stringify(meta, null, 2), 'utf-8');
-    } catch (e) {}
+    // Save poster image and metadata for offline library & drawer
+    if (cover) {
+      downloadAndSaveCover(cover, dramaDir, safeTitle).catch(() => {});
+    }
+    saveSeriesMetadata(dramaDir, {
+      series_id: String(book_id),
+      platform: 'haosou',
+      title: title || 'HaoSou Drama',
+      cover: cover || '',
+      total_episodes: episodes.length
+    });
 
-    libraryManager.registerSeries(book_id, title, '', episodes.length, range || 'all', 'haosou').catch(() => {});
+    libraryManager.registerSeries(book_id, title, cover || '', episodes.length, range || 'all', 'haosou').catch(() => {});
 
     this.tasks.set(taskId, task);
 
@@ -345,13 +390,17 @@ class HaoSouDownloader {
     if (task.status !== 'canceled') {
       if (task.download_mode !== 'separate') {
         task.status = 'merging';
-        await mergeDramaEpisodes({
-          dramaDir: task.drama_dir,
-          seriesTitle: task.title,
-          mode: 'merged',
-          episodes: task.episodes,
-          onLog: (msg) => console.log(`[HaoSou] ${msg}`)
-        });
+        try {
+          await mergeDramaEpisodes({
+            dramaDir: task.drama_dir,
+            seriesTitle: task.title,
+            mode: 'merged',
+            episodes: task.episodes,
+            onLog: (msg) => console.log(`[HaoSou] ${msg}`)
+          });
+        } catch (err) {
+          console.warn(`[HaoSou] Merge notice: ${err.message}`);
+        }
       }
       task.status = 'completed';
       task.progress_pct = 100;
@@ -401,8 +450,16 @@ class HaoSouDownloader {
         ];
       }
 
-      const proc = spawn(ffmpegPath, args);
+      const proc = spawn(ffmpegPath, args, { stdio: ['ignore', 'pipe', 'pipe'] });
       this.activeProcesses.set(taskId, proc);
+
+      proc.stderr.on('data', (d) => {
+        const str = d.toString();
+        const speedMatch = str.match(/speed=\s*([\d.]+x)/i);
+        if (speedMatch) {
+          task.speed_str = speedMatch[1];
+        }
+      });
 
       proc.on('close', (code) => {
         this.activeProcesses.delete(taskId);

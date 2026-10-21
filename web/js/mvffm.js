@@ -84,7 +84,14 @@ async function loadMvffmRecommendations(type = 'hot') {
 function shuffleMvffmFeed() {
     if (_allMvItems && _allMvItems.length > 0) {
         if (typeof shuffleArray === 'function') {
-            _allMvItems = shuffleArray(_allMvItems);
+            if (currentMvDrama && currentMvDrama.id) {
+                const activeId = String(currentMvDrama.id);
+                const activeItem = _allMvItems.find(x => String(x.id) === activeId) || _allMvItems[0];
+                const others = _allMvItems.filter(x => String(x.id) !== String(activeItem.id));
+                _allMvItems = [activeItem, ...shuffleArray(others)];
+            } else {
+                _allMvItems = shuffleArray(_allMvItems);
+            }
         }
         _mvRenderLimit = 60;
         renderMvffmCards(_allMvItems.slice(0, _mvRenderLimit));
@@ -268,6 +275,19 @@ async function analyzeMvffmDrama(idOrUrl) {
         currentMvSourceIndex = 0;
         currentMvEpisodeIndex = 0;
         renderMvffmDetail(currentMvDrama);
+
+        // Place analyzed drama at Card #1 (index 0) in the recommendation feed below
+        if (currentMvDrama && currentMvDrama.id && _allMvItems) {
+            const mvCardItem = {
+                id: currentMvDrama.id,
+                title: currentMvDrama.title,
+                cover: currentMvDrama.cover || '',
+                total_episodes: (currentMvDrama.episodes || []).length
+            };
+            _allMvItems = [mvCardItem, ..._allMvItems.filter(x => String(x.id) !== String(currentMvDrama.id))];
+            renderMvffmCards(_allMvItems.slice(0, _mvRenderLimit));
+        }
+
         showToast(`បានបើក "${currentMvDrama.title}"!`, '✅');
 
         const card = document.getElementById('mvDramaCard');
@@ -551,6 +571,7 @@ async function downloadMvffmEpisodes(mode = 'all') {
                 body: JSON.stringify({
                     drama_id: currentMvDrama.id,
                     title: currentMvDrama.title,
+                    cover: (currentMvDrama && currentMvDrama.cover) || '',
                     episodes: targetEps,
                     download_mode: finalMode
                 })
@@ -561,6 +582,7 @@ async function downloadMvffmEpisodes(mode = 'all') {
             showToast(`បានបញ្ចូលកិច្ចការទាញយក "${currentMvDrama.title}"!`, '🚀');
             startMvffmTasksPolling();
             fetchMvffmTasks();
+            if (typeof startDownloadPolling === 'function') startDownloadPolling(true);
         } catch (err) {
             showToast(`Download error: ${err.message}`, '❌');
         }
