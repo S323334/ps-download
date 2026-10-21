@@ -103,47 +103,43 @@ function requireLicenseAuth(res, explicitReq = null) {
   if (req) {
     try {
       const parsed = new URL(req.url, `http://${req.headers?.host || '127.0.0.1'}`);
-      clientDevId = parsed.searchParams.get('device_id') || req.headers?.['x-device-id'] || null;
+      clientDevId = parsed.searchParams.get('device_id') ||
+                    req.headers?.['x-device-id'] ||
+                    req.headers?.['device-id'] ||
+                    req.headers?.['x-client-device-id'] || null;
       isMobileClient = req.headers?.['x-device-type'] === 'mobile' ||
         Boolean(clientDevId && clientDevId.startsWith('HG-M')) ||
         /mobile|android|iphone|ipad/i.test(req.headers?.['user-agent'] || '');
     } catch (_) {}
   }
 
-  // Determine remote IP vs localhost
-  const remoteIp = req?.socket?.remoteAddress || req?.connection?.remoteAddress || '';
-  const isLocalhost = remoteIp === '127.0.0.1' || remoteIp === '::1' || remoteIp === '::ffff:127.0.0.1';
-
-  let lic;
-  if (isMobileClient || !isLocalhost || (clientDevId && clientDevId.startsWith('HG-M'))) {
-    // Mobile device or external WiFi access MUST have an active device license
-    if (!clientDevId) {
-      sendJson(res, 403, {
-        ok: false,
-        error: 'ឧបករណ៍ទូរសព្ទដៃត្រូវការ License Key ដើម្បីទាញយក ឬចាក់វីដេអូ! សូមបញ្ចូល License Key។',
-        license_required: true,
-        remaining_days: 0
-      });
-      return false;
+  // 1. If explicit mobile client device ID is provided, verify against authorized devices
+  if (clientDevId) {
+    const lic = getLicenseStatusForDevice(clientDevId);
+    if (lic && lic.activated && !lic.expired) {
+      return true;
     }
-    lic = getLicenseStatusForDevice(clientDevId);
-  } else {
-    // Desktop PC running locally
-    lic = getLicenseStatus();
   }
 
-  if (!lic || !lic.activated) {
-    sendJson(res, 403, {
-      ok: false,
-      error: lic && lic.expired ? 'License របស់អ្នកបានផុតកំណត់ហើយ! សូមទាក់ទង Admin ឬទិញបន្ថែម។' : 'ឧបករណ៍នេះមិនទាន់មាន License ឡើយ! សូមបញ្ចូល License Key។',
-      expired: !!(lic && lic.expired),
-      license_required: true,
-      device_id: (lic && lic.device_id) || clientDevId,
-      remaining_days: (lic && lic.remaining_days) || 0
-    });
-    return false;
+  // 2. Fallback: Check host machine's license status (e.g. desktop PC running locally on LAN)
+  const hostLic = getLicenseStatus();
+  if (hostLic && hostLic.activated && !hostLic.expired) {
+    return true;
   }
-  return true;
+
+  // 3. If neither device has an active license, reject with informative error
+  const isExpired = !!(hostLic && hostLic.expired);
+  sendJson(res, 403, {
+    ok: false,
+    error: isExpired 
+      ? 'License របស់អ្នកបានផុតកំណត់ហើយ! សូមទាក់ទង Admin ឬទិញបន្ថែម។' 
+      : 'ឧបករណ៍ទូរសព្ទដៃត្រូវការ License Key ដើម្បីទាញយក ឬចាក់វីដេអូ! សូមបញ្ចូល License Key។',
+    expired: isExpired,
+    license_required: true,
+    device_id: clientDevId || (hostLic && hostLic.device_id) || 'Unknown-Device',
+    remaining_days: (hostLic && hostLic.remaining_days) || 0
+  });
+  return false;
 }
 
 /**
@@ -553,11 +549,12 @@ function pruneVideoCache(maxBytes = 200 * 1024 * 1024) {
 async function handleServerRequest(req, res, fallbackHost = HOST, fallbackPort = PORT) {
   const host = fallbackHost;
   const port = fallbackPort;
+  res.req = req;
 
   // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, DELETE');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Range, Authorization');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Range, Authorization, X-Device-Id, X-Device-Type, Device-Id, X-Client-Device-Id');
   res.setHeader('Access-Control-Expose-Headers', 'Content-Range, Content-Length, Accept-Ranges');
 
   if (req.method === 'OPTIONS') {
@@ -1666,14 +1663,14 @@ async function handleServerRequest(req, res, fallbackHost = HOST, fallbackPort =
 
       // 25a. YouTube Video Info: POST /api/youtube/info
       if (pathname === '/api/youtube/info' && req.method === 'POST') {
-        if (!requireLicenseAuth(res)) return;
+        if (!requireLicenseAuth(res, req)) return;
         const body = await parseJsonBody(req);
         if (!body.url) {
           return sendError(res, 400, 'សូមបញ្ចូលលីង YouTube (Please provide a YouTube URL)');
         }
         try {
           const info = await youtubeDownloader.getVideoInfo(body.url);
-          return sendJson(res, 200, { ok: true, data: info });
+          return sendJson(res, 200, { ok: true, success: true, data: info });
         } catch (err) {
           return sendError(res, 500, err.message || 'Failed to fetch YouTube info');
         }
@@ -1681,7 +1678,7 @@ async function handleServerRequest(req, res, fallbackHost = HOST, fallbackPort =
 
       // 25b. YouTube Start Download: POST /api/youtube/download
       if (pathname === '/api/youtube/download' && req.method === 'POST') {
-        if (!requireLicenseAuth(res)) return;
+        if (!requireLicenseAuth(res, req)) return;
         const body = await parseJsonBody(req);
         if (!body.url) {
           return sendError(res, 400, 'សូមបញ្ចូលលីង YouTube (Please provide a YouTube URL)');
@@ -1698,14 +1695,14 @@ async function handleServerRequest(req, res, fallbackHost = HOST, fallbackPort =
 
           const task = await youtubeDownloader.startDownload({
             url: body.url,
-            quality: body.quality || 'best',
+            quality: body.quality || body.format || 'best',
             title: body.title,
             thumbnail: body.thumbnail || '',
             customDir: body.customDir
           });
           if (task && task.name) libraryManager.unclearYoutube(task.name);
           if (body && body.title) libraryManager.unclearYoutube(body.title);
-          return sendJson(res, 200, { ok: true, task });
+          return sendJson(res, 200, { ok: true, success: true, task });
         } catch (err) {
           return sendError(res, 500, err.message || 'Failed to start YouTube download');
         }
@@ -2503,7 +2500,7 @@ async function handleServerRequest(req, res, fallbackHost = HOST, fallbackPort =
         const body = await parseJsonBody(req);
         try {
           const info = await tiktokDownloader.analyzeVideo(body.url, body.platform);
-          return sendJson(res, 200, { ok: true, data: info });
+          return sendJson(res, 200, { ok: true, success: true, data: info });
         } catch (err) {
           return sendError(res, 400, err.message || 'Failed to analyze video');
         }
@@ -2511,7 +2508,7 @@ async function handleServerRequest(req, res, fallbackHost = HOST, fallbackPort =
 
       // 27tt-b. Start Download: POST /api/tiktok/download
       if (pathname === '/api/tiktok/download' && req.method === 'POST') {
-        if (!requireLicenseAuth(res)) return;
+        if (!requireLicenseAuth(res, req)) return;
         const body = await parseJsonBody(req);
         try {
           const task = await tiktokDownloader.startDownload({
@@ -2525,7 +2522,7 @@ async function handleServerRequest(req, res, fallbackHost = HOST, fallbackPort =
             music_url: body.music_url || '',
             customDir: body.custom_dir
           });
-          return sendJson(res, 200, { ok: true, data: task });
+          return sendJson(res, 200, { ok: true, success: true, data: task });
         } catch (err) {
           return sendError(res, 500, err.message || 'Failed to start download');
         }

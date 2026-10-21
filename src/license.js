@@ -679,6 +679,29 @@ function getLicenseStatus() {
     }
   }
 
+  // 2b. Check authorized_devices.json for host device
+  if (!data || !data.key || (data.type !== 'master' && data.device_id !== currentDevice)) {
+    try {
+      const authMap = getAuthorizedDevicesMap();
+      const hostAuth = authMap[currentDevice];
+      if (hostAuth && (hostAuth.key || hostAuth.status === 'active') && !hostAuth.revoked && hostAuth.status !== 'expired') {
+        const expTime = hostAuth.expiresAt ? new Date(hostAuth.expiresAt).getTime() : 0;
+        if (!expTime || expTime > Date.now()) {
+          data = {
+            key: hostAuth.key || 'D030-HOST-AUTH-KEY-VALID',
+            device_id: currentDevice,
+            type: hostAuth.isLifetime ? 'lifetime' : 'authorized',
+            label: hostAuth.label || 'VIP License',
+            custom_name: hostAuth.customName || 'ADMIN',
+            activated_at: hostAuth.authorizedAt || new Date().toISOString(),
+            expires_at: hostAuth.expiresAt || null,
+            app_version: APP_VERSION
+          };
+        }
+      }
+    } catch (_) {}
+  }
+
   // 3. Still no license found?
   if (!data || !data.key) {
     return {
@@ -699,14 +722,17 @@ function getLicenseStatus() {
     };
   }
 
-  const verification = verifyLicenseKey(data.key, currentDevice);
-  if (!verification.valid) {
-    return {
-      activated: false,
-      device_id: currentDevice,
-      app_version: APP_VERSION,
-      message: 'License មិនត្រឹមត្រូវ'
-    };
+  let verification = { valid: true, label: data.label || 'VIP License', type: data.type || 'authorized', is_lifetime: data.type === 'lifetime' };
+  if (data.type !== 'authorized' && data.type !== 'master') {
+    verification = verifyLicenseKey(data.key, currentDevice);
+    if (!verification.valid) {
+      return {
+        activated: false,
+        device_id: currentDevice,
+        app_version: APP_VERSION,
+        message: 'License មិនត្រឹមត្រូវ'
+      };
+    }
   }
 
   // 5. Expiration & Remaining Days and Hours Calculation
@@ -816,8 +842,64 @@ function getLicenseStatus() {
     remaining_hours: remainingHours,
     remaining_minutes: remainingMinutes,
     is_lifetime: verification.is_lifetime,
-    custom_name: customName,
     app_version: APP_VERSION
+  };
+}
+
+/**
+ * Gets license activation status for a specific device (e.g. Mobile Phone / APK client).
+ * Checks authorized_devices.json and real-time expiration without affecting the host PC.
+ */
+function getLicenseStatusForDevice(targetDeviceId) {
+  if (!targetDeviceId || targetDeviceId === getDeviceId()) {
+    return getLicenseStatus();
+  }
+  const cleanId = String(targetDeviceId).trim().toUpperCase();
+  const authMap = getAuthorizedDevicesMap();
+  const auth = authMap[cleanId];
+  if (auth && (auth.key || auth.status === 'active') && !auth.revoked && auth.status !== 'expired') {
+    const now = Date.now();
+    let remainingDays = 0;
+    let isLifetime = Boolean(auth.isLifetime || auth.days === 0 || (auth.label && String(auth.label).includes('Lifetime')));
+    if (isLifetime) {
+      remainingDays = 9999;
+    } else if (auth.expiresAt) {
+      const expMs = new Date(auth.expiresAt).getTime();
+      const diffMs = expMs - now;
+      if (diffMs > 0) {
+        remainingDays = Math.ceil(diffMs / 86400000);
+      } else {
+        return {
+          activated: false,
+          remaining_days: 0,
+          expired: true,
+          device_id: cleanId,
+          custom_name: auth.customName || '',
+          label: 'Expired',
+          message: 'License របស់អ្នកបានផុតកំណត់ហើយ'
+        };
+      }
+    } else if (auth.days) {
+      remainingDays = auth.days;
+    }
+    return {
+      activated: true,
+      remaining_days: remainingDays,
+      is_lifetime: isLifetime,
+      label: auth.label || `${remainingDays} ថ្ងៃ`,
+      expires_at: auth.expiresAt || null,
+      device_id: cleanId,
+      custom_name: auth.customName || auth.telegramUser || '',
+      app_version: APP_VERSION
+    };
+  }
+  return {
+    activated: false,
+    remaining_days: 0,
+    device_id: cleanId,
+    label: 'Unlicensed',
+    app_version: APP_VERSION,
+    message: 'ឧបករណ៍នេះមិនទាន់មាន License ឡើយ'
   };
 }
 
@@ -1586,25 +1668,59 @@ async function sendAppLaunchTelegramNotification(overrideInfo = {}) {
       }
     }
 
+    const isMobile = Boolean(
+      overrideInfo.deviceType === 'mobile' ||
+      cleanId.startsWith('HG-M') ||
+      (overrideInfo.userAgent && /Android|iPhone|iPad|Mobile/i.test(overrideInfo.userAgent)) ||
+      (overrideInfo.computerName && /Android|iPhone|Mobile|Phone/i.test(overrideInfo.computerName))
+    );
+
     let tgMsg = '';
-    if (hasActiveLicense) {
-      tgMsg = `🔷 <b>ម៉ាស៊ីនបានបើកដំណើរការ (ភ្ញៀវ VIP)</b>\n\n` +
-        `💻 <b>Device ID:</b> <code>${cleanId}</code>\n` +
-        `👤 <b>Customer / Telegram:</b> <b>${customerName || telegramUser || 'ភ្ញៀវ VIP'}</b>\n` +
-        `🖥️ <b>Computer:</b> ${computerDisplay}\n` +
-        `🔢 <b>ចំនួនដងបើកប្រើ:</b> លើកទី <b>${openCount}</b> ដង\n` +
-        `🕒 <b>Time:</b> ${nowStr}\n` +
-        `📦 <b>App:</b> PS DOWNLOAD v${APP_VERSION}\n` +
-        `🛡️ <b>Status:</b> <b>${licenseStatusHtml}</b>`;
+    if (isMobile) {
+      const phoneModel = overrideInfo.model || overrideInfo.computerName || 'ទូរសព្ទដៃ (Android / iOS)';
+      if (hasActiveLicense) {
+        tgMsg = `📱 <b>ទូរសព្ទដៃបានបើកដំណើរការ (ភ្ញៀវ VIP)</b>\n\n` +
+          `📱 <b>ឧបករណ៍:</b> <b>ទូរសព្ទដៃ (Mobile Phone / APK)</b>\n` +
+          `🔑 <b>Device ID:</b> <code>${cleanId}</code>\n` +
+          `👤 <b>Customer / Telegram:</b> <b>${customerName || telegramUser || 'ភ្ញៀវ VIP'}</b>\n` +
+          `📱 <b>ម៉ូដែល:</b> ${phoneModel}\n` +
+          `🔢 <b>ចំនួនដងបើកប្រើ:</b> លើកទី <b>${openCount}</b> ដង\n` +
+          `🕒 <b>Time:</b> ${nowStr}\n` +
+          `📦 <b>App:</b> PS DOWNLOAD MOBILE v${APP_VERSION}\n` +
+          `🛡️ <b>Status:</b> <b>${licenseStatusHtml}</b>`;
+      } else {
+        tgMsg = `🚨 <b>ទូរសព្ទដៃបានបើកកម្មវិធី (Device Tracker Alert)</b>\n\n` +
+          `📱 <b>ឧបករណ៍:</b> <b>ទូរសព្ទដៃ (Mobile Phone / APK)</b>\n` +
+          `🔑 <b>Device ID:</b> <code>${cleanId}</code>\n` +
+          `👤 <b>Customer / Telegram:</b> <b>${customerName || telegramUser || '<i>(មិនទាន់បញ្ចូល)</i>'}</b>\n` +
+          `📱 <b>ម៉ូដែល:</b> ${phoneModel}\n` +
+          `🔢 <b>ចំនួនដងបើកប្រើ:</b> លើកទី <b>${openCount}</b> ដង\n` +
+          `🕒 <b>Time:</b> ${nowStr}\n` +
+          `📦 <b>App:</b> PS DOWNLOAD MOBILE v${APP_VERSION}\n` +
+          `🛡️ <b>Status:</b> <b>${licenseStatusHtml}</b>`;
+      }
     } else {
-      tgMsg = `🚨 <b>ម៉ាស៊ីនបានបើកកម្មវិធី (Device Tracker Alert)</b>\n\n` +
-        `💻 <b>Device ID:</b> <code>${cleanId}</code>\n` +
-        `👤 <b>Customer / Telegram:</b> <b>${customerName || telegramUser || '<i>(មិនទាន់បញ្ចូល)</i>'}</b>\n` +
-        `🖥️ <b>Computer:</b> ${computerDisplay}\n` +
-        `🔢 <b>ចំនួនដងបើកប្រើ:</b> លើកទី <b>${openCount}</b> ដង\n` +
-        `🕒 <b>Time:</b> ${nowStr}\n` +
-        `📦 <b>App:</b> PS DOWNLOAD v${APP_VERSION}\n` +
-        `🛡️ <b>Status:</b> <b>${licenseStatusHtml}</b>`;
+      if (hasActiveLicense) {
+        tgMsg = `💻 <b>កុំព្យូទ័របានបើកដំណើរការ (ភ្ញៀវ VIP)</b>\n\n` +
+          `💻 <b>ឧបករណ៍:</b> <b>កុំព្យូទ័រ (Computer / Desktop PC)</b>\n` +
+          `💻 <b>Device ID:</b> <code>${cleanId}</code>\n` +
+          `👤 <b>Customer / Telegram:</b> <b>${customerName || telegramUser || 'ភ្ញៀវ VIP'}</b>\n` +
+          `🖥️ <b>Computer:</b> ${computerDisplay}\n` +
+          `🔢 <b>ចំនួនដងបើកប្រើ:</b> លើកទី <b>${openCount}</b> ដង\n` +
+          `🕒 <b>Time:</b> ${nowStr}\n` +
+          `📦 <b>App:</b> PS DOWNLOAD v${APP_VERSION}\n` +
+          `🛡️ <b>Status:</b> <b>${licenseStatusHtml}</b>`;
+      } else {
+        tgMsg = `🚨 <b>កុំព្យូទ័របានបើកកម្មវិធី (Device Tracker Alert)</b>\n\n` +
+          `💻 <b>ឧបករណ៍:</b> <b>កុំព្យូទ័រ (Computer / Desktop PC)</b>\n` +
+          `💻 <b>Device ID:</b> <code>${cleanId}</code>\n` +
+          `👤 <b>Customer / Telegram:</b> <b>${customerName || telegramUser || '<i>(មិនទាន់បញ្ចូល)</i>'}</b>\n` +
+          `🖥️ <b>Computer:</b> ${computerDisplay}\n` +
+          `🔢 <b>ចំនួនដងបើកប្រើ:</b> លើកទី <b>${openCount}</b> ដង\n` +
+          `🕒 <b>Time:</b> ${nowStr}\n` +
+          `📦 <b>App:</b> PS DOWNLOAD v${APP_VERSION}\n` +
+          `🛡️ <b>Status:</b> <b>${licenseStatusHtml}</b>`;
+      }
     }
 
     const res = await sendTelegramAlert(tgMsg);
@@ -2509,6 +2625,55 @@ async function checkAutoActivation(deviceId = null) {
 }
 
 /**
+ * Synchronizes a specific device's customName, duration, and status from Render Cloud in background.
+ */
+async function syncDeviceFromCloud(targetDeviceId) {
+  if (!targetDeviceId) return null;
+  const cfg = getTelegramConfig();
+  if (!cfg.cloudSyncUrl) return null;
+
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 6000);
+    let syncUrl = cfg.cloudSyncUrl.trim();
+    if (!syncUrl.includes('/api/license/check') && !syncUrl.includes('.json')) {
+      syncUrl = syncUrl.replace(/\/+$/, '') + '/api/license/check';
+    }
+    syncUrl += (syncUrl.includes('?') ? '&' : '?') + `deviceId=${encodeURIComponent(targetDeviceId)}`;
+
+    const res = await fetch(syncUrl, {
+      signal: controller.signal,
+      headers: { 'User-Agent': 'HongguoDownloader/3.1' }
+    });
+    clearTimeout(timeoutId);
+    if (!res.ok) return null;
+
+    const cloudData = await res.json();
+    if (!cloudData) return null;
+
+    const record = (cloudData && cloudData.authorized && cloudData.key)
+      ? cloudData
+      : (cloudData[targetDeviceId] || (cloudData.devices && cloudData.devices[targetDeviceId]));
+
+    if (record) {
+      const cleanId = String(targetDeviceId).trim().toUpperCase();
+      const authMap = getAuthorizedDevicesMap();
+      const existing = authMap[cleanId] || {};
+      const newCustomName = String(record.customName || record.customerName || '').trim();
+
+      if (newCustomName && newCustomName !== existing.customName) {
+        setDeviceCustomName(cleanId, newCustomName);
+      }
+      if (record.revoked && !existing.revoked) {
+        revokeDeviceLicense(cleanId);
+      }
+      return record;
+    }
+  } catch (_) {}
+  return null;
+}
+
+/**
  * Sends Telegram notification message to the Admin/Owner chat.
  */
 async function sendTelegramAlert(textHtml, options = {}) {
@@ -2648,13 +2813,19 @@ async function recordPaymentNotification({ deviceId, telegramUser, plan, amount 
   } catch (e) {}
 
   // Send High-Priority Instant Telegram Alert to Admin with 1-Click Action Buttons
+  const isMobile = cleanId.startsWith('HG-M') || (host && /mobile|phone|android|iphone/i.test(host));
+  const deviceIcon = isMobile ? '📱' : '💻';
+  const deviceTypeStr = isMobile ? '📱 <b>ឧបករណ៍:</b> <b>ទូរសព្ទដៃ (Mobile Phone / APK)</b>\n' : '💻 <b>ឧបករណ៍:</b> <b>កុំព្យូទ័រ (Computer / Desktop PC)</b>\n';
+  const hostLabel = isMobile ? '📱 <b>ម៉ូដែលទូរសព្ទ:</b>' : '🖥️ <b>កុំព្យូទ័រ:</b>';
+
   const alertMsg =
     `💰💰💰 <b>សារជូនដំណឹង៖ អតិថិជនបានបាញ់ប្រាក់រួចហើយ!</b> 💰💰💰\n\n` +
-    `💻 <b>លេខម៉ាស៊ីន (Device ID):</b> <code>${cleanId}</code>\n` +
+    deviceTypeStr +
+    `${deviceIcon} <b>លេខម៉ាស៊ីន (Device ID):</b> <code>${cleanId}</code>\n` +
     `📦 <b>កញ្ចប់ដែលបានទិញ:</b> <b>${cleanPlan}</b>\n` +
     `💵 <b>ចំនួនទឹកប្រាក់:</b> <b>$${cleanAmount}</b>\n` +
     (cleanTg ? `👤 <b>Telegram អតិថិជន:</b> <b>${cleanTg}</b>\n` : '') +
-    `🖥️ <b>កុំព្យូទ័រ:</b> ${host} (${user})` +
+    `${hostLabel} ${host} (${user})` +
     geoText + `\n` +
     `🕒 <b>ម៉ោងបង់ប្រាក់:</b> ${new Date().toLocaleString('en-US', { timeZone: 'Asia/Phnom_Penh' })}\n\n` +
     `👉 <b>ចំណាត់ការ៖</b> សូមចុចប៊ូតុងខាងក្រោមដើម្បីបង្កើត License ឬបើកសិទ្ធិភ្លាមៗ:`;
@@ -3041,6 +3212,7 @@ module.exports = {
   generateUniversalKey,
   verifyLicenseKey,
   getLicenseStatus,
+  getLicenseStatusForDevice,
   activateLicense,
   deactivateLicense,
   getGeneratedKeysList,
@@ -3067,6 +3239,7 @@ module.exports = {
   getSystemVaultPaths,
   recoverLicenseFromVaults,
   setDeviceCustomName,
+  syncDeviceFromCloud,
   getTrackedDevicesWithLicenseInfo,
   adjustDeviceDays,
   revokeDeviceLicense,

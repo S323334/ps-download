@@ -10,28 +10,28 @@
   "theme_color": "#070a13",
   "icons": [
     {
-      "src": "/ps_logo.png",
+      "src": "/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "/ps_logo.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "/ps_logo.jpg",
-      "sizes": "192x192",
-      "type": "image/jpeg",
       "purpose": "any"
     },
     {
-      "src": "/ps_logo.jpg",
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icon-512.png",
       "sizes": "512x512",
-      "type": "image/jpeg",
+      "type": "image/png",
       "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }

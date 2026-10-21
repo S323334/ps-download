@@ -22,6 +22,116 @@
     activeDownload: null
   };
 
+  // --------------------------------------------------------------------------
+  // Seamless API Authenticator: Automatically injects Mobile Device HWID & Auth Headers
+  // --------------------------------------------------------------------------
+  const _origFetch = window.fetch.bind(window);
+  window.fetch = function (url, options = {}) {
+    try {
+      if (typeof url === 'string' && url.startsWith('/api/')) {
+        const devId = getMobileDeviceId();
+        const opts = options ? { ...options } : {};
+        opts.headers = {
+          ...(opts.headers || {}),
+          'X-Device-Id': devId,
+          'Device-Id': devId,
+          'X-Device-Type': 'mobile',
+          'X-Client-Device-Id': devId
+        };
+        const sep = url.includes('?') ? '&' : '?';
+        let finalUrl = url;
+        if (!finalUrl.includes('device_id=')) {
+          finalUrl = `${finalUrl}${sep}device_id=${encodeURIComponent(devId)}&device_type=mobile`;
+        }
+        return _origFetch(finalUrl, opts);
+      }
+    } catch (_) {}
+    return _origFetch(url, options);
+  };
+
+  // --------------------------------------------------------------------------
+  // Universal Paste Engine (Direct Clipboard API + Native Keyboard Fallback)
+  // --------------------------------------------------------------------------
+  async function performUniversalPaste(targetInput = null, autoExecute = false) {
+    const target = targetInput || document.getElementById('mobileSearchInput');
+    let text = '';
+
+    // Step 1: Try modern Clipboard API (Works in HTTPS & PWA)
+    if (navigator.clipboard && typeof navigator.clipboard.readText === 'function') {
+      try {
+        text = await navigator.clipboard.readText();
+      } catch (err) {
+        console.warn('[Clipboard] readText blocked or permission denied:', err);
+        text = '';
+      }
+    }
+
+    // Step 2: Android / Insecure HTTP / Brave fallback via native prompt
+    if (!text) {
+      try {
+        const prompted = window.prompt(
+          '📋 សូមបិទភ្ជាប់ (Paste) Link វីដេអូ ឬឈ្មោះរឿងនៅទីនេះ៖\n(ចុចសង្កត់លើប្រអប់ ឬចុចលើ Clipboard លើក្តារចុច)',
+          ''
+        );
+        if (prompted !== null) {
+          text = prompted.trim();
+        }
+      } catch (_) {}
+    }
+
+    text = (text || '').trim();
+    if (!text) {
+      showToast('⚠️ មិនមាន Link ឬអក្សរត្រូវបានបញ្ចូលឡើយ');
+      return false;
+    }
+
+    // Assign to input
+    if (target) {
+      target.value = text;
+      toggleClearBtn();
+      target.dispatchEvent(new Event('input', { bubbles: true }));
+      target.focus();
+    }
+
+    // If pasted into top search input, make sure hero section is visible
+    const hero = document.getElementById('heroSearchSection');
+    if (hero && target === document.getElementById('mobileSearchInput')) {
+      hero.style.display = 'block';
+    }
+
+    if (isUrlOrId(text)) {
+      showToast('📋 បាន Paste Link ដោយជោគជ័យ! 🎉', 2500);
+      if (autoExecute || state.currentPlatform !== 'hongguo') {
+        if (target === document.getElementById('mobileSearchInput')) {
+          setTimeout(() => { executeFetchLink(); }, 150);
+        }
+      } else {
+        const btnFetch = document.getElementById('btnFetchLink');
+        if (btnFetch) {
+          btnFetch.classList.add('pulse');
+          setTimeout(() => { if (btnFetch) btnFetch.classList.remove('pulse'); }, 2000);
+        }
+      }
+    } else {
+      if (state.currentPlatform !== 'hongguo') {
+        showToast('⚠️ វេទិកានេះដំណើរការតាមរយៈ Link! សូមបិទភ្ជាប់ Link រួចចុច "⚡ Fetch"', 3500);
+      } else {
+        showToast('📋 បាន Paste ឈ្មោះរឿង! 🎉', 2500);
+        if (autoExecute) {
+          setTimeout(() => { executeSearchTitle(); }, 150);
+        } else {
+          const btnSearch = document.getElementById('btnSearchTitle');
+          if (btnSearch) {
+            btnSearch.classList.add('pulse');
+            setTimeout(() => { if (btnSearch) btnSearch.classList.remove('pulse'); }, 2000);
+          }
+        }
+      }
+    }
+    return true;
+  }
+  window.performUniversalPaste = performUniversalPaste;
+
   // Original Platform Websites Mapping (Clicking Section Title opens original website)
   const PLATFORM_ORIGINAL_URLS = {
     hongguo: 'https://hongguoduanju.com/',
@@ -391,49 +501,10 @@
   }
 
   function setupEventListeners() {
-    // 1. Paste Button (1-tap clipboard paste with smart separation)
+    // 1. Paste Button (Universal Clipboard + Native Prompt Fallback)
     if (btnPaste) {
       btnPaste.addEventListener('click', async () => {
-        try {
-          let text = '';
-          if (navigator.clipboard && navigator.clipboard.readText) {
-            text = await navigator.clipboard.readText();
-          }
-          text = (text || '').trim();
-          if (text) {
-            if (searchInput) {
-              searchInput.value = text;
-              toggleClearBtn();
-              searchInput.focus();
-            }
-            // Strict separation: If Link -> highlight Fetch; If Name -> highlight Search (Hongguo only)
-            if (isUrlOrId(text)) {
-              showToast('📋 បាន Paste Link! សូមចុច "⚡ Fetch" ពណ៌ទឹកក្រូចដើម្បីទាញយក', 3000);
-              if (btnFetchLink) {
-                btnFetchLink.classList.add('pulse');
-                setTimeout(() => { if (btnFetchLink) btnFetchLink.classList.remove('pulse'); }, 2000);
-              }
-            } else {
-              if (state.currentPlatform !== 'hongguo') {
-                showToast('⚠️ វេទិកានេះដំណើរការតាមរយៈ Link! សូមបិទភ្ជាប់ Link រួចចុច "⚡ Fetch"', 3500);
-                if (btnFetchLink) {
-                  btnFetchLink.classList.add('pulse');
-                  setTimeout(() => { if (btnFetchLink) btnFetchLink.classList.remove('pulse'); }, 2000);
-                }
-              } else {
-                showToast('📋 បាន Paste ឈ្មោះរឿង! សូមចុច "🔍 ស្វែងរក" ពណ៌ខៀវ', 3000);
-                if (btnSearchTitle) {
-                  btnSearchTitle.classList.add('pulse');
-                  setTimeout(() => { if (btnSearchTitle) btnSearchTitle.classList.remove('pulse'); }, 2000);
-                }
-              }
-            }
-          } else {
-            showToast('📋 ក្តារតម្កល់ទទេ (សូមចុចសង្កត់ក្នុងប្រអប់ដើម្បី Paste)');
-          }
-        } catch (_) {
-          showToast('សូមចុចសង្កត់ក្នុងប្រអប់ដើម្បី Paste Link');
-        }
+        await performUniversalPaste(searchInput, false);
       });
     }
 
@@ -986,30 +1057,189 @@
 
   function renderDirectPlatformHelper(platform) {
     if (!dramaGrid) return;
-    const info = {
-      tiktok: { name: 'TikTok (Global)', desc: 'ទាញយកវីដេអូ TikTok កម្រិត Full HD គ្មាន Watermark', icon: '/tiktok_icon.svg', placeholder: 'https://www.tiktok.com/@user/video/...' },
-      douyin: { name: 'Douyin (TikTok ចិន)', desc: 'ទាញយកវីដេអូ Douyin កម្រិត Original 1080p គ្មាន Logo', icon: '/douyin_icon.svg', placeholder: 'https://v.douyin.com/...' },
-      kuaishou: { name: 'Kuaishou (ខៅស៊ូ)', desc: 'ទាញយកវីដេអូខៅស៊ូចិនកម្រិតច្បាស់ Full HD គ្មាន Watermark', icon: '/kuaishou_icon.svg', placeholder: 'https://v.kuaishou.com/...' },
-      youtube: { name: 'YouTube & Shorts', desc: 'ទាញយកវីដេអូ YouTube កម្រិត 720p / 1080p / 4K MP4 ឬ MP3 Audio', icon: null, emoji: '🔴', placeholder: 'https://youtu.be/... ឬ វាយស្វែងរក' },
-      facebook: { name: 'Facebook Reels & Video', desc: 'ទាញយកវីដេអូ Facebook Reels & Watch ក្នុងកម្រិត Full HD', icon: null, emoji: '📘', placeholder: 'https://www.facebook.com/reel/...' }
-    }[platform] || { name: platform.toUpperCase(), desc: 'បិទភ្ជាប់លីងវីដេអូដើម្បីទាញយក' };
+    const configs = {
+      facebook: {
+        name: 'Facebook Reels & Watch Pro',
+        desc: 'ទាញយកវីដេអូ Facebook Reels, Watch & Videos ក្នុងកម្រិត Full HD (MP4 Direct)',
+        icon: null,
+        emoji: '📘',
+        pills: ['🎬 Facebook Reels', '📺 Watch & Shows', '💎 Full HD 1080p', '⚡ High Speed MP4'],
+        placeholder: 'បិទភ្ជាប់ Link Facebook (Reels, Watch, Post)...',
+        gradient: 'linear-gradient(90deg, #1877f2, #3b82f6, #60a5fa)',
+        glow: 'rgba(24, 119, 242, 0.35)',
+        iconBg: 'rgba(24, 119, 242, 0.16)',
+        iconBorder: 'rgba(24, 119, 242, 0.45)',
+        border: 'rgba(24, 119, 242, 0.45)',
+        btnGradient: 'linear-gradient(135deg, #1877f2 0%, #0284c7 100%)',
+        btnShadow: 'rgba(24, 119, 242, 0.45)',
+        btnText: '⚡ វិភាគ & ទាញយក Facebook HD'
+      },
+      youtube: {
+        name: 'YouTube 4K & MP3 Studio',
+        desc: 'ស្កេនរកគ្រប់ Resolution វីដេអូ YouTube & Shorts: 4K, 2K, 1080p, 720p និង MP3 Audio',
+        icon: null,
+        emoji: '🔴',
+        pills: ['🔍 ស្កេនគ្រប់ Resolution', '🌟 4K / 2K / 1080p', '🎵 MP3 Audio 320kbps', '📱 YouTube Shorts'],
+        placeholder: 'បិទភ្ជាប់ Link YouTube (Watch, Shorts, youtu.be)...',
+        gradient: 'linear-gradient(90deg, #ff0000, #ef4444, #f97316)',
+        glow: 'rgba(239, 68, 68, 0.35)',
+        iconBg: 'rgba(239, 68, 68, 0.16)',
+        iconBorder: 'rgba(239, 68, 68, 0.45)',
+        border: 'rgba(239, 68, 68, 0.45)',
+        btnGradient: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+        btnShadow: 'rgba(239, 68, 68, 0.45)',
+        btnText: '🔍 ស្កេនរកកម្រិតវីដេអូ (Scan Resolutions)'
+      },
+      tiktok: {
+        name: 'TikTok Global Downloader',
+        desc: 'ទាញយកវីដេអូ TikTok កម្រិត Full HD គ្មាន Watermark (គ្មាន Logo) និង MP3',
+        icon: '/tiktok_icon.svg',
+        emoji: '🎵',
+        pills: ['✨ គ្មាន Watermark', '💎 Full HD 1080p', '🎵 សំឡេង MP3', '⚡ 1-Tap DL'],
+        placeholder: 'បិទភ្ជាប់ Link TikTok (https://www.tiktok.com/@...)...',
+        gradient: 'linear-gradient(90deg, #00f2fe, #4facfe, #ff007f)',
+        glow: 'rgba(0, 242, 254, 0.35)',
+        iconBg: 'rgba(0, 242, 254, 0.16)',
+        iconBorder: 'rgba(0, 242, 254, 0.45)',
+        border: 'rgba(0, 242, 254, 0.45)',
+        btnGradient: 'linear-gradient(135deg, #00f2fe 0%, #0284c7 100%)',
+        btnShadow: 'rgba(0, 242, 254, 0.45)',
+        btnText: '⚡ វិភាគ & ទាញយក TikTok HD'
+      },
+      douyin: {
+        name: 'Douyin (TikTok ចិន)',
+        desc: 'ទាញយកវីដេអូ Douyin កម្រិត Original 1080p គ្មាន Logo សញ្ញាសម្គាល់',
+        icon: '/douyin_icon.svg',
+        emoji: '📱',
+        pills: ['✨ គ្មាន Logo Douyin', '🎬 Original 1080p', '⚡ High Speed', '🎵 Original Audio'],
+        placeholder: 'បិទភ្ជាប់ Link Douyin (https://v.douyin.com/...)...',
+        gradient: 'linear-gradient(90deg, #111111, #8b5cf6, #ec4899)',
+        glow: 'rgba(139, 92, 246, 0.35)',
+        iconBg: 'rgba(139, 92, 246, 0.16)',
+        iconBorder: 'rgba(139, 92, 246, 0.45)',
+        border: 'rgba(139, 92, 246, 0.45)',
+        btnGradient: 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)',
+        btnShadow: 'rgba(139, 92, 246, 0.45)',
+        btnText: '⚡ វិភាគ & ទាញយក Douyin HD'
+      },
+      kuaishou: {
+        name: 'Kuaishou (ខៅស៊ូ)',
+        desc: 'ទាញយកវីដេអូខៅស៊ូចិនកម្រិតច្បាស់ Full HD គ្មាន Watermark',
+        icon: '/kuaishou_icon.svg',
+        emoji: '⚡',
+        pills: ['✨ គ្មាន Watermark', '💎 Full HD', '⚡ Fast Video Fetch', '🎬 Kuaishou Clips'],
+        placeholder: 'បិទភ្ជាប់ Link Kuaishou (https://v.kuaishou.com/...)...',
+        gradient: 'linear-gradient(90deg, #f97316, #fb923c, #ea580c)',
+        glow: 'rgba(249, 115, 22, 0.35)',
+        iconBg: 'rgba(249, 115, 22, 0.16)',
+        iconBorder: 'rgba(249, 115, 22, 0.45)',
+        border: 'rgba(249, 115, 22, 0.45)',
+        btnGradient: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
+        btnShadow: 'rgba(249, 115, 22, 0.45)',
+        btnText: '⚡ វិភាគ & ទាញយក Kuaishou HD'
+      }
+    };
+
+    const cfg = configs[platform] || {
+      name: platform.toUpperCase(),
+      desc: 'បិទភ្ជាប់លីងវីដេអូដើម្បីទាញយក',
+      emoji: '⚡',
+      pills: ['⚡ ស្កេនរហ័ស', '💎 Full HD'],
+      placeholder: 'បិទភ្ជាប់ Link វីដេអូនៅទីនេះ...',
+      gradient: 'linear-gradient(90deg, #38bdf8, #818cf8)',
+      glow: 'rgba(56, 189, 248, 0.3)',
+      iconBg: 'rgba(56, 189, 248, 0.15)',
+      iconBorder: 'rgba(56, 189, 248, 0.4)',
+      border: 'rgba(56, 189, 248, 0.4)',
+      btnGradient: 'linear-gradient(135deg, #0284c7 0%, #2563eb 100%)',
+      btnShadow: 'rgba(37, 99, 235, 0.4)',
+      btnText: '⚡ វិភាគ & ទាញយក'
+    };
 
     dramaGrid.innerHTML = `
-      <div style="grid-column: 1/-1; background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 30px 20px; text-align: center; box-shadow: var(--shadow-md);">
-        <div style="width: 56px; height: 56px; margin: 0 auto 14px; border-radius: 14px; background: rgba(56, 189, 248, 0.12); display: flex; align-items: center; justify-content: center; font-size: 28px;">
-          ${info.icon ? `<img src="${info.icon}" style="width: 32px; height: 32px; object-fit: contain;">` : (info.emoji || '⚡')}
+      <div class="platform-studio-card" style="
+        --studio-brand-gradient: ${cfg.gradient};
+        --studio-glow-color: ${cfg.glow};
+        --studio-icon-bg: ${cfg.iconBg};
+        --studio-icon-border: ${cfg.iconBorder};
+        --studio-border-color: ${cfg.border};
+        --studio-btn-gradient: ${cfg.btnGradient};
+        --studio-btn-shadow: ${cfg.btnShadow};
+      ">
+        <div class="studio-glow-halo"></div>
+        <div class="studio-header">
+          <div class="studio-icon-badge">
+            ${cfg.icon ? `<img src="${cfg.icon}" style="width: 34px; height: 34px; object-fit: contain;">` : cfg.emoji}
+          </div>
+          <h3 class="studio-title">${cfg.name}</h3>
+          <p class="studio-subtitle">${cfg.desc}</p>
+          <div class="studio-features-row">
+            ${cfg.pills.map(p => `<span class="studio-pill">${p}</span>`).join('')}
+          </div>
         </div>
-        <h3 style="font-size: 1.15rem; font-weight: 800; color: #fff; margin-bottom: 6px;">${info.name}</h3>
-        <p style="font-size: 0.85rem; color: #94a3b8; max-width: 420px; margin: 0 auto 18px; line-height: 1.4;">${info.desc}</p>
-        <div style="display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;">
-          <button onclick="document.getElementById('btnPaste').click()" style="padding: 10px 20px; background: linear-gradient(135deg, #0284c7, #2563eb); border: none; border-radius: 10px; color: #fff; font-weight: 700; font-size: 0.88rem; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+
+        <div class="studio-input-wrap">
+          <span style="font-size: 16px; opacity: 0.8;">🔗</span>
+          <input 
+            type="text" 
+            class="studio-input-field" 
+            id="studioInput_${platform}" 
+            placeholder="${cfg.placeholder}"
+            autocomplete="off"
+            spellcheck="false"
+          >
+          <button type="button" class="studio-btn-paste" onclick="onStudioPasteClick('${platform}')">
             <span>📋</span>
-            <span>Paste Link ឥឡូវនេះ</span>
+            <span>Paste</span>
           </button>
         </div>
+
+        <button type="button" class="studio-btn-fetch" onclick="onStudioSubmitClick('${platform}')">
+          <span>${cfg.btnText}</span>
+        </button>
       </div>
     `;
+
+    // Bind Enter key
+    const inputEl = document.getElementById(`studioInput_${platform}`);
+    if (inputEl) {
+      inputEl.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          onStudioSubmitClick(platform);
+        }
+      });
+      if (searchInput && searchInput.value) {
+        inputEl.value = searchInput.value;
+      }
+    }
   }
+
+  window.onStudioPasteClick = async function(platform) {
+    const input = document.getElementById(`studioInput_${platform}`);
+    if (!input) return;
+    const ok = await performUniversalPaste(input, false);
+    if (ok && input.value) {
+      if (searchInput) searchInput.value = input.value;
+      onStudioSubmitClick(platform);
+    }
+  };
+
+  window.onStudioSubmitClick = function(platform) {
+    const input = document.getElementById(`studioInput_${platform}`);
+    const val = (input ? input.value : '').trim();
+    if (!val) {
+      showToast('⚠️ សូមបិទភ្ជាប់ (Paste) Link វីដេអូជាមុនសិន!');
+      if (input) input.focus();
+      return;
+    }
+    if (searchInput) searchInput.value = val;
+    if (platform === 'youtube') {
+      analyzeYouTubeUrl(val);
+    } else {
+      analyzeSingleVideoUrl(val);
+    }
+  };
 
   // --------------------------------------------------------------------------
   // Feature: Search by Drama Title (Strict: For Titles/Names Only)
@@ -1275,7 +1505,7 @@
   window.executeFetchLink = executeFetchLink;
 
   // --------------------------------------------------------------------------
-  // Single Video Analyzer (TikTok, Douyin, Kuaishou, Facebook, YouTube)
+  // Single Video Analyzer (TikTok, Douyin, Kuaishou, Facebook)
   // --------------------------------------------------------------------------
   async function analyzeSingleVideoUrl(url) {
     if (!requireMobileLicense()) return;
@@ -1290,14 +1520,20 @@
     analyzedCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
     try {
+      const devId = getMobileDeviceId();
       const res = await fetch('/api/tiktok/analyze', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url })
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Device-Id': devId,
+          'Device-Id': devId,
+          'X-Device-Type': 'mobile'
+        },
+        body: JSON.stringify({ url, device_id: devId })
       });
       const data = await res.json();
-      if (!data.success || !data.data) {
-        throw new Error(data.error || 'មិនអាចវិភាគវីដេអូនេះបានឡើយ');
+      if ((!data.ok && !data.success) || !data.data) {
+        throw new Error(data.message || data.error || 'មិនអាចវិភាគវីដេអូនេះបានឡើយ');
       }
 
       const vid = data.data;
@@ -1316,7 +1552,7 @@
             <div class="analyzed-author">👤 ${escapeHtml(vid.author || 'Creator')}</div>
             <div class="analyzed-actions">
               <button class="btn-direct-dl" onclick="triggerBrowserDownload('${encodeURIComponent(playUrl)}', '${encodeURIComponent(title + '.mp4')}')">
-                <span>⚡ ទាញយក Full HD (No Watermark)</span>
+                <span>⚡ ទាញយក Full HD (Direct MP4)</span>
               </button>
             </div>
           </div>
@@ -1332,6 +1568,9 @@
     }
   }
 
+  // --------------------------------------------------------------------------
+  // YouTube Quality Scanner & Resolution Hub (4K, 2K, 1080p, 720p, MP3 Audio)
+  // --------------------------------------------------------------------------
   async function analyzeYouTubeUrl(url) {
     if (!requireMobileLicense()) return;
     if (!analyzedCard) return;
@@ -1339,47 +1578,84 @@
     analyzedCard.innerHTML = `
       <div style="text-align: center; padding: 25px; color: #94a3b8;">
         <div class="spinner" style="margin: 0 auto 12px; width: 28px; height: 28px; border-width: 3px;"></div>
-        <p style="font-weight: 700; color: #fff;">កំពុងវិភាគវីដេអូ YouTube 1080p / 4K...</p>
+        <p style="font-weight: 700; color: #fff;">🔍 កំពុងស្កេនរកគ្រប់កម្រិតច្បាស់ YouTube (4K / 2K / 1080p / MP3)...</p>
       </div>
     `;
     analyzedCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
     try {
+      const devId = getMobileDeviceId();
       const res = await fetch('/api/youtube/info', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url })
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Device-Id': devId,
+          'Device-Id': devId,
+          'X-Device-Type': 'mobile'
+        },
+        body: JSON.stringify({ url, device_id: devId })
       });
       const data = await res.json();
-      if (!data.success || !data.data) {
-        throw new Error(data.error || 'មិនអាចទាញយកព័ត៌មាន YouTube បានឡើយ');
+      if ((!data.ok && !data.success) || !data.data) {
+        throw new Error(data.message || data.error || 'មិនអាចទាញយកព័ត៌មាន YouTube បានឡើយ');
       }
 
       const info = data.data;
       const title = info.title || 'YouTube Video';
       const cover = info.thumbnail || '/ps_logo.jpg';
+      const duration = info.duration_formatted || (info.duration ? `${Math.floor(info.duration / 60)}:${String(info.duration % 60).padStart(2, '0')}` : 'Video');
+      const views = info.view_count ? Number(info.view_count).toLocaleString() : 'N/A';
+      const qualities = info.qualities || [
+        { id: 'best', label: '🌟 Max Quality (Auto)', height: 1080, note: 'Best Video + Audio' },
+        { id: '1080', label: '🎬 Full HD (1080p)', height: 1080, note: 'FHD 1080p' },
+        { id: '720', label: '📺 HD (720p)', height: 720, note: 'HD 720p' },
+        { id: 'audio', label: '🎵 MP3 Audio (320kbps)', height: 0, note: 'High-Quality MP3' }
+      ];
 
       analyzedCard.innerHTML = `
         <div class="analyzed-card-inner">
           <div class="analyzed-thumb-box">
-            <img src="${cover}" alt="YouTube" class="analyzed-thumb">
+            <img src="${cover}" alt="YouTube" class="analyzed-thumb" onerror="this.src='/ps_logo.jpg'">
             <div class="analyzed-platform-badge" style="background:#ef4444;">YOUTUBE</div>
           </div>
           <div class="analyzed-meta">
             <div class="analyzed-title">${escapeHtml(title)}</div>
-            <div class="analyzed-author">⏱️ រយៈពេល: ${info.duration || 'Video'} | 👤 ${escapeHtml(info.channel || 'YouTube')}</div>
-            <div class="analyzed-actions" style="display: flex; gap: 8px;">
-              <button class="btn-direct-dl" style="flex: 1;" onclick="startYouTubeDownload('${encodeURIComponent(url)}', '1080p')">
-                <span>📹 ទាញយក 1080p MP4</span>
-              </button>
-              <button class="btn-direct-dl" style="flex: 1; background: linear-gradient(135deg, #10b981, #059669);" onclick="startYouTubeDownload('${encodeURIComponent(url)}', 'mp3')">
-                <span>🎵 MP3 Audio</span>
-              </button>
-            </div>
+            <div class="analyzed-author">⏱️ ${duration} | 👁️ ${views} | 👤 ${escapeHtml(info.channel || 'YouTube')}</div>
+          </div>
+        </div>
+
+        <div class="yt-quality-scanner-box">
+          <div class="yt-scanner-header">
+            <span>📊 ស្កេនឃើញ ${qualities.length} កម្រិតច្បាស់ (Scanned Resolutions):</span>
+            <span style="color:#ef4444; font-size: 0.75rem;">⚡ ចុចដើម្បីទាញយក</span>
+          </div>
+          <div class="yt-qualities-grid">
+            ${qualities.map(q => {
+              let tagClass = 'yt-tag-sd';
+              let tagText = q.height ? `${q.height}p` : 'MP3';
+              if (q.height >= 2160) tagClass = 'yt-tag-4k';
+              else if (q.height >= 1440) tagClass = 'yt-tag-2k';
+              else if (q.height >= 1080) tagClass = 'yt-tag-1080';
+              else if (q.height >= 720) tagClass = 'yt-tag-720';
+              else if (q.id === 'audio') tagClass = 'yt-tag-audio';
+              
+              return `
+                <div class="yt-quality-card" onclick="startYouTubeDownload('${encodeURIComponent(url)}', '${q.id}', '${encodeURIComponent(title)}')">
+                  <div class="yt-quality-top">
+                    <span class="yt-quality-label">${escapeHtml(q.label || q.id)}</span>
+                    <span class="${tagClass}">${tagText}</span>
+                  </div>
+                  <div class="yt-quality-note">${escapeHtml(q.note || '')}</div>
+                  <button style="margin-top: 4px; padding: 6px 8px; border-radius: 8px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.18); color: #fff; font-size: 0.75rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px;">
+                    <span>📥 ទាញយក ${tagText}</span>
+                  </button>
+                </div>
+              `;
+            }).join('')}
           </div>
         </div>
       `;
-      showToast('🎉 វិភាគជោគជ័យ!');
+      showToast('🎉 បានស្កេនរកកម្រិតវីដេអូជោគជ័យ! សូមជ្រើសរើសកម្រិតដែលចង់ទាញយក');
     } catch (err) {
       analyzedCard.innerHTML = `
         <div style="padding: 20px; text-align: center; color: #ef4444;">
@@ -1389,26 +1665,96 @@
     }
   }
 
-  window.startYouTubeDownload = async function (encodedUrl, format) {
+  let _ytPollInterval = null;
+
+  window.startYouTubeDownload = async function (encodedUrl, quality, encodedTitle = '') {
     if (!requireMobileLicense()) return;
     const url = decodeURIComponent(encodedUrl);
-    showToast(`🚀 កំពុងដំណើរការទាញយក YouTube ${format.toUpperCase()}...`);
+    const title = decodeURIComponent(encodedTitle || 'YouTube Video');
+    showToast(`🚀 កំពុងដំណើរការទាញយក YouTube [${quality.toUpperCase()}]...`, 3000);
+
+    if (liveProgressCard) {
+      liveProgressCard.style.display = 'block';
+      const progressTitle = document.getElementById('progressTitle');
+      const progressPercentage = document.getElementById('progressPercentage');
+      const progressBar = document.getElementById('progressBar');
+      if (progressTitle) progressTitle.textContent = `ទាញយក YouTube: ${title.substring(0, 25)}...`;
+      if (progressPercentage) progressPercentage.textContent = 'កំពុងចាប់ផ្តើម...';
+      if (progressBar) progressBar.style.width = '10%';
+      liveProgressCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
     try {
+      const devId = getMobileDeviceId();
       const res = await fetch('/api/youtube/download', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url, format })
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Device-Id': devId,
+          'Device-Id': devId,
+          'X-Device-Type': 'mobile'
+        },
+        body: JSON.stringify({
+          url,
+          quality: quality || 'best',
+          title,
+          device_id: devId
+        })
       });
       const data = await res.json();
-      if (data.success) {
-        showToast('✅ បានចាប់ផ្តើមទាញយកដោយជោគជ័យ!');
+      if (data.ok || data.success) {
+        showToast('✅ បានចាប់ផ្តើមទាញយក YouTube!', 3000);
+        startYouTubeTasksPolling();
       } else {
-        showToast('❌ ' + (data.error || 'Download failed'));
+        showToast('❌ ' + (data.message || data.error || 'Download failed'), 4000);
       }
     } catch (e) {
-      showToast('❌ Error: ' + e.message);
+      showToast('❌ Error: ' + e.message, 4000);
     }
   };
+
+  function startYouTubeTasksPolling() {
+    if (_ytPollInterval) clearInterval(_ytPollInterval);
+    _ytPollInterval = setInterval(async () => {
+      try {
+        const res = await fetch('/api/youtube/tasks');
+        const data = await res.json();
+        const tasks = (data && data.tasks) || [];
+        if (tasks.length === 0) {
+          clearInterval(_ytPollInterval);
+          _ytPollInterval = null;
+          return;
+        }
+        const active = tasks.find(t => t.status === 'downloading') || tasks[0];
+        if (active && liveProgressCard) {
+          const progressTitle = document.getElementById('progressTitle');
+          const progressPercentage = document.getElementById('progressPercentage');
+          const progressBar = document.getElementById('progressBar');
+          const progressSpeed = document.getElementById('progressSpeed');
+          const progressEta = document.getElementById('progressEta');
+
+          if (progressTitle) progressTitle.textContent = active.name || 'YouTube Video';
+          if (progressPercentage) progressPercentage.textContent = `${active.percent || 0}%`;
+          if (progressBar) progressBar.style.width = `${active.percent || 0}%`;
+          if (progressSpeed && active.speed) progressSpeed.textContent = `⚡ ${active.speed}`;
+          if (progressEta && active.eta) progressEta.textContent = `⏱️ ${active.eta}`;
+
+          if (active.status === 'completed') {
+            showToast('🎉 ទាញយក YouTube ជោគជ័យ ១០០%!');
+            setTimeout(() => {
+              if (liveProgressCard) liveProgressCard.style.display = 'none';
+            }, 3000);
+            clearInterval(_ytPollInterval);
+            _ytPollInterval = null;
+          } else if (active.status === 'error') {
+            showToast('❌ YouTube Error: ' + (active.error || 'Download failed'));
+            clearInterval(_ytPollInterval);
+            _ytPollInterval = null;
+          }
+        }
+      } catch (_) {}
+    }, 1500);
+  }
 
   window.triggerBrowserDownload = function (url, filename) {
     if (!requireMobileLicense()) return;
