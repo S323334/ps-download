@@ -91,6 +91,40 @@ class YouTubeDownloader {
     return ytDir;
   }
 
+  async resolveYtDlp() {
+    const isWin = process.platform === 'win32';
+    const customPaths = [
+      YT_DLP_PATH,
+      path.join(__dirname, '..', 'bin', isWin ? 'yt-dlp.exe' : 'yt-dlp'),
+      path.join(__dirname, '..', 'lib', isWin ? 'yt-dlp.exe' : 'yt-dlp'),
+      path.join(process.env.LOCALAPPDATA || '', 'Programs', 'Python', 'Python311', 'Scripts', 'yt-dlp.exe'),
+      path.join(process.env.USERPROFILE || '', 'AppData', 'Local', 'Programs', 'Python', 'Python311', 'Scripts', 'yt-dlp.exe')
+    ];
+
+    for (const p of customPaths) {
+      if (p && fs.existsSync(p)) {
+        if (!isWin) {
+          try { fs.chmodSync(p, 0o755); } catch (_) {}
+        }
+        this.ytDlpPath = p;
+        return p;
+      }
+    }
+
+    try {
+      const downloaded = await ensureYtDlp();
+      if (downloaded && fs.existsSync(downloaded)) {
+        if (!isWin) {
+          try { fs.chmodSync(downloaded, 0o755); } catch (_) {}
+        }
+        this.ytDlpPath = downloaded;
+        return downloaded;
+      }
+    } catch (_) {}
+
+    return this.ytDlpPath || 'yt-dlp';
+  }
+
   /**
    * Fetch video info & available resolutions
    */
@@ -99,6 +133,7 @@ class YouTubeDownloader {
       throw new Error('សូមបញ្ចូលលីង YouTube ត្រឹមត្រូវ (Please enter a valid YouTube URL)');
     }
 
+    const ytExecutable = await this.resolveYtDlp();
     const cleanUrl = url.trim();
     return new Promise((resolve, reject) => {
       const args = [
@@ -109,7 +144,7 @@ class YouTubeDownloader {
         cleanUrl
       ];
 
-      execFile(this.ytDlpPath, args, { maxBuffer: 60 * 1024 * 1024, timeout: 35000 }, (err, stdout, stderr) => {
+      execFile(ytExecutable, args, { maxBuffer: 60 * 1024 * 1024, timeout: 35000 }, (err, stdout, stderr) => {
         if (err) {
           const errMsg = stderr || err.message;
           console.error('[YouTube Info Error]', errMsg);
@@ -276,7 +311,8 @@ class YouTubeDownloader {
     args.push(url);
 
     try {
-      const proc = spawn(this.ytDlpPath, args, { windowsHide: true });
+      const ytExecutable = await this.resolveYtDlp();
+      const proc = spawn(ytExecutable, args, { windowsHide: true });
       task.process = proc;
 
       proc.stdout.on('data', (data) => {

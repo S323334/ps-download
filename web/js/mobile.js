@@ -855,6 +855,11 @@
     if (btnBackAll) btnBackAll.style.display = 'none';
     if (analyzedCard) analyzedCard.style.display = 'none';
 
+    const paginationBar = document.getElementById('paginationBar');
+    if (paginationBar) {
+      paginationBar.style.display = ['youtube', 'tiktok', 'douyin', 'kuaishou', 'facebook'].includes(platform) ? 'none' : 'flex';
+    }
+
     // Update search placeholder according to platform & language
     updateSearchPlaceholder(platform);
 
@@ -904,7 +909,7 @@
       return;
     }
 
-    if (['tiktok', 'douyin', 'kuaishou', 'facebook'].includes(state.currentPlatform)) {
+    if (['tiktok', 'douyin', 'kuaishou', 'facebook', 'youtube'].includes(state.currentPlatform)) {
       renderDirectPlatformHelper(state.currentPlatform);
       return;
     }
@@ -928,12 +933,16 @@
   // --------------------------------------------------------------------------
   // Massive Platform Feed Loader (Unified for all platforms with pagination)
   // --------------------------------------------------------------------------
-  async function loadPlatformFeed(platform = 'hongguo', reset = false, isRefresh = false) {
+  async function loadPlatformFeed(platform = 'hongguo', reset = false, isRefresh = false, targetPage = null) {
     if (state.isLoading) return;
     state.isLoading = true;
 
     if (reset) {
-      state.page = 1;
+      if (targetPage !== null && !isNaN(targetPage)) {
+        state.page = parseInt(targetPage, 10);
+      } else {
+        state.page = 1;
+      }
       state.hasMore = true;
       state.dramas = [];
       if (dramaGrid) dramaGrid.innerHTML = renderSkeletonCards(6);
@@ -943,6 +952,8 @@
     if (['tiktok', 'douyin', 'kuaishou', 'facebook', 'youtube'].includes(platform)) {
       renderDirectPlatformHelper(platform);
       state.isLoading = false;
+      const paginationBar = document.getElementById('paginationBar');
+      if (paginationBar) paginationBar.style.display = 'none';
       const loadMoreContainer = document.getElementById('loadMoreContainer');
       if (loadMoreContainer) loadMoreContainer.style.display = 'none';
       return;
@@ -1986,14 +1997,13 @@
     }
     if (/^https?:\/\//i.test(url)) {
       const p = (platform || state.currentPlatform || '').toLowerCase();
+      // Only proxy AnimeXin / AniTaku / Gogo which strictly require Referer and allow cloud proxy
       if (
         p === 'animexin' ||
         p === 'anitaku' ||
         url.includes('animexin') ||
         url.includes('anitaku') ||
-        url.includes('gogo') ||
-        url.includes('wp-content') ||
-        url.includes('blogger.googleusercontent.com')
+        url.includes('gogo')
       ) {
         return `/api/image-proxy?url=${encodeURIComponent(url)}`;
       }
@@ -2036,7 +2046,23 @@
       let rawCover = item.thumbnail || item.cover || item.cover_image || item.cover_url || '';
       const safeCover = getMobileCoverImageUrl(rawCover, platform);
       const coverUrl = safeCover || placeholderCover;
-      const epCountNum = parseInt(item.episodes_count || item.episode_cnt || '70', 10) || 70;
+
+      // Smart episode badge text (Prevents bogus '70 ភាគ' on full movies or MVFFM)
+      let epBadgeText = 'Full HD';
+      const rawEp = String(item.episodes_count || item.episode_cnt || '').trim();
+      const matchDigits = rawEp.match(/(\d+)/);
+      if (matchDigits) {
+        epBadgeText = `${matchDigits[1]} ភាគ`;
+      } else if (platform === 'dailymotion' || rawEp.toLowerCase().includes('movie') || rawEp.includes('全集') || rawEp.includes('film')) {
+        epBadgeText = 'Full Movie';
+      } else if (platform === 'mvffm') {
+        epBadgeText = 'រឿងពេញ';
+      } else if (platform === 'animexin' || platform === 'anitaku') {
+        epBadgeText = '3D Donghua';
+      } else {
+        epBadgeText = 'Full HD';
+      }
+
       const tagText = item.type || item.remarks || (platform === 'hongguo' ? '热门短剧' : platform.toUpperCase());
 
       return `
@@ -2044,7 +2070,7 @@
           <div class="poster-box-3col">
             <img class="poster-img-3col" src="${coverUrl}" alt="${escapeHtml(displayTitle)}" loading="lazy" referrerpolicy="no-referrer" data-raw-cover="${escapeAttr(rawCover)}" onerror="if(!this.dataset.proxied && this.dataset.rawCover && this.dataset.rawCover.startsWith('http')){this.dataset.proxied='1';this.src='/api/image-proxy?url='+encodeURIComponent(this.dataset.rawCover);}else{this.onerror=null;this.src='${placeholderCover}';}">
             <div class="card-badge-fhd">Full HD</div>
-            <div class="card-badge-ep">${escapeHtml(String(epCountNum))} ភាគ</div>
+            <div class="card-badge-ep">${escapeHtml(epBadgeText)}</div>
           </div>
           <div class="card-content-3col">
             <div class="card-title-3col" data-original-title="${escapeHtml(origTitle)}" title="${escapeHtml(displayTitle)}">${escapeHtml(displayTitle)}</div>
@@ -2061,15 +2087,19 @@
   // Numeric Pagination Engine (Screenshot 2 Style)
   // --------------------------------------------------------------------------
   window.goToPage = async function (p) {
-    if (state.isLoading || p === state.page || p < 1) return;
+    const directPlatforms = ['youtube', 'tiktok', 'douyin', 'kuaishou', 'facebook'];
+    if (directPlatforms.includes(state.currentPlatform)) return;
+    if (state.isLoading || p < 1) return;
     state.page = p;
     showToast(`⏳ កំពុងផ្ទុកទំព័រទី ${p}...`, 1200);
-    await loadPlatformFeed(state.currentPlatform, true, true);
+    await loadPlatformFeed(state.currentPlatform, true, false, p);
     updatePaginationBar();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   window.goToPrevPage = function () {
+    const directPlatforms = ['youtube', 'tiktok', 'douyin', 'kuaishou', 'facebook'];
+    if (directPlatforms.includes(state.currentPlatform)) return;
     if (state.page > 1) {
       goToPage(state.page - 1);
     } else {
@@ -2078,10 +2108,20 @@
   };
 
   window.goToNextPage = function () {
+    const directPlatforms = ['youtube', 'tiktok', 'douyin', 'kuaishou', 'facebook'];
+    if (directPlatforms.includes(state.currentPlatform)) return;
     goToPage(state.page + 1);
   };
 
   function updatePaginationBar() {
+    const bar = document.getElementById('paginationBar');
+    if (!bar) return;
+    const directPlatforms = ['youtube', 'tiktok', 'douyin', 'kuaishou', 'facebook'];
+    if (directPlatforms.includes(state.currentPlatform) || state.isSearching) {
+      bar.style.display = 'none';
+      return;
+    }
+    bar.style.display = 'flex';
     const container = document.getElementById('pageNumbersContainer');
     if (!container) return;
     const cur = state.page || 1;

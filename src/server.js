@@ -3731,6 +3731,13 @@ function startServer(port = PORT, host = HOST, retryCount = 0) {
       try {
         sendAppLaunchTelegramNotification().catch(() => {});
       } catch (_) {}
+
+      // Ensure yt-dlp binary is ready for YouTube / TikTok / Facebook downloading
+      try {
+        const { ensureYtDlp } = require('./ensure_ytdlp.js');
+        ensureYtDlp().catch(() => {});
+      } catch (_) {}
+
       // Auto-start Telegram Bot listener only if explicitly requested (Render Cloud handles bot 24/7)
       if (!isPackaged && process.env.START_BOT === '1') {
         try {
