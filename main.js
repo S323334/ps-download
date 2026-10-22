@@ -1,5 +1,9 @@
 const fs = require('fs');
 const path = require('path');
+const dns = require('dns');
+if (dns && typeof dns.setDefaultResultOrder === 'function') {
+  dns.setDefaultResultOrder('ipv4first');
+}
 
 const { app, BrowserWindow, ipcMain, dialog, shell, clipboard, Tray, Menu, session } = require('electron');
 
@@ -8,7 +12,6 @@ const { startServer, setNativeFolderPicker } = require('./src/server.js');
 const { downloadManager } = require('./src/downloader.js');
 const { youtubeDownloader } = require('./src/youtube_downloader.js');
 const { sendAppLaunchTelegramNotification } = require('./src/license.js');
-
 let mainWindow = null;
 let serverInstance = null;
 let serverPort = PORT;
@@ -49,14 +52,42 @@ async function initApp() {
       }
     }
 
-    // Configure session webRequest to allow player iframe embeds (Dailymotion, etc.)
+    // Configure session webRequest to allow player iframe embeds and block ad scripts
     if (session && session.defaultSession && session.defaultSession.webRequest) {
-      // 1. Inject proper Referer & Origin for Dailymotion to avoid 403 Forbidden
-      session.defaultSession.webRequest.onBeforeSendHeaders(
-        { urls: ['*://*.dailymotion.com/*', '*://geo.dailymotion.com/*', '*://*.dmcdn.net/*'] },
+      // 0. Block known third-party popup ads & tracker networks
+      session.defaultSession.webRequest.onBeforeRequest(
+        { urls: ['http://*/*', 'https://*/*'] },
         (details, callback) => {
-          details.requestHeaders['Referer'] = 'https://www.dailymotion.com/';
-          details.requestHeaders['Origin'] = 'https://www.dailymotion.com';
+          const lower = (details.url || '').toLowerCase();
+          const isAd = lower.includes('stake.jp') ||
+                       lower.includes('cutchbatete') ||
+                       lower.includes('chuhratumbeki') ||
+                       lower.includes('popcash') ||
+                       lower.includes('adsterra') ||
+                       lower.includes('bet365');
+          if (isAd) {
+            return callback({ cancel: true });
+          }
+          callback({ cancel: false });
+        }
+      );
+
+      // 1. Inject proper Referer & Origin for Dailymotion, Megaplays, Anitaku, and Animexin
+      session.defaultSession.webRequest.onBeforeSendHeaders(
+        { urls: ['*://*.dailymotion.com/*', '*://geo.dailymotion.com/*', '*://*.dmcdn.net/*', '*://*.megaplays.se/*', '*://*.tamilembed.lol/*', '*://anitaku.com.ro/*', '*://animexin.dev/*'] },
+        (details, callback) => {
+          if (details.url.includes('megaplays.se') || details.url.includes('tamilembed.lol')) {
+            details.requestHeaders['Referer'] = 'https://anitaku.com.ro/';
+            details.requestHeaders['Origin'] = 'https://anitaku.com.ro';
+          } else if (details.url.includes('anitaku.com.ro')) {
+            details.requestHeaders['Referer'] = 'https://anitaku.com.ro/';
+          } else if (details.url.includes('animexin.dev') || details.url.includes('xhojl')) {
+            details.requestHeaders['Referer'] = 'https://animexin.dev/';
+            details.requestHeaders['Origin'] = 'https://animexin.dev';
+          } else {
+            details.requestHeaders['Referer'] = 'https://www.dailymotion.com/';
+            details.requestHeaders['Origin'] = 'https://www.dailymotion.com';
+          }
           callback({ requestHeaders: details.requestHeaders });
         }
       );
@@ -91,7 +122,13 @@ async function initApp() {
     createMainWindow();
     createTray();
 
-    // 4. Send Telegram Alert once per app launch session
+    // 4. Auto-Activate from Cloud / System Vaults before sending Telegram Launch Alert
+    try {
+      const { checkAutoActivation } = require('./src/license.js');
+      await checkAutoActivation();
+    } catch (_) {}
+
+    // 5. Send Telegram Alert once per app launch session (will now accurately reflect VIP status)
     sendAppLaunchTelegramNotification().catch(err => {
       console.warn('[Main] Telegram launch notification error:', err.message);
     });
@@ -160,12 +197,30 @@ function createMainWindow() {
     mainWindow.webContents.send('window-state-changed', { maximized: false });
   });
 
-  // Handle external link clicks securely
+  // Handle external link clicks securely - block ad popups and gambling redirects
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    if (url.startsWith('http://') || url.startsWith('https://')) {
-      shell.openExternal(url);
-    }
+    try {
+      const parsed = new URL(url);
+      const host = parsed.hostname.toLowerCase();
+      // Only allow trusted external links explicitly clicked by user (Telegram, GitHub, etc.)
+      const isTrusted = host === '127.0.0.1' || host === 'localhost' ||
+                        host === 't.me' || host.endsWith('.t.me') ||
+                        host === 'github.com' || host.endsWith('.github.com') ||
+                        host === 'onrender.com' || host.endsWith('.onrender.com');
+      if (isTrusted) {
+        shell.openExternal(url);
+      }
+    } catch (_) {}
     return { action: 'deny' };
+  });
+
+  // Keep server and background downloads running when user closes the window (minimize to tray)
+  mainWindow.on('close', (event) => {
+    if (!isQuitting) {
+      event.preventDefault();
+      mainWindow.hide();
+      return false;
+    }
   });
 
   mainWindow.on('closed', () => {
@@ -288,11 +343,41 @@ ipcMain.handle('dialog-select-folder', async () => {
 });
 
 ipcMain.handle('shell-open-folder', async (event, dirPath) => {
-  const target = dirPath || getOutputDir();
+  let target = dirPath || getOutputDir();
   try {
-    await shell.openPath(target);
+    let isFile = false;
+    if (fs.existsSync(target)) {
+      try {
+        isFile = fs.statSync(target).isFile();
+      } catch (_) {}
+    } else {
+      try {
+        fs.mkdirSync(target, { recursive: true });
+      } catch (_) {
+        target = getOutputDir();
+        try { fs.mkdirSync(target, { recursive: true }); } catch (_) {}
+      }
+    }
+
+    if (isFile) {
+      shell.showItemInFolder(target);
+      return { ok: true, path: target };
+    }
+
+    const errMsg = await shell.openPath(target);
+    if (errMsg && process.platform === 'win32') {
+      const { exec } = require('child_process');
+      exec(`explorer.exe "${target}"`);
+    }
     return { ok: true, path: target };
   } catch (e) {
+    if (process.platform === 'win32') {
+      try {
+        const { exec } = require('child_process');
+        exec(`explorer.exe "${target}"`);
+        return { ok: true, path: target };
+      } catch (_) {}
+    }
     return { ok: false, error: e.message };
   }
 });
