@@ -10,7 +10,7 @@ const APP_TITLE = "PS DOWNLOAD";
 const APP_VERSION = "3.3.0";
 
 const PORT = parseInt(process.env.HONGGUO_PORT || '1994', 10);
-const HOST = process.env.HONGGUO_HOST || '127.0.0.1';
+const HOST = process.env.HONGGUO_HOST || '0.0.0.0';
 const UPSTREAM_WEB_URL = "https://hongguoduanju.com";
 
 // Determine Electron environment safely

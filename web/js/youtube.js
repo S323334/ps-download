@@ -353,6 +353,15 @@
                 if (!res.ok || !data.ok) return;
 
                 const tasks = data.tasks || [];
+                window._notifiedYtTasks = window._notifiedYtTasks || new Set();
+                for (const t of tasks) {
+                    if (t.status === 'completed' && !window._notifiedYtTasks.has(t.id)) {
+                        window._notifiedYtTasks.add(t.id);
+                        if (typeof showDownloadCompleteToast === 'function') {
+                            showDownloadCompleteToast(t.title || 'YouTube Video', t.filePath || data.output_dir || '');
+                        }
+                    }
+                }
                 renderYouTubeTasks(tasks);
 
                 const outEl = document.getElementById('ytOutputDirDisplay');

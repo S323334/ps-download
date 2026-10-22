@@ -248,13 +248,20 @@ class DailymotionDownloader {
   /**
    * Fetch Chinese short dramas by category (>= 30 mins)
    */
-  async getChineseDramas(category = 'trending', page = 1, limit = 36) {
+  async getChineseDramas(category = 'trending', page = 1, limit = 36, refresh = false) {
     const catKey = category || 'trending';
     const cacheKey = `feed_${catKey}_${page}_${limit}`;
-    if (page > 1 && this._cache.has(cacheKey)) {
+    if (!refresh && page > 1 && this._cache.has(cacheKey)) {
       const cached = this._cache.get(cacheKey);
       if (Date.now() - cached.ts < 5 * 60 * 1000) {
         return cached.data;
+      }
+    }
+
+    if (refresh) {
+      this._cache.clear();
+      if (Array.isArray(this._localDb) && this._localDb.length > 1) {
+        this._localDb = shuffleArray(this._localDb);
       }
     }
 

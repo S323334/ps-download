@@ -44,13 +44,13 @@ class HaoSouDownloader {
   }
 
   /**
-   * Fetch hot recommendations & rich category feeds from https://dj.1dfx.com/v/
+   * Fetch hot recommendations & rich category feeds from https://v.djss.cc/
    * Supports 'all', 'modern', 'ceo', 'action', 'rebirth', 'romance', 'historical'
    */
-  async getRecommendations(category = 'all') {
+  async getRecommendations(category = 'all', refresh = false) {
     const cat = String(category || 'all').toLowerCase();
     const cacheKey = `recs_${cat}`;
-    if (this._recsCache && this._recsCache.has(cacheKey)) {
+    if (!refresh && this._recsCache && this._recsCache.has(cacheKey)) {
       const cached = this._recsCache.get(cacheKey);
       if (Date.now() - cached.ts < 5 * 60 * 1000) {
         return cached.data;
@@ -67,7 +67,7 @@ class HaoSouDownloader {
         seen.add(idStr);
         let cleanCover = (cover || '').trim();
         if (cleanCover && cleanCover.startsWith('/')) {
-          cleanCover = 'https://dj.1dfx.com' + cleanCover;
+          cleanCover = 'https://v.djss.cc' + cleanCover;
         }
         allCards.push({
           id: idStr,
@@ -77,25 +77,23 @@ class HaoSouDownloader {
         });
       };
 
-      // 1. If 'all', load official hot recommendations
+      // 1. If 'all', load official hot recommendations from v.djss.cc homepage
       if (cat === 'all') {
         try {
-          const res = await fetch('https://dj.1dfx.com/v/', {
+          const res = await fetch('https://v.djss.cc/', {
             headers: {
               'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
-              'Referer': 'https://dj.1dfx.com/'
+              'Referer': 'https://v.djss.cc/'
             },
-            signal: AbortSignal.timeout(6000)
+            signal: AbortSignal.timeout(7000)
           });
           if (res.ok) {
             const html = await res.text();
-            const recSectionMatch = html.match(/<section id="recommendations-section"[\s\S]*?<\/section>/i);
-            if (recSectionMatch) {
-              const regex = /<a\s+href="\/v\/newlist\.php\?book_id=(\d+)"[^>]*>[\s\S]*?<img\s+src="([^"]+)"[^>]*alt="([^"]*)"[\s\S]*?(?:<span[^>]*class="[^"]*rounded-full[^"]*"[^>]*>([^<]*)<\/span>)?[\s\S]*?<h3[^>]*title="([^"]+)"/gi;
-              let match;
-              while ((match = regex.exec(recSectionMatch[0])) !== null) {
-                addCard(match[1], match[2], match[5] || match[3], match[4]);
-              }
+            // Match card links: list.php?book_id=123
+            const regex = /<a\s+href="list\.php\?book_id=(\d+)"[^>]*>[\s\S]*?<img\s+src="([^"]+)"[^>]*alt="([^"]*)"[\s\S]*?(?:<span[^>]*class="[^"]*rounded-full[^"]*"[^>]*>([^<]*)<\/span>)?[\s\S]*?<h3[^>]*title="([^"]+)"/gi;
+            let match;
+            while ((match = regex.exec(html)) !== null) {
+              addCard(match[1], match[2], match[5] || match[3], match[4]);
             }
           }
         } catch (e) {}
@@ -103,7 +101,7 @@ class HaoSouDownloader {
 
       // 2. Determine keyword groups to expand catalog
       const catKeywordsMap = {
-        all: ['都市', '总裁', '战神', '重生', '逆袭', '豪门'],
+        all: ['总裁', '战神', '重生', '逆袭', '豪门', '都市'],
         modern: ['都市', '现代', '职场'],
         ceo: ['总裁', '霸总', '豪门', '千金'],
         action: ['战神', '逆袭', '至尊', '狂龙'],
@@ -115,12 +113,12 @@ class HaoSouDownloader {
       const keywords = catKeywordsMap[cat] || [cat];
       const searchTasks = keywords.map(async (kw) => {
         try {
-          const sRes = await fetch(`https://dj.1dfx.com/v/?action=search&wd=${encodeURIComponent(kw)}`, {
+          const sRes = await fetch(`https://v.djss.cc/?action=search&wd=${encodeURIComponent(kw)}`, {
             headers: {
-              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-              'Referer': 'https://dj.1dfx.com/v/'
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
+              'Referer': 'https://v.djss.cc/'
             },
-            signal: AbortSignal.timeout(6000)
+            signal: AbortSignal.timeout(7000)
           });
           if (sRes.ok) {
             const json = await sRes.json();
@@ -141,15 +139,29 @@ class HaoSouDownloader {
 
       if (allCards.length === 0) {
         // Fallback to verified catalog so HaoSou feed is always populated with rich dramas
-        const catFile = path.join(__dirname, '..', 'data', 'mvffm_catalog.json');
-        if (fs.existsSync(catFile)) {
-          try {
-            const rawCat = JSON.parse(fs.readFileSync(catFile, 'utf8'));
-            const catArr = Array.isArray(rawCat) ? rawCat : (rawCat.hot || rawCat.latest || rawCat.dramas || rawCat.items || []);
-            for (const it of catArr.slice(0, 36)) {
-              addCard(it.id || it.url, it.cover || '', it.title, it.remarks || it.type || '全集');
-            }
-          } catch (_) {}
+        const catCandidates = [
+          path.join(__dirname, '..', 'data', 'haosou_catalog.json'),
+          path.join(__dirname, 'data', 'haosou_catalog.json'),
+          path.join(process.cwd(), 'data', 'haosou_catalog.json')
+        ];
+        for (const catFile of catCandidates) {
+          if (fs.existsSync(catFile)) {
+            try {
+              const rawCat = JSON.parse(fs.readFileSync(catFile, 'utf8'));
+              const catArr = Array.isArray(rawCat) ? rawCat : (rawCat.hot || rawCat.latest || rawCat.dramas || rawCat.items || []);
+              for (const it of catArr) {
+                addCard(it.id || it.url, it.cover || '', it.title, it.remarks || it.type || '全集');
+              }
+              if (allCards.length > 0) break;
+            } catch (_) {}
+          }
+        }
+      }
+
+      if (refresh && allCards.length > 1) {
+        for (let i = allCards.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [allCards[i], allCards[j]] = [allCards[j], allCards[i]];
         }
       }
 
@@ -163,18 +175,19 @@ class HaoSouDownloader {
   }
 
   /**
-   * Search short dramas by keyword via https://dj.1dfx.com/v/?action=search&wd=...
+   * Search short dramas by keyword via https://v.djss.cc/?action=search&wd=...
    */
   async search(keyword) {
     const kw = (keyword || '').trim();
     if (!kw) return [];
 
     try {
-      const res = await fetch(`https://dj.1dfx.com/v/?action=search&wd=${encodeURIComponent(kw)}`, {
+      const res = await fetch(`https://v.djss.cc/?action=search&wd=${encodeURIComponent(kw)}`, {
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
-          'Referer': 'https://dj.1dfx.com/v/'
-        }
+          'Referer': 'https://v.djss.cc/'
+        },
+        signal: AbortSignal.timeout(8000)
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
@@ -194,7 +207,7 @@ class HaoSouDownloader {
   }
 
   /**
-   * Parse drama details and episode playlist
+   * Parse drama details and episode playlist from https://v.djss.cc/list.php?book_id=...
    */
   async getDetail(input) {
     let bookId = '';
@@ -220,19 +233,19 @@ class HaoSouDownloader {
 
     let html = '';
     try {
-      const res = await fetch(`https://dj.1dfx.com/v/newlist.php?book_id=${bookId}`, {
+      const res = await fetch(`https://v.djss.cc/list.php?book_id=${bookId}`, {
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
-          'Referer': 'https://dj.1dfx.com/v/'
+          'Referer': 'https://v.djss.cc/'
         },
-        signal: AbortSignal.timeout(6000)
+        signal: AbortSignal.timeout(8000)
       });
       if (res.ok) {
         html = await res.text();
       }
     } catch (_) {}
 
-    // Fallback to MVFFM detail if 1dfx failed or returned empty
+    // Fallback to MVFFM detail if v.djss.cc failed or returned empty
     if (!html || html.includes('404 Not Found') || html.includes('<h1 id="video-title">加載中...</h1>')) {
       try {
         const { mvffmDownloader } = require('./mvffm_downloader.js');
@@ -261,10 +274,10 @@ class HaoSouDownloader {
       throw new Error('រឿងនេះមិនទាន់មានទិន្នន័យចាក់វីដេអូទេ (Drama not found or unavailable in player)');
     }
 
-    const coverMatch = html.match(/<img[^>]*id="video-cover"[^>]*src="([^"]+)"/i) || html.match(/<meta\s+property="og:image"\s+content="([^"]+)"/i);
+    const coverMatch = html.match(/<meta[^>]*property="og:image"[^>]*content="([^"]+)"/i) || html.match(/<img[^>]*id="video-cover"[^>]*src="([^"]+)"/i);
     const cover = coverMatch ? coverMatch[1].trim() : '';
 
-    const descMatch = html.match(/<p[^>]*id="video-desc"[^>]*>([\s\S]*?)<\/p>/i);
+    const descMatch = html.match(/<p[^>]*id="video-desc"[^>]*>([\s\S]*?)<\/p>/i) || html.match(/<meta[^>]*name="description"[^>]*content="([^"]+)"/i);
     const desc = descMatch ? descMatch[1].replace(/<[^>]+>/g, '').trim() : '';
 
     const tagMatches = [...html.matchAll(/<span[^>]*class="tag-pill"[^>]*>([\s\S]*?)<\/span>/gi)];
@@ -286,8 +299,8 @@ class HaoSouDownloader {
       id: String(bookId),
       title,
       cover,
-      desc: desc === '簡介加載中...' ? '好搜短劇屋精品熱門短劇' : desc,
-      tags,
+      desc: desc === '簡介加載中...' ? '好搜短劇屋精品熱門短劇' : (desc || '好搜短劇屋精品熱門短劇'),
+      tags: tags.length > 0 ? tags : ['Full HD', '短劇'],
       total_episodes: episodes.length,
       episodes
     };

@@ -119,7 +119,8 @@
 
             grid.innerHTML = items.map((item, idx) => {
                 const rawCover = (item.cover || '').trim();
-                const cover = rawCover.startsWith('http') ? `/img?url=${encodeURIComponent(rawCover)}` : (rawCover || '/logo.svg');
+                const fallbackPoster = (typeof getPosterPlaceholder === 'function') ? getPosterPlaceholder(item.title, 'HaoSou') : '';
+                const cover = rawCover.startsWith('http') ? `/img?url=${encodeURIComponent(rawCover)}` : (rawCover || fallbackPoster);
                 const remarks = item.remarks ? `<span class="hs-card-badge">${escapeHtml(item.remarks)}</span>` : '';
                 const displayTitle = getDisplayTitle(item.title);
                 const showSubOrig = (currentLang !== 'zh' && currentLang !== 'original');
@@ -131,7 +132,7 @@
                 return `
                     <div class="hs-card" onclick="analyzeHaoSouDrama('${escapeHtml(item.id)}')">
                         <div class="hs-card-thumb-wrap">
-                            <img src="${escapeHtml(cover)}" alt="${escapeHtml(item.title)}" loading="lazy" class="hs-card-thumb" onerror="this.src='/logo.svg'">
+                            <img src="${escapeHtml(cover)}" alt="${escapeHtml(item.title)}" loading="lazy" class="hs-card-thumb" onerror="this.onerror=null; this.src='${fallbackPoster}';">
                             ${remarks}
                             <button class="hs-star-btn ${isStarred ? 'starred' : ''}" data-hs-star="${escapeHtml(item.id)}" onclick="event.stopPropagation(); toggleHaoSouCardStar('${escapeHtml(item.id)}', '${escapeHtml(item.title)}', '${escapeHtml(cover)}', '${escapeHtml(item.remarks || '')}')" title="ដាក់ផ្កាយ / Pin">
                                 ${isStarred ? '★' : '☆'}
@@ -612,6 +613,8 @@
             }
         }
 
+        const _hsNotifiedCompletedTasks = new Set();
+
         async function fetchHaoSouTasks() {
             try {
                 const res = await fetch('/api/haosou/tasks');
@@ -621,6 +624,16 @@
                 const tasks = data.tasks || [];
                 const sec = document.getElementById('hsTasksSection');
                 const list = document.getElementById('hsTasksList');
+
+                // Check for newly completed tasks to notify user with 1-click open folder toast
+                tasks.forEach(t => {
+                    if (t.status === 'completed' && !_hsNotifiedCompletedTasks.has(t.task_id)) {
+                        _hsNotifiedCompletedTasks.add(t.task_id);
+                        if (typeof showDownloadCompleteToast === 'function') {
+                            showDownloadCompleteToast(t.title, t.drama_dir);
+                        }
+                    }
+                });
 
                 if (tasks.length > 0) {
                     if (sec) sec.style.display = 'block';
@@ -646,7 +659,7 @@
                                         <div>បានបញ្ចប់ ${t.completed_episodes} / ${t.total_episodes} ភាគ (${t.progress_pct}%)</div>
                                         <div style="display:flex; gap:8px;">
                                             ${!isDone && !isCanceled && !isErr ? `<button type="button" class="btn btn-secondary" onclick="cancelHaoSouTask('${t.task_id}')" style="padding:2px 8px; font-size:0.75rem;">បោះបង់</button>` : ''}
-                                            <button type="button" class="btn btn-secondary" onclick="openHaoSouFolder('${(t.drama_dir || '').replace(/\\/g, '/')}')" style="padding:2px 8px; font-size:0.75rem;">📁 បើក Folder</button>
+                                            <button type="button" class="btn btn-secondary" onclick="openHaoSouFolder('${(t.drama_dir || '').replace(/'/g, "\\'")}')" style="padding:2px 8px; font-size:0.75rem;">📁 បើក Folder</button>
                                         </div>
                                     </div>
                                 </div>
@@ -691,6 +704,9 @@
         }
 
         async function openHaoSouFolder(pathStr) {
+            if (typeof openFolderInExplorer === 'function') {
+                return openFolderInExplorer(pathStr);
+            }
             try {
                 await fetch('/api/haosou/open_folder', {
                     method: 'POST',

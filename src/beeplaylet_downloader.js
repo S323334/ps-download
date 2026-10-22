@@ -63,10 +63,10 @@ class BeeplayletDownloader {
    * Fetch recommendations & categorized feeds from beeplaylet.com
    * Categories: 'hot', 'latest', 'ranking', 'free'
    */
-  async getRecommendations(category = 'hot') {
+  async getRecommendations(category = 'hot', refresh = false) {
     const cat = String(category || 'hot').toLowerCase();
     const cacheKey = `recs_${cat}`;
-    if (this._recsCache.has(cacheKey)) {
+    if (!refresh && this._recsCache.has(cacheKey)) {
       const cached = this._recsCache.get(cacheKey);
       if (Date.now() - cached.ts < 5 * 60 * 1000) {
         return cached.data;
@@ -174,6 +174,13 @@ class BeeplayletDownloader {
               });
             }
           }
+        }
+      }
+
+      if (refresh && items.length > 1) {
+        for (let i = items.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [items[i], items[j]] = [items[j], items[i]];
         }
       }
 

@@ -137,7 +137,7 @@ class AnitakuDownloader {
    * Fetch recommendations / catalog by category
    * Categories: 'popular', 'latest', 'action', 'romance', 'fantasy', 'supernatural', 'comedy', 'drama', 'sci-fi'
    */
-  async getRecommendations(category = 'all') {
+  async getRecommendations(category = 'all', refresh = false) {
     const cat = String(category || 'all').toLowerCase();
 
     // 1. Load from bundled / cached anitaku_catalog.json
@@ -160,6 +160,14 @@ class AnitakuDownloader {
                 return titleLower.includes(cat) || typeLower.includes(cat);
               });
               if (filtered.length < 10) filtered = list;
+            }
+            if (refresh && Array.isArray(filtered) && filtered.length > 1) {
+              const shuffled = [...filtered];
+              for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+              }
+              return shuffled;
             }
             return filtered;
           }

@@ -150,7 +150,7 @@ class AnimexinDownloader {
    * Fetch recommendations / catalog by category
    * Categories: 'all', 'popular', 'latest', 'action', 'cultivation', 'fantasy', 'magic', 'martial', 'comedy', 'movie', 'completed'
    */
-  async getRecommendations(category = 'all') {
+  async getRecommendations(category = 'all', refresh = false) {
     const cat = String(category || 'all').toLowerCase();
 
     // 1. Try loading from bundled data/animexin_catalog.json
@@ -181,6 +181,14 @@ class AnimexinDownloader {
               });
               if (filtered.length < 10) filtered = list;
             }
+            if (refresh && Array.isArray(filtered) && filtered.length > 1) {
+              const shuffled = [...filtered];
+              for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+              }
+              return shuffled;
+            }
             return filtered;
           }
         }
@@ -209,7 +217,63 @@ class AnimexinDownloader {
       console.error('[Animexin] Online recommendations error:', err.message);
     }
 
-    return [];
+    // 3. Embedded verified Donghua fallback (Guarantees catalog is never empty on Cloud)
+    return [
+      {
+        id: "swallowed-star",
+        title: "Swallowed Star (吞噬星空) 3D Donghua",
+        url: "https://animexin.dev/swallowed-star/",
+        cover: "https://animexin.dev/wp-content/uploads/2026/02/Swallowed-Star-S5.jpg",
+        ep: "Season 5",
+        type: "3D Donghua",
+        status: "Ongoing"
+      },
+      {
+        id: "renegade-immortal",
+        title: "Renegade Immortal (仙逆) 3D Donghua",
+        url: "https://animexin.dev/renegade-immortal/",
+        cover: "https://animexin.dev/wp-content/uploads/2023/09/Renegade-Immortal-Ascendant.jpg",
+        ep: "Episode 160+",
+        type: "3D Donghua",
+        status: "Ongoing"
+      },
+      {
+        id: "perfect-world",
+        title: "Perfect World (完美世界) 3D Donghua",
+        url: "https://animexin.dev/perfect-world/",
+        cover: "https://animexin.dev/wp-content/uploads/2021/04/Perfect-World.jpg",
+        ep: "Episode 200+",
+        type: "3D Donghua",
+        status: "Ongoing"
+      },
+      {
+        id: "battle-through-the-heavens",
+        title: "Battle Through the Heavens (斗破苍穹) 3D",
+        url: "https://animexin.dev/battle-through-the-heavens/",
+        cover: "https://animexin.dev/wp-content/uploads/2022/07/BTTH-Nian-Fan.jpg",
+        ep: "Full HD",
+        type: "3D Donghua",
+        status: "Ongoing"
+      },
+      {
+        id: "soul-land-2",
+        title: "Soul Land 2: The Peerless Tang Clan (斗罗大陆2)",
+        url: "https://animexin.dev/soul-land-2/",
+        cover: "https://animexin.dev/wp-content/uploads/2023/06/Soul-Land-2.jpg",
+        ep: "Episode 80+",
+        type: "3D Donghua",
+        status: "Ongoing"
+      },
+      {
+        id: "a-record-of-a-mortals-journey-to-immortality",
+        title: "A Mortal's Journey to Immortality (凡人修仙传)",
+        url: "https://animexin.dev/a-record-of-a-mortals-journey-to-immortality/",
+        cover: "https://animexin.dev/wp-content/uploads/2023/11/A-Record-of-a-Mortals-Journey.jpg",
+        ep: "Full HD 3D",
+        type: "3D Donghua",
+        status: "Ongoing"
+      }
+    ];
   }
 
   /**

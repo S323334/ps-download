@@ -235,8 +235,9 @@ function appendDailymotionCards(items) {
 }
 
 function buildDramaCardHtml(item) {
-    const thumb = item.thumbnail || '/ps_logo.jpg';
     const rawTitle = item.title || 'Chinese Short Drama';
+    const fallbackPoster = (typeof getPosterPlaceholder === 'function') ? getPosterPlaceholder(rawTitle, 'Movie') : '';
+    const thumb = item.thumbnail || fallbackPoster;
     const displayTitle = (typeof getDisplayTitle === 'function') ? getDisplayTitle(rawTitle) : rawTitle;
     const titleSafe = escapeHtml(displayTitle);
     const rawTitleSafe = escapeHtml(rawTitle);
@@ -269,7 +270,7 @@ function buildDramaCardHtml(item) {
                 <button type="button" class="dm-card-star-btn ${isStarred ? 'starred' : ''}" data-dm-star="${escapeHtml(item.id)}" onclick="toggleDailymotionCardStar(event, '${escapeHtml(item.id)}')" title="PIN / ចំណាំទុកមើល">
                     ${isStarred ? '★' : '☆'}
                 </button>
-                <img class="dm-card-poster" src="${escapeHtml(thumb)}" alt="${rawTitleSafe}" loading="lazy" onerror="this.src='/ps_logo.jpg';">
+                <img class="dm-card-poster" src="${escapeHtml(thumb)}" alt="${rawTitleSafe}" loading="lazy" onerror="this.onerror=null; this.src='${fallbackPoster}';">
                 <span class="dm-card-badge" style="display:flex; align-items:center; gap:4px;">
                     <img src="/dailymotion_icon.svg" style="width:12px; height:12px; vertical-align:middle;">
                     <span>${badgeText}</span>
@@ -822,6 +823,7 @@ function stopDmTasksPolling() {
     }
 }
 
+const _dmNotifiedCompletedTasks = new Set();
 async function fetchDmTasks() {
     try {
         const res = await fetch('/api/dailymotion/tasks');
@@ -829,6 +831,14 @@ async function fetchDmTasks() {
         if (!res.ok || !json.ok) return;
 
         const tasks = json.tasks || [];
+        tasks.forEach(t => {
+            if (t.status === 'completed' && !_dmNotifiedCompletedTasks.has(t.task_id)) {
+                _dmNotifiedCompletedTasks.add(t.task_id);
+                if (typeof showDownloadCompleteToast === 'function') {
+                    showDownloadCompleteToast(t.title, t.drama_dir || t.output_dir);
+                }
+            }
+        });
         renderDmTasks(tasks);
 
         const anyActive = tasks.some(t => t.status === 'downloading');
@@ -861,12 +871,15 @@ function renderDmTasks(tasks) {
         if (isErr) statusBadge = `<span style="color: #ef4444;">⚠️ បរាជ័យ: ${escapeHtml(t.error_message || '')}</span>`;
         if (isCanceled) statusBadge = '<span style="color: #94a3b8;">⛔ បានបោះបង់</span>';
 
+        const openBtn = `<button type="button" class="btn btn-secondary btn-sm" onclick="openFolderInExplorer('${(t.drama_dir || t.output_dir || '').replace(/'/g, "\\'")}')" style="padding: 2px 8px; font-size: 0.72rem;">📁 បើក</button>`;
+
         return `
             <div class="dm-task-item">
                 <div class="dm-task-header">
                     <span class="dm-task-title" title="${escapeHtml(t.title)}">${escapeHtml(t.title)}</span>
                     <div style="display: flex; align-items: center; gap: 8px;">
                         ${statusBadge}
+                        ${isDone ? openBtn : ''}
                         ${(!isDone && !isErr && !isCanceled) ? `
                             <button type="button" class="btn btn-secondary btn-sm" onclick="cancelDmTask('${escapeHtml(t.task_id)}')" style="padding: 2px 8px; font-size: 0.72rem;">បោះបង់</button>
                         ` : ''}
@@ -936,7 +949,7 @@ function toggleDailymotionCardStar(event, videoId) {
     const item = _dmItems.find(x => x.id === videoId) || (_activeDmPlayerVideo && _activeDmPlayerVideo.id === videoId ? _activeDmPlayerVideo : null);
     if (!item && !videoId) return;
     const title = (item && item.title) || (_activeDmPlayerVideo && _activeDmPlayerVideo.title) || 'Dailymotion Short Drama';
-    const cover = (item && (item.thumbnail || item.poster)) || '/ps_logo.jpg';
+    const cover = (item && (item.thumbnail || item.poster)) || ((typeof getPosterPlaceholder === 'function') ? getPosterPlaceholder(item && item.title, 'Movie') : '');
     const duration = (item && (item.duration_str || item.remarks)) || '30+ នាទី';
     if (typeof toggleDramaStar === 'function') {
         toggleDramaStar({

@@ -129,15 +129,18 @@ function generateLicenseKey(deviceId, durationValue = 0, unit = 'days') {
   let label = 'Lifetime VIP (ពេញមួយជីវិត)';
   let days = 0;
   let hours = 0;
+  let expiresAt = null;
 
   if (unit === 'hours' && dur > 0) {
     prefix = `H${String(dur).padStart(3, '0')}`;
     label = `${dur} ម៉ោង (${dur} Hours)`;
     hours = dur;
+    expiresAt = new Date(Date.now() + dur * 3600 * 1000).toISOString();
   } else if (dur > 0) {
     prefix = `D${String(dur).padStart(3, '0')}`;
     label = `${dur} ថ្ងៃ (${dur} Days)`;
     days = dur;
+    expiresAt = new Date(Date.now() + dur * 24 * 3600 * 1000).toISOString();
   }
 
   const salt = `${LICENSE_SECRET}:${prefix}`;
@@ -149,7 +152,7 @@ function generateLicenseKey(deviceId, durationValue = 0, unit = 'days') {
 
   const fullKey = `${prefix}-${p1}-${p2}-${p3}`;
 
-  // Log to generated history
+  // Log to generated history with fixed calendar expiresAt
   saveGeneratedKeyRecord({
     deviceId: cleanId,
     key: fullKey,
@@ -157,8 +160,25 @@ function generateLicenseKey(deviceId, durationValue = 0, unit = 'days') {
     hours: hours,
     isUniversal: false,
     label: label,
-    createdAt: new Date().toISOString()
+    createdAt: new Date().toISOString(),
+    expiresAt: expiresAt
   });
+
+  // Pre-bind device in authorized_devices with fixed calendar date so uninstall/reinstall maintains exact remaining days
+  try {
+    const authMap = getAuthorizedDevicesMap();
+    authMap[cleanId] = {
+      deviceId: cleanId,
+      key: fullKey,
+      days: days || 0,
+      label: label,
+      authorizedAt: new Date().toISOString(),
+      expiresAt: expiresAt,
+      isLifetime: prefix === 'LIFE',
+      status: 'active'
+    };
+    saveAuthorizedDevicesMap(authMap);
+  } catch (_) {}
 
   return fullKey;
 }
@@ -1268,27 +1288,69 @@ async function activateLicense(inputKey, metadata = {}) {
   // Key is valid! Reset failed attempts
   resetDeviceFails(currentDevice);
 
-  // Check if this key was already activated previously in persistent vaults
+  // 1. Check authorized_devices.json & generated_keys.json to enforce strict 1-Device Lock & Calendar Time
+  let boundDeviceId = null;
   let existingExpiresAt = null;
-  for (const vaultPath of getSystemVaultPaths()) {
-    try {
-      if (fs.existsSync(vaultPath)) {
-        const raw = fs.readFileSync(vaultPath, 'utf-8');
-        const past = JSON.parse(raw);
-        if (past && past.key === cleanKey && past.expires_at) {
-          existingExpiresAt = past.expires_at;
-          break;
-        }
+
+  try {
+    const authMap = getAuthorizedDevicesMap();
+    for (const [devId, auth] of Object.entries(authMap)) {
+      if (auth && auth.key === cleanKey) {
+        boundDeviceId = devId;
+        if (auth.expiresAt) existingExpiresAt = auth.expiresAt;
+        break;
       }
-    } catch (e) {}
+    }
+  } catch (_) {}
+
+  if (!existingExpiresAt) {
+    try {
+      const genList = getGeneratedKeysList();
+      const gItem = genList.find(x => x && x.key === cleanKey);
+      if (gItem) {
+        if (!boundDeviceId) boundDeviceId = gItem.deviceId;
+        if (gItem.expiresAt) existingExpiresAt = gItem.expiresAt;
+      }
+    } catch (_) {}
   }
 
-  if (existingExpiresAt) {
+  // Check persistent system vaults on PC
+  if (!existingExpiresAt) {
+    for (const vaultPath of getSystemVaultPaths()) {
+      try {
+        if (fs.existsSync(vaultPath)) {
+          const raw = fs.readFileSync(vaultPath, 'utf-8');
+          const past = JSON.parse(raw);
+          if (past && past.key === cleanKey) {
+            if (!boundDeviceId) boundDeviceId = past.device_id;
+            if (past.expires_at) {
+              existingExpiresAt = past.expires_at;
+              break;
+            }
+          }
+        }
+      } catch (e) {}
+    }
+  }
+
+  // STRICT 1 DEVICE LOCK:
+  // "លេខហ្នឹងប្រើបានតែមួយទូរសព្ទហ្នឹងទេ ទោះយកទៅវ៉ៃក្នុងទូរសព្ទអ្នកផ្សេងក៏វាអត់ស្គាល់ដែរ គឺមួយលេខកូដគឺប្រើបានតែមួយម៉ាស៊ីន"
+  if (boundDeviceId && boundDeviceId !== currentDevice && boundDeviceId !== 'ALL_MACHINES (គ្រប់ម៉ាស៊ីន)' && !result.is_universal && result.type !== 'master') {
+    return {
+      success: false,
+      error: '🚨 License Key នេះត្រូវបានប្រើប្រាស់លើឧបករណ៍ផ្សេងរួចហើយ! (1 Key សម្រាប់តែ 1 Device ប៉ុណ្ណោះ)'
+    };
+  }
+
+  // STRICT CALENDAR TIME EXPIRATION:
+  // "ឧទាហរណ៍ថាខ្ញុំឲ្យគេ 7 ថ្ងៃ គេលុបចោលអស់ 3 ថ្ងៃ អញ្ចឹងបានមកវិញគឺគេសល់ប៉ុន្មានថ្ងៃ ទោះគេមិនបានលេងក៏ដោយក៏កាត់ដែរ... គឺយើងរាប់ចាប់ពីថ្ងៃដែលយើងធ្វើឱ្យគេរហូតដល់ថ្ងៃអស់"
+  if (existingExpiresAt && !result.is_lifetime && result.type !== 'master') {
     const pastExp = new Date(existingExpiresAt).getTime();
-    if (pastExp <= Date.now()) {
+    const diffMs = pastExp - Date.now();
+    if (diffMs <= 0) {
       return {
         success: false,
-        error: '🚨 License Key នេះត្រូវបានប្រើប្រាស់ និងផុតកំណត់ហើយ! សូមទិញ Key ថ្មី ឬទាក់ទង Admin។'
+        error: `🚨 License Key នេះបានផុតកំណត់ហើយ (Expired)! សុពលភាពបានបញ្ចប់នៅ ${new Date(existingExpiresAt).toLocaleDateString()}។ សូមទាក់ទង Admin។`
       };
     }
   }
@@ -1328,18 +1390,50 @@ async function activateLicense(inputKey, metadata = {}) {
       if (fs.existsSync(AUTHORIZED_DEVICES_FILE)) {
         authMap = JSON.parse(fs.readFileSync(AUTHORIZED_DEVICES_FILE, 'utf-8')) || {};
       }
+      let remainingDays = 0;
+      if (result.is_lifetime || result.type === 'master') {
+        remainingDays = 9999;
+      } else if (finalExpiresAt) {
+        const diffMs = new Date(finalExpiresAt).getTime() - Date.now();
+        remainingDays = Math.max(0, Math.ceil(diffMs / 86400000));
+      } else {
+        remainingDays = result.days || 30;
+      }
+
       authMap[currentDevice] = {
         deviceId: currentDevice,
         key: cleanKey,
-        days: result.days || 30,
-        label: result.label || 'Active',
+        days: remainingDays,
+        label: result.label || `${remainingDays} ថ្ងៃ`,
         customName: custName || tgUser || '',
         telegramUser: tgUser || (authMap[currentDevice] && authMap[currentDevice].telegramUser) || '',
-        authorizedAt: new Date().toISOString(),
+        authorizedAt: (authMap[currentDevice] && authMap[currentDevice].authorizedAt) || new Date().toISOString(),
         expiresAt: finalExpiresAt,
+        isLifetime: Boolean(result.is_lifetime || result.type === 'master'),
         status: 'active'
       };
       fs.writeFileSync(AUTHORIZED_DEVICES_FILE, JSON.stringify(authMap, null, 2), 'utf-8');
+
+      // Sync to 24/7 Render Cloud Server
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3500);
+        fetch('https://ps-download-bot-irhw.onrender.com/api/license/sync-auth', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          signal: controller.signal,
+          body: JSON.stringify({
+            deviceId: currentDevice,
+            days: remainingDays,
+            telegramUser: tgUser || (authMap[currentDevice] && authMap[currentDevice].telegramUser) || '',
+            customName: custName,
+            key: cleanKey,
+            expiresAt: finalExpiresAt,
+            label: result.label || `${remainingDays} ថ្ងៃ`
+          })
+        }).catch(() => {});
+        clearTimeout(timeoutId);
+      } catch (_) {}
     } catch (e) {}
 
     try {

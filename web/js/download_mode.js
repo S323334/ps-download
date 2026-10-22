@@ -76,53 +76,31 @@
     }
 
     function getActiveDownloadMode() {
-        const m = localStorage.getItem('hg_drama_dl_mode');
-        return (m === 'separate') ? 'separate' : 'merged';
+        return 'separate';
     }
 
     function setQuickDownloadMode(mode) {
-        const cleanMode = (mode === 'separate') ? 'separate' : 'merged';
-        localStorage.setItem('hg_drama_dl_mode', cleanMode);
-        _selectedDownloadMode = cleanMode;
-        updateModeChipsUI(cleanMode);
-        if (typeof showToast === 'function') {
-            const label = cleanMode === 'merged' ? '🎞️ បញ្ចូលរឿងជាវីដេអូពេញ (Merged Full Video)' : '📁 រាយភាគដាច់ដោយឡែក (Separate Episodes)';
-            showToast(`បានជ្រើសរើសទម្រង់៖ ${label}`, '⚙️');
-        }
+        localStorage.setItem('hg_drama_dl_mode', 'separate');
+        _selectedDownloadMode = 'separate';
     }
 
     function updateModeChipsUI(mode) {
-        const curMode = (mode || getActiveDownloadMode()).toLowerCase();
-        ['Merged', 'Separate'].forEach(m => {
-            const isAct = curMode === m.toLowerCase();
-            const hgChip = document.getElementById(`chipMode${m}`);
-            if (hgChip) hgChip.classList.toggle('active', isAct);
-            const hsChip = document.getElementById(`hsChipMode${m}`);
-            if (hsChip) hsChip.classList.toggle('active', isAct);
-            const mvChip = document.getElementById(`mvChipMode${m}`);
-            if (mvChip) mvChip.classList.toggle('active', isAct);
-            const bpChip = document.getElementById(`bpChipMode${m}`);
-            if (bpChip) bpChip.classList.toggle('active', isAct);
-        });
+        // Removed UI chips
     }
 
     /**
-     * Shows the download mode selector bar ONLY if the item is a multi-episode series (> 1 episode).
-     * If single video or 1 episode, hides the mode selector bar completely!
+     * Mode selector bars permanently removed as requested:
+     * Short drama series always download clean separate episodes directly.
      */
     function syncSeriesModeBar(episodeCount = 1) {
-        const isSeries = episodeCount > 1;
         const hgBar = document.getElementById('hgDownloadModeBar');
-        if (hgBar) hgBar.style.display = isSeries ? 'flex' : 'none';
+        if (hgBar) hgBar.style.display = 'none';
         const hsBar = document.getElementById('hsDownloadModeBar');
-        if (hsBar) hsBar.style.display = isSeries ? 'flex' : 'none';
+        if (hsBar) hsBar.style.display = 'none';
         const mvBar = document.getElementById('mvDownloadModeBar');
-        if (mvBar) mvBar.style.display = isSeries ? 'flex' : 'none';
+        if (mvBar) mvBar.style.display = 'none';
         const bpBar = document.getElementById('bpDownloadModeBar');
-        if (bpBar) bpBar.style.display = isSeries ? 'flex' : 'none';
-        if (isSeries) {
-            updateModeChipsUI();
-        }
+        if (bpBar) bpBar.style.display = 'none';
     }
 
     window.promptDownloadMode = promptDownloadMode;

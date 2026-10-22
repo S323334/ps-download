@@ -21,8 +21,19 @@
     <link rel="stylesheet" href="/css/animexin.css">
     <link rel="stylesheet" href="/css/youtube.css">
     <link rel="stylesheet" href="/css/tiktok.css">
-    <link rel="stylesheet" href="/css/starred.css">
     <script src="/hls.min.js"></script>
+    <script>
+      (function() {
+        try {
+          var params = new URLSearchParams(window.location.search);
+          if (params.get('mode') === 'desktop' || params.get('desktop') === '1') return;
+          var isMob = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(navigator.userAgent) || (window.innerWidth <= 768 && window.innerHeight > window.innerWidth);
+          if (isMob) {
+            window.location.replace('/m');
+          }
+        } catch (_) {}
+      })();
+    </script>
 </head>
 <body>
 
@@ -222,6 +233,10 @@
                 <button type="button" class="btn btn-sidebar-setting" id="btnHeaderSettings" onclick="openSettingsModal()" title="Settings">
                     <span>⚙️</span>
                     <span>ការកំណត់</span>
+                </button>
+                <button type="button" class="btn btn-sidebar-setting" onclick="openMobileModal()" style="display:inline-flex; align-items:center; gap:4px; padding:0 8px;" title="ភ្ជាប់មើលលើទូរសព្ទដៃ (Mobile Web App)">
+                    <span>📱</span>
+                    <span>Mobile</span>
                 </button>
                 <span class="sidebar-version-tag">v3.3.0</span>
             </div>
@@ -1831,7 +1846,7 @@
             <div class="drama-showcase-card" id="dramaShowcaseCard">
               <!-- Left: Moderately-sized Poster -->
               <div class="showcase-poster-wrap">
-                <img id="detailThumbImg" class="showcase-poster-img" src="" alt="Drama Poster" onerror="this.src='/ps_logo.jpg'">
+                <img id="detailThumbImg" class="showcase-poster-img" src="" alt="Drama Poster" onerror="this.onerror=null; this.src=(typeof getPosterPlaceholder==='function'?getPosterPlaceholder('Drama Poster','PS Video'):'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22200%22 height=%22280%22><rect width=%22100%%22 height=%22100%%22 fill=%22%23141c2c%22/><text x=%2250%%22 y=%2250%%22 fill=%22%2364748b%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 font-size=%2214%22>PS Video</text></svg>');">
                 <div class="showcase-poster-badge" id="showcaseDownloadedIndicator" style="display:none;">✓ បានដោនឡូត</div>
               </div>
 
@@ -2698,6 +2713,48 @@
                     <div class="dm-playlist-scroll" id="dmPlaylistScroll">
                         <!-- Episode buttons injected dynamically -->
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile Connect Modal -->
+    <div class="modal-overlay" id="mobileModal">
+        <div class="modal-card" style="max-width:500px; box-shadow:0 25px 70px rgba(0,0,0,0.85), 0 0 35px rgba(56,189,248,0.25);">
+            <div class="modal-header">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <div style="width:36px; height:36px; border-radius:8px; background:linear-gradient(135deg, #0284c7, #38bdf8); display:flex; align-items:center; justify-content:center; font-size:1.2rem;">
+                        📱
+                    </div>
+                    <div>
+                        <h3 style="font-size:1.1rem; font-weight:800; color:#fff; margin:0;">ភ្ជាប់មើលលើទូរសព្ទដៃ (Mobile Web App)</h3>
+                        <div style="font-size:0.75rem; color:#94a3b8; margin-top:2px;">Scan or Open Link on Mobile Browser</div>
+                    </div>
+                </div>
+                <button type="button" class="close-btn" onclick="closeMobileModal()">&times;</button>
+            </div>
+            <div class="modal-body" style="display:flex; flex-direction:column; gap:14px; text-align:center;">
+                <div style="background:rgba(56, 189, 248, 0.08); border:1px solid rgba(56, 189, 248, 0.25); border-radius:12px; padding:14px;">
+                    <div style="font-size:0.85rem; color:#94a3b8; margin-bottom:8px;">Link សម្រាប់បើកលើ Browser ទូរសព្ទដៃ (Chrome / Safari)៖</div>
+                    <div id="mobileModalUrlText" style="font-family:monospace; font-size:1.15rem; font-weight:800; color:#38bdf8; word-break:break-all; padding:10px; background:rgba(0,0,0,0.45); border:1px dashed rgba(56,189,248,0.4); border-radius:8px; user-select:all;">
+                        http://192.168.1.8:1994/m
+                    </div>
+                </div>
+
+                <div style="display:flex; gap:10px; justify-content:center;">
+                    <button type="button" class="btn btn-primary" onclick="copyMobileUrl()" style="flex:1; height:40px; font-weight:700;">
+                        📋 Copy Link
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="openMobileInBrowser()" style="flex:1; height:40px; font-weight:700;">
+                        🌐 បើកក្នុង Browser
+                    </button>
+                </div>
+
+                <div style="font-size:0.8rem; color:#cbd5e1; background:rgba(15,23,42,0.7); border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:12px 14px; text-align:left; line-height:1.7;">
+                    💡 <strong>លក្ខខណ្ឌសំខាន់ដើម្បីឱ្យដំណើរការ៖</strong><br>
+                    1. <b>Wi-Fi តែមួយ</b>៖ ទូរសព្ទដៃ និងកុំព្យូទ័រត្រូវតែភ្ជាប់ប្រព័ន្ធ Wi-Fi ផ្ទះតែមួយ (Same Wi-Fi Router)។<br>
+                    2. <b>បិទ 4G/5G</b>៖ មិនត្រូវបើកអ៊ីនធឺណិតស៊ីមកាតលើទូរសព្ទដៃឡើយ (ព្រោះទូរសព្ទនឹងរត់តាមស៊ីមមិនចូល LAN)។<br>
+                    3. <b>Server ដំណើរការ</b>៖ កម្មវិធីលើកុំព្យូទ័រដំណើរការជាប់ជានិច្ច (ទោះបីបិទផ្ទាំងនេះ វានឹងរត់នៅខាងក្រោយលើ System Tray)។
                 </div>
             </div>
         </div>

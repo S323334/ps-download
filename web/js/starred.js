@@ -679,10 +679,14 @@ function renderGlobalStarredGrid() {
         const q = getStarredDramaQuality(item.id, item.platform);
         const qualityBoxHtml = renderQualityBoxHtml(item.id, item.platform, q);
 
+        const fallbackPoster = (typeof getPosterPlaceholder === 'function')
+            ? getPosterPlaceholder(item.title, pLabel || 'Drama')
+            : 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="280"><rect width="100%" height="100%" fill="%23141c2c"/><text x="50%" y="50%" fill="%2364748b" text-anchor="middle" font-family="sans-serif" font-size="14">Drama</text></svg>';
+
         return `
             <div class="starred-card ${isSelected ? 'selected' : ''}" data-card-id="${escapeHtml(item.id)}" data-card-platform="${escapeHtml(item.platform)}" onclick="playStarredDrama('${escapeHtml(item.id)}', '${escapeHtml(item.platform)}')">
                 <div class="starred-poster-wrapper">
-                    <img class="starred-poster" src="${escapeHtml(cover)}" alt="${escapeHtml(item.title)}" loading="lazy" onerror="this.src='/favicon.ico';">
+                    <img class="starred-poster" src="${escapeHtml(cover)}" alt="${escapeHtml(item.title)}" loading="lazy" onerror="this.onerror=null; this.src='${fallbackPoster}';">
                     
                     <div class="starred-card-cb-wrap" onclick="toggleStarredCardSelection('${escapeHtml(item.id)}', '${escapeHtml(item.platform)}', event)" title="គ្រីសដើម្បីទាញយក">
                         <input type="checkbox" class="starred-card-cb" ${isSelected ? 'checked' : ''} tabindex="-1">

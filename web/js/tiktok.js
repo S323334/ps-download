@@ -236,7 +236,7 @@ function renderTtVideoCard(item) {
     }
 
     // Set Poster Cover Image
-    const coverUrl = item.cover || '/ps_logo.jpg';
+    const coverUrl = item.cover || ((typeof getPosterPlaceholder === 'function') ? getPosterPlaceholder(item.title || 'TikTok Video', 'TikTok Video') : 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="280"><rect width="100%" height="100%" fill="%23141c2c"/><text x="50%" y="50%" fill="%2364748b" text-anchor="middle" font-family="sans-serif" font-size="14">TikTok</text></svg>');
     if (posterImg) {
         posterImg.src = coverUrl;
     }
@@ -363,6 +363,16 @@ async function fetchTikTokTasks() {
         if (!res.ok || !json.ok) return;
 
         const tasks = json.tasks || [];
+        window._notifiedTtTasks = window._notifiedTtTasks || new Set();
+        for (const t of tasks) {
+            if (t.status === 'completed' && !window._notifiedTtTasks.has(t.task_id)) {
+                window._notifiedTtTasks.add(t.task_id);
+                if (typeof showDownloadCompleteToast === 'function') {
+                    showDownloadCompleteToast(t.title || 'TikTok Video', t.file_path || '');
+                }
+            }
+        }
+
         const container = document.getElementById('ttTasksContainer');
         const emptyState = document.getElementById('ttEmptyTasks');
         const badge = document.getElementById('ttTasksBadge');

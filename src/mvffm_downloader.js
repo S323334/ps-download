@@ -137,10 +137,10 @@ class MvffmDownloader {
    * Fetch recommendations / listings from mvffm.net with fallback catalog
    * @param {string} type - 'hot' (总人气), 'latest' (按时间), 'monthly' (月人气), 'rating' (按评分), 'all'
    */
-  async getRecommendations(type = 'hot') {
+  async getRecommendations(type = 'hot', refresh = false) {
     const cleanType = String(type || 'hot').toLowerCase();
     const cacheKey = `recs_${cleanType}`;
-    if (this._recsCache.has(cacheKey)) {
+    if (!refresh && this._recsCache.has(cacheKey)) {
       const cached = this._recsCache.get(cacheKey);
       if (Date.now() - cached.ts < 5 * 60 * 1000 && Array.isArray(cached.data) && cached.data.length >= 80) {
         return cached.data;
@@ -188,6 +188,12 @@ class MvffmDownloader {
 
     // If live fetch returned items, cache and return
     if (items.length > 0) {
+      if (refresh && items.length > 1) {
+        for (let i = items.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [items[i], items[j]] = [items[j], items[i]];
+        }
+      }
       this._recsCache.set(cacheKey, { ts: Date.now(), data: items });
       return items;
     }
@@ -197,10 +203,16 @@ class MvffmDownloader {
     if (catalog) {
       const list = catalog[cleanType] || catalog['monthly'] || catalog['hot'] || catalog['latest'] || [];
       if (list.length > 0) {
-        const enriched = list.map(it => ({
+        let enriched = list.map(it => ({
           ...it,
           is_fallback: true
         }));
+        if (refresh && enriched.length > 1) {
+          for (let i = enriched.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [enriched[i], enriched[j]] = [enriched[j], enriched[i]];
+          }
+        }
         this._recsCache.set(cacheKey, { ts: Date.now(), data: enriched });
         return enriched;
       }

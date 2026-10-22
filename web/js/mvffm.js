@@ -173,10 +173,14 @@ function renderMvffmCards(items) {
         const playBtnText = currentLang === 'zh' ? '▶️ 播放 / 下载' : (currentLang === 'km' ? '▶️ មើល & ទាញយក' : '▶️ Play / Download');
         const isStarred = (typeof isDramaStarred === 'function') && isDramaStarred(item.id, 'mvffm');
 
+        const fallbackPoster = (typeof getPosterPlaceholder === 'function') 
+            ? getPosterPlaceholder(item.title, 'MVFFM Drama') 
+            : 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="280"><rect width="100%" height="100%" fill="%23141c2c"/><text x="50%" y="50%" fill="%2364748b" text-anchor="middle" font-family="sans-serif" font-size="14">MVFFM</text></svg>';
+
         return `
             <div class="mv-card" onclick="analyzeMvffmDrama('${escapeHtml(item.id)}')">
                 <div class="mv-card-poster-wrapper">
-                    <img class="mv-card-poster" src="${escapeHtml(cover)}" alt="${escapeHtml(item.title)}" loading="lazy" onerror="this.src='/favicon.ico';">
+                    <img class="mv-card-poster" src="${escapeHtml(cover)}" alt="${escapeHtml(item.title)}" loading="lazy" onerror="this.onerror=null; this.src='${fallbackPoster}';">
                     ${remarks}
                     <button class="mv-star-btn ${isStarred ? 'starred' : ''}" data-mv-star="${escapeHtml(item.id)}" onclick="event.stopPropagation(); toggleMvffmCardStar('${escapeHtml(item.id)}', '${escapeHtml(item.title)}', '${escapeHtml(cover)}', '${escapeHtml(cleanRemarks)}')" title="ដាក់ផ្កាយ / Pin">
                         ${isStarred ? '★' : '☆'}
@@ -627,7 +631,17 @@ async function fetchMvffmTasks() {
         const res = await fetch('/api/mvffm/tasks');
         const data = await res.json();
         if (res.ok && data.ok) {
-            renderMvffmTasks(data.tasks || []);
+            const tasks = data.tasks || [];
+            window._notifiedMvTasks = window._notifiedMvTasks || new Set();
+            for (const t of tasks) {
+                if (t.status === 'completed' && !window._notifiedMvTasks.has(t.task_id)) {
+                    window._notifiedMvTasks.add(t.task_id);
+                    if (typeof showDownloadCompleteToast === 'function') {
+                        showDownloadCompleteToast(t.title, t.series_dir || t.output_dir || '');
+                    }
+                }
+            }
+            renderMvffmTasks(tasks);
         }
     } catch (e) {}
 }
@@ -666,6 +680,7 @@ function renderMvffmTasks(tasks) {
                     </div>
                     <span style="font-size:0.8rem; font-weight:700; color:#e2e8f0; width:45px;">${task.progress_pct}%</span>
                     <span style="font-size:0.78rem; color:#cbd5e1;">${statusText}</span>
+                    <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); openFolderInExplorer('${escapeHtml(task.series_dir || task.output_dir || '')}')" style="padding:2px 8px; font-size:0.75rem;" title="បើក Folder">📂</button>
                     ${!isDone && !isCanceled && !isErr ? `
                         <button class="btn btn-secondary btn-sm" onclick="cancelMvffmTask('${task.task_id}')" style="padding:2px 8px; font-size:0.75rem;">⏹️</button>
                     ` : ''}

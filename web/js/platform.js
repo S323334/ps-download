@@ -68,6 +68,88 @@ function showToast(msg, icon = '🍎') {
 }
 window.showToast = showToast;
 
+// Global Cinema Poster Placeholder Generator (Replaces broken / empty covers with sleek cinema SVG)
+function getPosterPlaceholder(title, platformName = 'Drama') {
+    const clean = String(title || platformName || 'Drama').replace(/[<>&"']/g, '').trim().slice(0, 18);
+    const plat = String(platformName || 'HD DRAMA').toUpperCase();
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="300" height="420" viewBox="0 0 300 420">
+      <defs>
+        <linearGradient id="pbg_${plat.replace(/\s+/g, '')}" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#0f172a"/>
+          <stop offset="50%" stop-color="#1e1b4b"/>
+          <stop offset="100%" stop-color="#090d16"/>
+        </linearGradient>
+        <linearGradient id="pacc_${plat.replace(/\s+/g, '')}" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#4f46e5"/>
+          <stop offset="100%" stop-color="#38bdf8"/>
+        </linearGradient>
+      </defs>
+      <rect width="100%" height="100%" fill="url(#pbg_${plat.replace(/\s+/g, '')})"/>
+      <circle cx="150" cy="160" r="46" fill="url(#pacc_${plat.replace(/\s+/g, '')})" opacity="0.25"/>
+      <path d="M140 140 L168 160 L140 180 Z" fill="#38bdf8"/>
+      <rect x="25" y="260" width="250" height="2" fill="url(#pacc_${plat.replace(/\s+/g, '')})" opacity="0.4"/>
+      <text x="150" y="300" fill="#f8fafc" font-size="15" font-weight="bold" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif" text-anchor="middle">${clean || 'Drama'}</text>
+      <text x="150" y="325" fill="#94a3b8" font-size="11" font-weight="600" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif" text-anchor="middle">${plat} • FULL HD</text>
+    </svg>`;
+    return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+}
+window.getPosterPlaceholder = getPosterPlaceholder;
+
+// Open Download Folder in Windows File Explorer
+async function openFolderInExplorer(folderPath) {
+    try {
+        const target = folderPath || '';
+        if (window.electronAPI && typeof window.electronAPI.openFolder === 'function') {
+            await window.electronAPI.openFolder(target);
+            return;
+        }
+        await fetch('/dl/open_folder', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path: target })
+        });
+    } catch (e) {
+        console.error('Error opening folder:', e);
+        showToast('Error opening folder: ' + e.message, '⚠️');
+    }
+}
+window.openFolderInExplorer = openFolderInExplorer;
+
+// Interactive Download Complete Toast with 1-Click "Open Folder" button
+function showDownloadCompleteToast(title, folderPath) {
+    const container = document.getElementById('toastContainer');
+    if (!container) return;
+    const toast = document.createElement('div');
+    toast.className = 'toast toast-success-action';
+    toast.style.cssText = 'background:linear-gradient(135deg, rgba(16,185,129,0.95), rgba(6,78,59,0.95)); border:1px solid #34d399; color:#fff; padding:12px 16px; border-radius:12px; box-shadow:0 8px 24px rgba(0,0,0,0.5); display:flex; flex-direction:column; gap:8px; max-width:380px; z-index:99999; animation:slideIn 0.3s ease;';
+    
+    const safeTitle = escapeHtml(title || 'វីដេអូ');
+    const safePath = (folderPath || '').replace(/'/g, "\\'");
+
+    toast.innerHTML = `
+        <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:1.3rem;">🎉</span>
+            <div style="font-weight:700; font-size:0.95rem;">ទាញយកចប់សព្វគ្រប់! (Download Finished)</div>
+        </div>
+        <div style="font-size:0.85rem; color:#e6fffa; line-height:1.4;">${safeTitle}</div>
+        <div style="display:flex; gap:8px; margin-top:4px;">
+            <button type="button" class="btn" style="background:#fff; color:#065f46; font-weight:700; font-size:0.8rem; padding:6px 12px; border-radius:8px; border:none; cursor:pointer;" onclick="openFolderInExplorer('${safePath}')">
+                📂 បើកមើលក្នុង Folder
+            </button>
+            <button type="button" class="btn" style="background:rgba(255,255,255,0.2); color:#fff; font-size:0.8rem; padding:6px 10px; border-radius:8px; border:none; cursor:pointer;" onclick="this.closest('.toast').remove()">
+                យល់ព្រម
+            </button>
+        </div>
+    `;
+    container.appendChild(toast);
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transition = 'opacity 0.4s ease';
+        setTimeout(() => toast.remove(), 400);
+    }, 12000);
+}
+window.showDownloadCompleteToast = showDownloadCompleteToast;
+
 let currentPlatform = 'hongguo'; // 'hongguo' | 'haosou' | 'mvffm' | 'dailymotion' | 'youtube' | 'tiktok' | 'starred'
 let currentYtVideo = null;
 let selectedYtQuality = 'best';
@@ -87,7 +169,7 @@ function onHongguoLogoClick(event) {
 }
 
 function openHaoSouWebsite() {
-    const url = 'https://dj.1dfx.com/v/';
+    const url = 'https://v.djss.cc/';
     if (window.electronAPI && typeof window.electronAPI.openExternal === 'function') {
         window.electronAPI.openExternal(url);
     } else {

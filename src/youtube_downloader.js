@@ -9,17 +9,32 @@ const path = require('path');
 const fs = require('fs');
 const { getOutputDir } = require('./config.js');
 
+const { ensureYtDlp, YT_DLP_PATH } = require('./ensure_ytdlp.js');
+
 // Auto-detect yt-dlp executable path
 function findYtDlp() {
+  const isWin = process.platform === 'win32';
   const customPaths = [
-    'yt-dlp',
+    YT_DLP_PATH,
+    path.join(__dirname, '..', 'bin', isWin ? 'yt-dlp.exe' : 'yt-dlp'),
+    path.join(__dirname, '..', 'lib', isWin ? 'yt-dlp.exe' : 'yt-dlp'),
     path.join(process.env.LOCALAPPDATA || '', 'Programs', 'Python', 'Python311', 'Scripts', 'yt-dlp.exe'),
     path.join(process.env.USERPROFILE || '', 'AppData', 'Local', 'Programs', 'Python', 'Python311', 'Scripts', 'yt-dlp.exe')
   ];
+
   for (const p of customPaths) {
-    if (p === 'yt-dlp') return 'yt-dlp';
-    if (fs.existsSync(p)) return p;
+    if (p && fs.existsSync(p)) {
+      if (!isWin) {
+        try { fs.chmodSync(p, 0o755); } catch (_) {}
+      }
+      return p;
+    }
   }
+
+  try {
+    ensureYtDlp();
+  } catch (_) {}
+
   return 'yt-dlp';
 }
 

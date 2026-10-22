@@ -144,7 +144,8 @@
         const activeDramaId = (currentBpDrama && currentBpDrama.id) ? String(currentBpDrama.id) : null;
 
         grid.innerHTML = items.map((item, idx) => {
-            const cover = item.cover || 'https://via.placeholder.com/200x280?text=Beeplaylet';
+            const fallbackPoster = (typeof getPosterPlaceholder === 'function') ? getPosterPlaceholder(item.title, 'Beeplaylet') : '';
+            const cover = item.cover || fallbackPoster;
             const remarks = item.remarks ? `<span class="bp-card-badge">${escapeHtml(item.remarks)}</span>` : '';
             const displayTitle = typeof getDisplayTitle === 'function' ? getDisplayTitle(item.title) : item.title;
             const isPlaying = activeDramaId && (String(item.id) === activeDramaId);
@@ -154,7 +155,7 @@
             return `
                 <div class="bp-drama-card ${isPlaying ? 'active-playing' : ''}" onclick="analyzeBeeplayletDrama('${escapeHtml(item.id)}')">
                     <div class="bp-card-thumb-wrap">
-                        <img src="${escapeHtml(cover)}" alt="${escapeHtml(item.title)}" loading="lazy" class="bp-card-thumb" onerror="this.src='/logo.svg'">
+                        <img src="${escapeHtml(cover)}" alt="${escapeHtml(item.title)}" loading="lazy" class="bp-card-thumb" onerror="this.onerror=null; this.src='${fallbackPoster}';">
                         ${nowPlayingBadge || remarks}
                         <button class="bp-card-star-btn ${isStarred ? 'starred' : ''}" data-bp-star="${escapeHtml(item.id)}" onclick="event.stopPropagation(); toggleBeeplayletCardStar('${escapeHtml(item.id)}', '${escapeHtml(item.title)}', '${escapeHtml(cover)}', '${escapeHtml(item.remarks || '')}')" title="ដាក់ផ្កាយ / Pin">
                             ${isStarred ? '★' : '☆'}
@@ -624,6 +625,7 @@
     }
     window.startBpBatchDownload = startBpBatchDownload;
 
+    const _bpNotifiedCompletedTasks = new Set();
     async function fetchBeeplayletTasks() {
         try {
             const res = await fetch('/api/beeplaylet/tasks');
@@ -633,6 +635,16 @@
             const tasks = data.tasks || [];
             const sec = document.getElementById('bpTasksSection');
             const list = document.getElementById('bpTasksList');
+
+            // Notify completion with 1-click open folder toast
+            tasks.forEach(t => {
+                if (t.status === 'completed' && !_bpNotifiedCompletedTasks.has(t.task_id)) {
+                    _bpNotifiedCompletedTasks.add(t.task_id);
+                    if (typeof showDownloadCompleteToast === 'function') {
+                        showDownloadCompleteToast(t.title, t.drama_dir);
+                    }
+                }
+            });
 
             if (tasks.length > 0) {
                 if (sec) sec.style.display = 'block';
@@ -695,6 +707,9 @@
     window.clearBeeplayletFinishedTasks = clearBeeplayletFinishedTasks;
 
     async function openBeeplayletFolder(customPath = '') {
+        if (typeof openFolderInExplorer === 'function') {
+            return openFolderInExplorer(customPath);
+        }
         try {
             await fetch('/api/beeplaylet/open_folder', {
                 method: 'POST',

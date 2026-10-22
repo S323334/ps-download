@@ -210,6 +210,7 @@ function parseJsonBody(req) {
 }
 
 function sendJson(res, statusCode, data) {
+  if (!res || res.headersSent) return;
   res.writeHead(statusCode, {
     'Content-Type': 'application/json; charset=utf-8',
     'Access-Control-Allow-Origin': '*',
@@ -220,6 +221,7 @@ function sendJson(res, statusCode, data) {
 }
 
 function sendError(res, statusCode, message) {
+  if (!res || res.headersSent) return;
   sendJson(res, statusCode, { error: true, message, detail: message });
 }
 
@@ -235,14 +237,16 @@ function fetchImageWithRedirects(targetUrl, maxRedirects = 5) {
     const client = parsed.protocol === 'https:' ? https : http;
 
     let reqReferer = 'https://hongguoduanju.com/';
-    if (parsed.hostname.includes('1dfx.com') || parsed.hostname.includes('lzipic.com')) {
-      reqReferer = 'https://dj.1dfx.com/';
+    if (parsed.hostname.includes('1dfx.com') || parsed.hostname.includes('lzipic.com') || parsed.hostname.includes('djss.cc')) {
+      reqReferer = 'https://v.djss.cc/';
+    } else if (parsed.hostname.includes('17video.net') || parsed.hostname.includes('beeplaylet')) {
+      reqReferer = 'https://beeplaylet.com/';
     } else if (parsed.hostname.includes('anitaku')) {
       reqReferer = 'https://anitaku.com.ro/';
     } else if (parsed.hostname.includes('animexin')) {
       reqReferer = 'https://animexin.dev/';
     } else if (parsed.hostname.includes('mvffm')) {
-      reqReferer = 'https://mvffm.net/';
+      reqReferer = 'https://www.mvffm.net/';
     } else if (parsed.hostname.includes('dailymotion')) {
       reqReferer = 'https://www.dailymotion.com/';
     }
@@ -292,12 +296,15 @@ function streamLocalFile(filePath, req, res, filename = null) {
   const fileSize = stat.size;
   const range = req.headers.range;
 
+  const ext = filename ? path.extname(filename).toLowerCase() : '';
+  const mediaMime = ext === '.mp3' ? 'audio/mpeg' : (ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg' : 'video/mp4');
+
   res.setHeader('Accept-Ranges', 'bytes');
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Expose-Headers', 'Content-Range, Content-Length, Accept-Ranges');
   if (filename) {
-    res.setHeader('Content-Type', 'application/octet-stream');
-    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(filename)}"`);
+    res.setHeader('Content-Type', mediaMime);
+    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(filename)}"; filename*=UTF-8''${encodeURIComponent(filename)}`);
   }
 
   if (range) {
@@ -317,7 +324,7 @@ function streamLocalFile(filePath, req, res, filename = null) {
     res.writeHead(206, {
       'Content-Range': `bytes ${start}-${end}/${fileSize}`,
       'Content-Length': chunksize,
-      'Content-Type': filename ? 'application/octet-stream' : 'video/mp4'
+      'Content-Type': mediaMime
     });
 
     const stream = fs.createReadStream(filePath, { start, end });
@@ -325,7 +332,7 @@ function streamLocalFile(filePath, req, res, filename = null) {
   } else {
     res.writeHead(200, {
       'Content-Length': fileSize,
-      'Content-Type': filename ? 'application/octet-stream' : 'video/mp4'
+      'Content-Type': mediaMime
     });
     fs.createReadStream(filePath).pipe(res);
   }
@@ -585,6 +592,16 @@ async function handleServerRequest(req, res, fallbackHost = HOST, fallbackPort =
         }
       }
 
+      // 1a-3. Digital Asset Links for Android TWA - Removes browser address bar permanently!
+      if (pathname === '/.well-known/assetlinks.json') {
+        const assetlinksPath = path.join(WEB_DIR, '.well-known', 'assetlinks.json');
+        if (fs.existsSync(assetlinksPath)) {
+          const content = fs.readFileSync(assetlinksPath, 'utf-8');
+          res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+          return res.end(content);
+        }
+      }
+
       // 1. Web UI: GET / and GET /dl (Desktop)
       if (cleanPath === '/' || cleanPath === '/dl') {
         const indexPath = path.join(WEB_DIR, 'index.html');
@@ -668,7 +685,14 @@ async function handleServerRequest(req, res, fallbackHost = HOST, fallbackPort =
           res.writeHead(200, headers);
           return res.end(buffer);
         } catch (err) {
-          return sendError(res, 502, `Failed to proxy image: ${err.message}`);
+          const cleanTitle = String(query.title || 'Short Drama').replace(/[<>&"']/g, '').trim().slice(0, 24);
+          const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="300" height="420" viewBox="0 0 300 420"><defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#0f172a"/><stop offset="50%" stop-color="#1e1b4b"/><stop offset="100%" stop-color="#090d16"/></linearGradient></defs><rect width="100%" height="100%" fill="url(#g)"/><circle cx="150" cy="180" r="42" fill="#38bdf8" fill-opacity="0.16"/><polygon points="144,166 164,180 144,194" fill="#38bdf8"/><text x="150" y="250" fill="#f8fafc" font-size="14" font-weight="700" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,sans-serif">${cleanTitle}</text><text x="150" y="272" fill="#38bdf8" font-size="11" font-weight="600" text-anchor="middle" letter-spacing="1" font-family="-apple-system,BlinkMacSystemFont,sans-serif">FULL HD DRAMA</text></svg>`;
+          res.writeHead(200, {
+            'Content-Type': 'image/svg+xml; charset=utf-8',
+            'Cache-Control': 'public, max-age=3600',
+            'Access-Control-Allow-Origin': '*'
+          });
+          return res.end(svg);
         }
       }
 
@@ -756,12 +780,12 @@ async function handleServerRequest(req, res, fallbackHost = HOST, fallbackPort =
           const client = parsedTarget.protocol === 'https:' ? https : http;
           const proxyReq = client.get(rawUrl, { headers: targetHeaders, timeout: 25000 }, (proxyRes) => {
             const resHeaders = {
-              'Content-Type': isDownload ? 'application/octet-stream' : (proxyRes.headers['content-type'] || 'video/mp4'),
+              'Content-Type': isDownload ? 'video/mp4' : (proxyRes.headers['content-type'] || 'video/mp4'),
               'Accept-Ranges': 'bytes',
               'Access-Control-Allow-Origin': '*'
             };
             if (isDownload) {
-              resHeaders['Content-Disposition'] = `attachment; filename="${encodeURIComponent(customFilename)}"`;
+              resHeaders['Content-Disposition'] = `attachment; filename="${encodeURIComponent(customFilename)}"; filename*=UTF-8''${encodeURIComponent(customFilename)}`;
             }
             if (proxyRes.headers['content-range']) resHeaders['Content-Range'] = proxyRes.headers['content-range'];
             if (proxyRes.headers['content-length']) resHeaders['Content-Length'] = proxyRes.headers['content-length'];
@@ -868,6 +892,7 @@ async function handleServerRequest(req, res, fallbackHost = HOST, fallbackPort =
         if (rankData && Array.isArray(rankData.items)) {
           await attachKhmerTranslations(rankData.items);
         }
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
         return sendJson(res, 200, rankData);
       }
 
@@ -1865,7 +1890,9 @@ async function handleServerRequest(req, res, fallbackHost = HOST, fallbackPort =
       // 26a. Hot Recommendations: GET /api/haosou/recommend
       if (pathname === '/api/haosou/recommend' && req.method === 'GET') {
         const category = parsedUrl.searchParams.get('category') || 'all';
-        const items = await haosouDownloader.getRecommendations(category);
+        const refresh = parsedUrl.searchParams.get('refresh') === '1' || parsedUrl.searchParams.get('refresh') === 'true';
+        const items = await haosouDownloader.getRecommendations(category, refresh);
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
         return sendJson(res, 200, { ok: true, data: items, category });
       }
 
@@ -1977,8 +2004,10 @@ async function handleServerRequest(req, res, fallbackHost = HOST, fallbackPort =
       // 27a. Recommendations: GET /api/mvffm/recommend
       if (pathname === '/api/mvffm/recommend' && req.method === 'GET') {
         const type = parsedUrl.searchParams.get('type') || 'hot';
-        const items = await mvffmDownloader.getRecommendations(type);
+        const refresh = parsedUrl.searchParams.get('refresh') === '1' || parsedUrl.searchParams.get('refresh') === 'true';
+        const items = await mvffmDownloader.getRecommendations(type, refresh);
         const isFallback = items && items.some(it => it.is_fallback);
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
         return sendJson(res, 200, { ok: true, data: items, type, is_fallback: Boolean(isFallback) });
       }
 
@@ -2090,8 +2119,10 @@ async function handleServerRequest(req, res, fallbackHost = HOST, fallbackPort =
       // 27ani-a. Recommendations: GET /api/anitaku/recommend
       if (pathname === '/api/anitaku/recommend' && req.method === 'GET') {
         const category = parsedUrl.searchParams.get('category') || 'popular';
+        const refresh = parsedUrl.searchParams.get('refresh') === '1' || parsedUrl.searchParams.get('refresh') === 'true';
         try {
-          const items = await anitakuDownloader.getRecommendations(category);
+          const items = await anitakuDownloader.getRecommendations(category, refresh);
+          res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
           return sendJson(res, 200, { ok: true, data: items, category });
         } catch (err) {
           return sendError(res, 500, err.message || 'Failed to fetch Anitaku recommendations');
@@ -2213,14 +2244,82 @@ async function handleServerRequest(req, res, fallbackHost = HOST, fallbackPort =
       }
 
       // ==========================================
+      // 27-IP. UNIVERSAL IMAGE PROXY (Bypasses anti-hotlink 403 on Animexin, Anitaku, etc.)
+      // ==========================================
+      if ((pathname === '/api/image-proxy' || pathname === '/img') && req.method === 'GET') {
+        const targetUrl = parsedUrl.searchParams.get('url');
+        if (!targetUrl) return sendError(res, 400, 'Missing url parameter');
+        try {
+          const parsed = new URL(targetUrl);
+          const client = parsed.protocol === 'http:' ? http : https;
+          let referer = parsed.origin + '/';
+          if (parsed.hostname.includes('animexin')) referer = 'https://animexin.dev/';
+          if (parsed.hostname.includes('anitaku') || parsed.hostname.includes('gogo')) referer = 'https://anitaku.to/';
+
+          const preq = client.request({
+            hostname: parsed.hostname,
+            port: parsed.port || (parsed.protocol === 'http:' ? 80 : 443),
+            path: parsed.pathname + parsed.search,
+            method: 'GET',
+            family: 4,
+            timeout: 15000,
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+              'Referer': referer,
+              'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8'
+            }
+          }, (pres) => {
+            if (pres.statusCode >= 300 && pres.statusCode < 400 && pres.headers.location) {
+              let nextLoc = pres.headers.location;
+              if (!nextLoc.startsWith('http')) {
+                nextLoc = new URL(nextLoc, targetUrl).toString();
+              }
+              if (!res.headersSent) {
+                res.writeHead(302, { Location: `/api/image-proxy?url=${encodeURIComponent(nextLoc)}` });
+                return res.end();
+              }
+              return;
+            }
+            if (!res.headersSent) {
+              res.writeHead(pres.statusCode || 200, {
+                'Content-Type': pres.headers['content-type'] || 'image/jpeg',
+                'Cache-Control': 'public, max-age=86400',
+                'Access-Control-Allow-Origin': '*'
+              });
+              pres.pipe(res);
+            }
+          });
+          preq.on('timeout', () => {
+            preq.destroy();
+            if (!res.headersSent) {
+              sendError(res, 408, 'Image fetch timeout');
+            }
+          });
+          preq.on('error', (err) => {
+            if (!res.headersSent) {
+              sendError(res, 502, err.message || 'Image proxy failed');
+            }
+          });
+          preq.end();
+          return;
+        } catch (e) {
+          if (!res.headersSent) {
+            return sendError(res, 400, e.message || 'Invalid image url');
+          }
+        }
+      }
+
+      // ==========================================
       // 27-AX. ANIMEXIN (animexin.dev) Donghua Endpoints
       // ==========================================
 
       // 27ax-a. Recommendations: GET /api/animexin/recommend
       if (pathname === '/api/animexin/recommend' && req.method === 'GET') {
         const category = parsedUrl.searchParams.get('category') || 'all';
+        const refresh = parsedUrl.searchParams.get('refresh') === '1' || parsedUrl.searchParams.get('refresh') === 'true';
         try {
-          const items = await animexinDownloader.getRecommendations(category);
+          const items = await animexinDownloader.getRecommendations(category, refresh);
+          res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
           return sendJson(res, 200, { ok: true, data: items, category });
         } catch (err) {
           return sendError(res, 500, err.message || 'Failed to fetch Animexin recommendations');
@@ -2347,8 +2446,10 @@ async function handleServerRequest(req, res, fallbackHost = HOST, fallbackPort =
       if (pathname === '/api/dailymotion/feed' && req.method === 'GET') {
         const category = parsedUrl.searchParams.get('category') || 'trending';
         const page = parseInt(parsedUrl.searchParams.get('page') || '1', 10);
+        const refresh = parsedUrl.searchParams.get('refresh') === '1' || parsedUrl.searchParams.get('refresh') === 'true';
         try {
-          const data = await dailymotionDownloader.getChineseDramas(category, page, 36);
+          const data = await dailymotionDownloader.getChineseDramas(category, page, 36, refresh);
+          res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
           return sendJson(res, 200, { ok: true, data });
         } catch (err) {
           return sendError(res, 500, err.message || 'Failed to fetch Dailymotion dramas');
@@ -2606,6 +2707,112 @@ async function handleServerRequest(req, res, fallbackHost = HOST, fallbackPort =
         }
       }
 
+      // 27-MOB. Universal Mobile Video Stream & File Download Endpoint (Phone Downloads & Gallery Support)
+      if (pathname === '/api/mobile/download' && req.method === 'GET') {
+        if (!requireLicenseAuth(res, req)) return;
+        const targetUrl = query.url;
+        const ytId = query.yt_id || query.youtube_id;
+        const filename = query.filename || 'video.mp4';
+        const clientDevId = query.device_id || req.headers?.['x-device-id'] || req.headers?.['device-id'] || '';
+        let cleanFilename = String(filename || 'video.mp4').replace(/[\\/*?:"<>|\r\n\t]/g, '_').trim();
+
+        // Case A: Download completed YouTube file from server disk to phone
+        if (ytId && youtubeDownloader) {
+          let task = (youtubeDownloader.tasks && youtubeDownloader.tasks.get(ytId)) || null;
+          if (!task && youtubeDownloader.tasks) {
+            for (const t of youtubeDownloader.tasks.values()) {
+              if (t.id === ytId || t.taskId === ytId) {
+                task = t;
+                break;
+              }
+            }
+          }
+
+          if (task) {
+            if (task.status === 'downloading' || task.status === 'merging') {
+              return sendJson(res, 202, { ok: false, status: task.status, percent: task.percent, message: 'វីដេអូ YouTube កំពុងដំណើរការ... សូមរង់ចាំបន្តិច' });
+            }
+            if (task.filePath && fs.existsSync(task.filePath)) {
+              const fileExt = path.extname(task.filePath).toLowerCase() || '.mp4';
+              if (!cleanFilename.toLowerCase().endsWith(fileExt)) {
+                cleanFilename = cleanFilename.replace(/\.[^/.]+$/, '') + fileExt;
+              }
+              return streamLocalFile(task.filePath, req, res, cleanFilename);
+            }
+          }
+        }
+
+        // Case B: Direct Stream Download from upstream CDN (TikTok, Douyin, Kuaishou, Facebook, etc.)
+        if (targetUrl) {
+          try {
+            const parsedTarget = new URL(targetUrl);
+            const isHttps = parsedTarget.protocol === 'https:';
+            const client = isHttps ? https : http;
+            const platform = (query.platform || '').toLowerCase();
+
+            let referer = parsedTarget.origin + '/';
+            let userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36';
+
+            if (platform === 'tiktok' || targetUrl.includes('tiktok')) {
+              referer = 'https://www.tiktok.com/';
+              userAgent = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1';
+            } else if (platform === 'douyin' || targetUrl.includes('douyin') || targetUrl.includes('snssdk') || targetUrl.includes('bytevcloud')) {
+              referer = 'https://www.douyin.com/';
+            } else if (platform === 'kuaishou' || targetUrl.includes('kuaishou') || targetUrl.includes('kwai')) {
+              referer = 'https://www.kuaishou.com/';
+            } else if (platform === 'facebook' || targetUrl.includes('facebook') || targetUrl.includes('fbcdn')) {
+              referer = 'https://www.facebook.com/';
+            }
+
+            const headers = {
+              'User-Agent': userAgent,
+              'Referer': referer,
+              'Accept': '*/*'
+            };
+            if (req.headers.range) {
+              headers['Range'] = req.headers.range;
+            }
+
+            const proxyReq = client.get(targetUrl, { headers, timeout: 35000 }, (proxyRes) => {
+              if ([301, 302, 303, 307, 308].includes(proxyRes.statusCode) && proxyRes.headers.location) {
+                let nextUrl = proxyRes.headers.location;
+                if (!nextUrl.startsWith('http')) {
+                  nextUrl = new URL(nextUrl, targetUrl).href;
+                }
+                const devParam = clientDevId ? `&device_id=${encodeURIComponent(clientDevId)}` : '';
+                const platParam = platform ? `&platform=${encodeURIComponent(platform)}` : '';
+                res.writeHead(302, { Location: `/api/mobile/download?url=${encodeURIComponent(nextUrl)}&filename=${encodeURIComponent(cleanFilename)}${platParam}${devParam}` });
+                return res.end();
+              }
+
+              const resHeaders = {
+                'Content-Type': 'video/mp4',
+                'Content-Disposition': `attachment; filename="${encodeURIComponent(cleanFilename)}"; filename*=UTF-8''${encodeURIComponent(cleanFilename)}`,
+                'Accept-Ranges': 'bytes',
+                'Access-Control-Allow-Origin': '*'
+              };
+              if (proxyRes.headers['content-range']) resHeaders['Content-Range'] = proxyRes.headers['content-range'];
+              if (proxyRes.headers['content-length']) resHeaders['Content-Length'] = proxyRes.headers['content-length'];
+
+              res.writeHead(proxyRes.statusCode || 200, resHeaders);
+              proxyRes.pipe(res);
+            });
+
+            proxyReq.on('error', (e) => {
+              if (!res.headersSent) sendError(res, 502, `Mobile download proxy error: ${e.message}`);
+            });
+            req.on('close', () => {
+              proxyReq.destroy();
+            });
+            return;
+          } catch (err) {
+            return sendError(res, 400, `Invalid URL: ${err.message}`);
+          }
+        }
+
+        return sendError(res, 400, 'Missing url or yt_id parameter');
+      }
+
       // ==========================================
       // 27-BP. Beeplaylet (beeplaylet.com) Short Drama Endpoints
       // ==========================================
@@ -2613,8 +2820,10 @@ async function handleServerRequest(req, res, fallbackHost = HOST, fallbackPort =
       // 27bp-a. Recommendations: GET /api/beeplaylet/recommend
       if (pathname === '/api/beeplaylet/recommend' && req.method === 'GET') {
         const category = parsedUrl.searchParams.get('category') || 'hot';
+        const refresh = parsedUrl.searchParams.get('refresh') === '1' || parsedUrl.searchParams.get('refresh') === 'true';
         try {
-          const items = await beeplayletDownloader.getRecommendations(category);
+          const items = await beeplayletDownloader.getRecommendations(category, refresh);
+          res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
           return sendJson(res, 200, { ok: true, data: items, category });
         } catch (err) {
           return sendError(res, 500, err.message || 'Failed to fetch Beeplaylet recommendations');

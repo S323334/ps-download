@@ -1141,6 +1141,22 @@ let pollTimer = null;
                             fdw.style.display = 'none';
                         }
                     }
+                    // Hongguo / Series Download Completion Notifications
+                    window._activeHgSeriesSet = window._activeHgSeriesSet || new Set();
+                    if (hgData && Array.isArray(hgData.series)) {
+                        for (const s of hgData.series) {
+                            if (s.status === 'downloading' || s.status === 'merging' || s.status === 'queued') {
+                                window._activeHgSeriesSet.add(s.sid);
+                            } else if (s.status === 'done' && window._activeHgSeriesSet.has(s.sid)) {
+                                window._activeHgSeriesSet.delete(s.sid);
+                                if (typeof showDownloadCompleteToast === 'function') {
+                                    const outDir = hgData.output_dir || '';
+                                    showDownloadCompleteToast(s.title || 'Hongguo Drama', outDir);
+                                }
+                            }
+                        }
+                    }
+
                     window._prevTotalActive = totalActive;
                     window._lastTotalActiveCount = totalActive;
                 }
@@ -2939,5 +2955,64 @@ let pollTimer = null;
                 .replace(/"/g, '&quot;')
                 .replace(/'/g, '&#039;');
         }
+
+        // ==========================================
+        // Mobile Connect Modal Handlers
+        // ==========================================
+        let _currentMobileUrl = 'http://192.168.1.8:1994/m';
+
+        async function openMobileModal() {
+            const modal = document.getElementById('mobileModal');
+            if (modal) modal.classList.add('active');
+            try {
+                const res = await fetch('/api/ping');
+                const data = await res.json();
+                if (data.ip) {
+                    _currentMobileUrl = `http://${data.ip}:${data.port || 1994}/m`;
+                    const urlElem = document.getElementById('mobileModalUrlText');
+                    if (urlElem) urlElem.textContent = _currentMobileUrl;
+                }
+            } catch (_) {}
+        }
+
+        function closeMobileModal() {
+            const modal = document.getElementById('mobileModal');
+            if (modal) modal.classList.remove('active');
+        }
+
+        function copyMobileUrl() {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(_currentMobileUrl).then(() => {
+                    showToast('បាន Copy Link រួចរាល់!', '📋');
+                }).catch(() => {
+                    fallbackCopyMobileUrl(_currentMobileUrl);
+                });
+            } else {
+                fallbackCopyMobileUrl(_currentMobileUrl);
+            }
+        }
+
+        function fallbackCopyMobileUrl(text) {
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.select();
+            try {
+                document.execCommand('copy');
+                showToast('បាន Copy Link រួចរាល់!', '📋');
+            } catch (_) {}
+            document.body.removeChild(ta);
+        }
+
+        function openMobileInBrowser() {
+            if (window.electronAPI && window.electronAPI.openExternal) {
+                window.electronAPI.openExternal(_currentMobileUrl);
+            } else {
+                window.open(_currentMobileUrl, '_blank');
+            }
+        }
+
 
 

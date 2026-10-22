@@ -201,17 +201,17 @@ function renderAnimexinCards(cards) {
     grid.innerHTML = visibleItems.map(item => {
         const isPinned = Boolean(item.is_active_pinned || (_axActiveAnime && _axActiveAnime.id === item.id));
         const pinnedBadge = isPinned ? `<div class="ax-card-pinned-tag">▶ កំពុងចាក់</div>` : '';
-        const cardClass = `ax-card${isPinned ? ' active-pinned' : ''}`;
-        const coverSrc = item.cover ? (item.cover.startsWith('http') ? `/img?url=${encodeURIComponent(item.cover)}` : item.cover) : '/ps_logo.jpg';
-        const epBadge = item.ep ? `<div class="ax-card-ep-badge">${escapeAxHtml(item.ep)}</div>` : '';
         const cleanTitle = decodeAxHtmlEntities(item.title);
+        const fallbackPoster = (typeof getPosterPlaceholder === 'function') ? getPosterPlaceholder(cleanTitle, 'Donghua') : '';
+        const coverSrc = item.cover ? (item.cover.startsWith('http') ? `/img?url=${encodeURIComponent(item.cover)}` : item.cover) : fallbackPoster;
+        const epBadge = item.ep ? `<div class="ax-card-ep-badge">${escapeAxHtml(item.ep)}</div>` : '';
         const displayTitle = (curLang === 'zh' || curLang === 'original') ? cleanTitle : (typeof getDisplayTitle === 'function' ? getDisplayTitle(cleanTitle) : cleanTitle);
         const isStarred = (typeof isDramaStarred === 'function') && isDramaStarred(item.id || item.url, 'animexin');
 
         return `
             <div class="${cardClass}" onclick="onAnimexinCardClick('${escapeAxHtml(item.url || item.id)}')">
                 <div class="ax-card-poster-wrap">
-                    <img src="${escapeAxHtml(coverSrc)}" alt="${escapeAxHtml(cleanTitle)}" class="ax-card-poster" loading="lazy" onerror="this.src='/ps_logo.jpg'">
+                    <img src="${escapeAxHtml(coverSrc)}" alt="${escapeAxHtml(cleanTitle)}" class="ax-card-poster" loading="lazy" onerror="this.onerror=null; this.src='${fallbackPoster}';">
                     <div class="ax-card-overlay">
                         ${epBadge}
                         <div class="ax-card-sub-badge">Sub</div>
@@ -891,11 +891,20 @@ function stopAnimexinTasksPolling() {
 }
 window.stopAnimexinTasksPolling = stopAnimexinTasksPolling;
 
+const _axNotifiedCompletedTasks = new Set();
 async function fetchAnimexinTasks() {
     try {
         const res = await fetch('/api/animexin/tasks');
         const json = await res.json();
         if (json.ok && Array.isArray(json.tasks)) {
+            json.tasks.forEach(task => {
+                if (task.status === 'completed' && !_axNotifiedCompletedTasks.has(task.task_id)) {
+                    _axNotifiedCompletedTasks.add(task.task_id);
+                    if (typeof showDownloadCompleteToast === 'function') {
+                        showDownloadCompleteToast(task.title, task.download_dir);
+                    }
+                }
+            });
             renderAnimexinTasks(json.tasks);
         }
     } catch (_) {}
@@ -922,9 +931,7 @@ function renderAnimexinTasks(tasks) {
         if (isErr) statusBadge = `<span class="badge" style="background:#ef4444;">❌ បរាជ័យ</span>`;
         if (isCancel) statusBadge = `<span class="badge" style="background:#64748b;">🚫 បានបោះបង់</span>`;
 
-        const cancelBtn = isDownloading
-            ? `<button class="btn btn-secondary" onclick="cancelAnimexinTask('${task.task_id}')" style="font-size:0.75rem; padding:3px 8px;">បោះបង់</button>`
-            : '';
+        const openBtn = `<button class="btn btn-secondary" onclick="openFolderInExplorer('${(task.download_dir || '').replace(/'/g, "\\'")}')" style="font-size:0.75rem; padding:3px 8px;">📁 បើក</button>`;
 
         return `
             <div class="ax-task-item">
@@ -932,6 +939,7 @@ function renderAnimexinTasks(tasks) {
                     <span class="ax-task-title">${escapeAxHtml(task.title)}</span>
                     <div style="display:flex; align-items:center; gap:8px;">
                         ${statusBadge}
+                        ${isDone ? openBtn : ''}
                         ${cancelBtn}
                     </div>
                 </div>

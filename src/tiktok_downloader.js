@@ -18,19 +18,32 @@ function sanitizeFilename(name) {
   return cleaned.slice(0, 100) || 'Video';
 }
 
+const { ensureYtDlp, YT_DLP_PATH } = require('./ensure_ytdlp.js');
+
 function findYtDlp() {
+  const isWin = process.platform === 'win32';
   const candidates = [
-    path.join(__dirname, '..', 'bin', 'yt-dlp.exe'),
-    path.join(process.resourcesPath || '', 'bin', 'yt-dlp.exe'),
-    path.join(__dirname, '..', '..', 'bin', 'yt-dlp.exe'),
+    YT_DLP_PATH,
+    path.join(__dirname, '..', 'bin', isWin ? 'yt-dlp.exe' : 'yt-dlp'),
+    path.join(process.resourcesPath || '', 'bin', isWin ? 'yt-dlp.exe' : 'yt-dlp'),
+    path.join(__dirname, '..', '..', 'bin', isWin ? 'yt-dlp.exe' : 'yt-dlp'),
     path.join(process.env.LOCALAPPDATA || '', 'Programs', 'Python', 'Python311', 'Scripts', 'yt-dlp.exe'),
     path.join(process.env.USERPROFILE || '', 'AppData', 'Local', 'Programs', 'Python', 'Python311', 'Scripts', 'yt-dlp.exe'),
-    path.join(__dirname, '..', 'lib', 'yt-dlp.exe'),
-    'yt-dlp'
+    path.join(__dirname, '..', 'lib', isWin ? 'yt-dlp.exe' : 'yt-dlp')
   ];
   for (const p of candidates) {
-    if (p !== 'yt-dlp' && p && fs.existsSync(p)) return p;
+    if (p && fs.existsSync(p)) {
+      if (!isWin) {
+        try { fs.chmodSync(p, 0o755); } catch (_) {}
+      }
+      return p;
+    }
   }
+
+  try {
+    ensureYtDlp();
+  } catch (_) {}
+
   return 'yt-dlp';
 }
 
@@ -77,31 +90,47 @@ class TikTokDownloader {
 
   detectPlatform(url) {
     const u = String(url || '').toLowerCase();
-    if (u.includes('kuaishou.com') || u.includes('kuaishouapp.com') || u.includes('gifshow.com') || u.includes('kwai.com')) return 'kuaishou';
+    if (u.includes('kuaishou.com') || u.includes('kuaishouapp.com') || u.includes('gifshow.com') || u.includes('kwai.com') || u.includes('kuaishou')) return 'kuaishou';
     if (u.includes('douyin.com') || u.includes('iesdouyin.com')) return 'douyin';
     if (u.includes('tiktok.com')) return 'tiktok';
-    return null;
+    if (u.includes('facebook.com') || u.includes('fb.watch') || u.includes('fb.com')) return 'facebook';
+    return 'video';
   }
 
   /**
-   * Universal Video Analyzer for TikTok, Douyin, and Kuaishou with strict platform check
+   * Universal Video Analyzer for TikTok, Douyin, Kuaishou, and Facebook
    */
   async analyzeVideo(rawInput, expectedPlatform = null) {
     const cleanUrl = extractFirstUrl(rawInput);
-    if (!cleanUrl) throw new Error('សូមបញ្ចូល ឬបិទភ្ជាប់លីង TikTok, Douyin, ឬ Kuaishou ឱ្យបានត្រឹមត្រូវ');
+    if (!cleanUrl) throw new Error('សូមបញ្ចូល ឬបិទភ្ជាប់លីង TikTok, Douyin, Kuaishou ឬ Facebook ឱ្យបានត្រឹមត្រូវ');
 
     const platform = this.detectPlatform(cleanUrl);
     if (!platform) {
-      throw new Error('លីងនេះមិនមែនជាលីង TikTok, Douyin ឬ Kuaishou ឡើយ! មិនអាចទាញយកបានទេ');
+      throw new Error('លីងនេះមិនស្គាល់ទម្រង់ឡើយ! សូមពិនិត្យមើល Link ម្តងទៀត');
     }
 
-    if (expectedPlatform && platform !== expectedPlatform) {
+    if (expectedPlatform && platform !== expectedPlatform && expectedPlatform !== 'all') {
       const names = {
         tiktok: 'TikTok (Global)',
         douyin: 'TikTok ចិន (Douyin)',
-        kuaishou: 'ខៅស៊ូ (Kuaishou)'
+        kuaishou: 'ខៅស៊ូ (Kuaishou)',
+        facebook: 'Facebook'
       };
       throw new Error(`លីងនេះជាលីង ${names[platform] || platform} មិនអាចទាញយកក្នុងផ្ទាំង ${names[expectedPlatform] || expectedPlatform} បានទេ! សូមជ្រើសរើសផ្ទាំងត្រឹមត្រូវ។`);
+    }
+
+    // 0. Facebook (Reels, Watch, Video)
+    if (platform === 'facebook') {
+      try {
+        const fbData = await this._analyzeWithYtDlp(cleanUrl, 'facebook');
+        if (fbData && fbData.play_url) {
+          fbData.platform = 'facebook';
+          return fbData;
+        }
+      } catch (err) {
+        console.warn('[TikTokDownloader] Facebook yt-dlp error:', err.message);
+        throw new Error('បរាជ័យក្នុងការវិភាគវីដេអូ Facebook: ' + err.message);
+      }
     }
 
     // 1. TikTok (Global): Try tikwm.com API (Instant, No Watermark, HD)

@@ -378,10 +378,11 @@ class HongguoScraper {
 
   /**
    * Fetches homepage sections & banners. Cached for 5 minutes.
+   * When forceFresh is true, bypasses in-memory cache and re-fetches live data.
    */
-  async getHomeData() {
+  async getHomeData(forceFresh = false) {
     const now = Date.now();
-    if (_HOME_CACHE && (now - _HOME_CACHE.timestamp < 300000)) {
+    if (!forceFresh && _HOME_CACHE && (now - _HOME_CACHE.timestamp < 300000)) {
       return _HOME_CACHE.data;
     }
 
@@ -598,9 +599,13 @@ class HongguoScraper {
     if (['all', 'hot', 'top'].includes(catClean)) {
       try {
         if (page === 1) {
-          const home = await this.getHomeData();
+          if (refresh) {
+            _HOME_CACHE = null;
+            _RECENT_DRAMAS_CACHE = null;
+          }
+          const home = await this.getHomeData(Boolean(refresh));
           const seenSids = new Set();
-          const allItems = [];
+          let allItems = [];
           for (const sec of home.sections || []) {
             for (const item of sec.items || []) {
               if (!seenSids.has(item.series_id)) {
@@ -623,6 +628,14 @@ class HongguoScraper {
                 seenSids.add(item.series_id);
                 allItems.push(item);
               }
+            }
+          }
+
+          // When refreshed or re-entered, shuffle allItems so new dramas rotate to the top
+          if (refresh && allItems.length > 1) {
+            for (let i = allItems.length - 1; i > 0; i--) {
+              const j = Math.floor(Math.random() * (i + 1));
+              [allItems[i], allItems[j]] = [allItems[j], allItems[i]];
             }
           }
 

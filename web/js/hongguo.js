@@ -160,7 +160,7 @@
             secTitle.innerText = getSectionTitle(cat);
 
             try {
-                let url = `/api/rank?category=${cat}&page=${page}&page_size=${cat === 'new' ? 16 : 48}${isRefresh ? '&refresh=1' : ''}`;
+                let url = `/api/rank?category=${cat}&page=${page}&page_size=${cat === 'new' ? 16 : 48}${isRefresh ? '&refresh=1' : ''}&_t=${Date.now()}`;
                 const res = await fetch(url);
                 const data = await res.json();
                 let items = data.items || [];
@@ -190,9 +190,20 @@
                         loadMoreBtn.onclick = () => loadMoreDramas();
                         loadMoreBtn.innerHTML = '<span>📥</span> <span>ផ្ទុកបន្ថែម ៤៨ រឿងទៀត (Load More Dramas)</span>';
                     }
-                    if (typeof shuffleArray === 'function' && page === 1) {
-                        items = shuffleArray(items);
+
+                    // Rule 13: Pin active drama at index 0 (Card #1)
+                    if (window.currentSeries && window.currentSeries.series_id && items.length > 0) {
+                        const activeSid = String(window.currentSeries.series_id);
+                        const existingIdx = items.findIndex(x => String(x.series_id) === activeSid);
+                        let activeItem = null;
+                        if (existingIdx !== -1) {
+                            activeItem = items.splice(existingIdx, 1)[0];
+                        } else {
+                            activeItem = { ...window.currentSeries };
+                        }
+                        items.unshift(activeItem);
                     }
+
                     const countLabel = currentLang === 'zh' ? `显示 ${items.length} / 共 ${data.total || 360}+ 部短剧`
                         : (currentLang === 'en' ? `Showing ${items.length} of ${data.total || 360}+ dramas`
                         : `បង្ហាញ ${items.length} នៃ ${data.total || 360}+ រឿង`);
@@ -231,17 +242,22 @@
         }
         window.reloadFreshNewDramas = reloadFreshNewDramas;
 
-        function shuffleHongguoFeed() {
+        async function shuffleHongguoFeed() {
             if (currentCategory === 'starred' || currentCategory === 'library') {
                 return; // NEVER touch Starred / PIN or downloaded library
             }
             if (currentCategory === 'new') {
-                // When in New category, clicking top Refresh reloads fresh 16 items mixed from secret server + web/app!
                 reloadFreshNewDramas();
                 return;
             }
-            if (allDramas && allDramas.length > 0) {
-                if (typeof shuffleArray === 'function') {
+            try {
+                await loadCategory(currentCategory || 'all', 1, true);
+                const toastMsg = currentLang === 'zh' ? '✨ 已换一批最新短剧 🔄'
+                    : (currentLang === 'en' ? '✨ Loaded fresh dramas 🔄'
+                    : '✨ បានទាញយករឿងថ្មីៗជោគជ័យ 🔄');
+                showToast(toastMsg, '⚡');
+            } catch (e) {
+                if (allDramas && allDramas.length > 0 && typeof shuffleArray === 'function') {
                     if (window.currentSeries && window.currentSeries.series_id) {
                         const activeSid = String(window.currentSeries.series_id);
                         const activeItem = allDramas.find(x => String(x.series_id) === activeSid) || allDramas[0];
@@ -250,13 +266,26 @@
                     } else {
                         allDramas = shuffleArray(allDramas);
                     }
+                    renderDramaGrid(allDramas);
                 }
-                renderDramaGrid(allDramas);
-            } else {
-                loadCategory(currentCategory || 'all', 1);
             }
         }
         window.shuffleHongguoFeed = shuffleHongguoFeed;
+
+        // Desktop App Lifecycle Guardian: Auto-refresh on App Resume / Re-entry
+        let _lastHgExitTime = Date.now();
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'hidden') {
+                _lastHgExitTime = Date.now();
+            } else if (document.visibilityState === 'visible') {
+                const away = Date.now() - _lastHgExitTime;
+                if (away > 5000 && currentCategory !== 'starred' && currentCategory !== 'library' && !currentQuery) {
+                    console.log('[Hongguo] App resumed after', Math.round(away / 1000), 's -> Refreshing fresh feed from source');
+                    _lastHgExitTime = Date.now();
+                    loadCategory(currentCategory || 'all', 1, true);
+                }
+            }
+        });
 
 
         // ==========================================
