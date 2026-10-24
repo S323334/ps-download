@@ -366,7 +366,17 @@ function verifyLicenseKey(inputKey, deviceId = null) {
       } else if (prefix.startsWith('D')) {
         const days = parseInt(prefix.substring(1), 10);
         if (!isNaN(days) && days > 0) {
-          const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
+          let expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
+          try {
+            const authMap = getAuthorizedDevicesMap();
+            if (authMap[targetDeviceId] && authMap[targetDeviceId].expiresAt) {
+              const preboundTime = new Date(authMap[targetDeviceId].expiresAt).getTime();
+              if (preboundTime <= Date.now()) {
+                return { valid: false, error: 'License Key បានផុតកំណត់ហើយ!' };
+              }
+              expiresAt = authMap[targetDeviceId].expiresAt;
+            }
+          } catch (_) {}
           return {
             valid: true,
             type: `${days}_days`,
@@ -379,7 +389,17 @@ function verifyLicenseKey(inputKey, deviceId = null) {
       } else if (prefix.startsWith('H')) {
         const hours = parseInt(prefix.substring(1), 10);
         if (!isNaN(hours) && hours > 0) {
-          const expiresAt = new Date(Date.now() + hours * 3600 * 1000).toISOString();
+          let expiresAt = new Date(Date.now() + hours * 3600 * 1000).toISOString();
+          try {
+            const authMap = getAuthorizedDevicesMap();
+            if (authMap[targetDeviceId] && authMap[targetDeviceId].expiresAt) {
+              const preboundTime = new Date(authMap[targetDeviceId].expiresAt).getTime();
+              if (preboundTime <= Date.now()) {
+                return { valid: false, error: 'License Key បានផុតកំណត់ហើយ!' };
+              }
+              expiresAt = authMap[targetDeviceId].expiresAt;
+            }
+          } catch (_) {}
           return {
             valid: true,
             type: `${hours}_hours`,

@@ -1474,12 +1474,19 @@
       if (platform === 'hongguo') {
         const res = await fetch(`/api/search?q=${encodeURIComponent(kw)}&page=1&page_size=48`);
         const json = await res.json();
-        const raw = json.items || [];
+        let raw = json.items || [];
+        if (raw.length === 0) {
+          try {
+            const hsRes = await fetch(`/api/haosou/search?wd=${encodeURIComponent(kw)}`);
+            const hsJson = await hsRes.json();
+            raw = Array.isArray(hsJson.data) ? hsJson.data : (hsJson.items || []);
+          } catch (_) {}
+        }
         results = raw.map(it => ({
           id: String(it.series_id || it.id || it.book_id || ''),
           title: it.title || it.series_title || 'Drama',
           cover: it.cover || it.cover_url || it.cover_image || '',
-          episodes_count: it.episode_cnt || it.total_episodes || '',
+          episodes_count: it.episode_cnt || it.total_episodes || it.remarks || '',
           platform: 'hongguo'
         }));
       }
@@ -2548,49 +2555,30 @@
     renderDownloadsList();
 
     let completedCount = 0;
+    let activeWorkersCount = 0;
 
+    // Queue of episode numbers to download
+    const queue = [];
     for (let ep = s; ep <= e; ep++) {
-      if (state.activeDownload.canceled) {
-        showToast(`🛑 បានបញ្ឈប់ការទាញយកត្រឹមភាគ ${ep - 1}!`);
-        const currentPct = Math.round(((completedCount) / count) * 100);
-        updateProgressUI(`🛑 បានបញ្ឈប់ការទាញយក`, currentPct, `បានបញ្ឈប់ត្រឹមភាគទី ${ep - 1}`);
-        taskItem.status = 'canceled';
-        saveDownloadsList(savedList);
-        renderDownloadsList();
-        if (btnCancel) {
-          btnCancel.textContent = 'បិទ';
-          btnCancel.style.background = 'rgba(255, 255, 255, 0.1)';
-          btnCancel.style.borderColor = 'rgba(255, 255, 255, 0.2)';
-          btnCancel.style.color = '#94a3b8';
-          btnCancel.onclick = () => { if (liveProgressCard) liveProgressCard.classList.remove('active'); };
-        }
-        break;
-      }
+      queue.push(ep);
+    }
 
-      const epIdx = ep - 1;
-      const epData = detail.episodes ? detail.episodes[epIdx] : null;
-      const vid = epData ? (epData.vid || epData.id || '') : '';
-      const epStr = `ភាគ ${String(ep).padStart(2, '0')}`;
-      const basePct = Math.round(((completedCount) / count) * 100);
+    // Parallel concurrency worker pool: 3 episodes downloading simultaneously!
+    const CONCURRENCY = Math.min(3, count);
 
-      // Update in-app task state
-      taskItem.currentEp = ep;
-      taskItem.currentEpStr = epStr;
-      taskItem.percent = basePct;
-      saveDownloadsList(savedList);
-      renderDownloadsList();
+    async function downloadWorker() {
+      while (queue.length > 0 && !state.activeDownload.canceled) {
+        const ep = queue.shift();
+        activeWorkersCount++;
 
-      updateProgressUI(
-        `⚡ [${completedCount + 1}/${count}] ${cleanTitle} - ${epStr}`,
-        basePct,
-        `📥 កំពុងរៀបចំទាញយកភាគ ${epStr}...`
-      );
-
-      try {
-        let downloadUrl = '';
+        const epIdx = ep - 1;
+        const epData = detail.episodes ? detail.episodes[epIdx] : null;
+        const vid = epData ? (epData.vid || epData.id || '') : '';
+        const epStr = `ភាគ ${String(ep).padStart(2, '0')}`;
         const filename = `[${platform.toUpperCase()}] ${cleanTitle}_EP${String(ep).padStart(2, '0')}.mp4`;
         const devId = getMobileDeviceId();
 
+        let downloadUrl = '';
         if (platform === 'hongguo') {
           downloadUrl = `/api/video/${seriesId}/${vid}/play?quality=1080p&download=1&device_id=${encodeURIComponent(devId)}&filename=${encodeURIComponent(filename)}`;
         } else if (platform === 'dailymotion') {
@@ -2599,108 +2587,96 @@
           downloadUrl = epData.url;
         }
 
-        if (downloadUrl) {
-          let downloadSucceeded = false;
-          let finalBlob = null;
-          let receivedBytes = 0;
+        taskItem.currentEp = ep;
+        taskItem.currentEpStr = `កំពុងទាញយក (${completedCount}/${count} រួចរាល់ • ${activeWorkersCount} ភាគដំណាលគ្នា)`;
+        taskItem.percent = Math.round((completedCount / count) * 100);
+        saveDownloadsList(savedList);
+        renderDownloadsList();
 
+        updateProgressUI(
+          `⚡ [${completedCount + 1}/${count}] ${cleanTitle}`,
+          taskItem.percent,
+          `📥 កំពុងទាញយក: ភាគ ${epStr} (${completedCount}/${count} រួចរាល់ • 3 ភាគដំណាលគ្នា)`
+        );
+
+        if (downloadUrl) {
           try {
-            state.activeDownloadController = new AbortController();
             const response = await fetch(downloadUrl, {
               signal: state.activeDownloadController.signal,
               headers: { 'Accept': '*/*' }
             });
 
-            if (!response.ok) {
-              throw new Error(`HTTP ${response.status}`);
-            }
+            if (response.ok) {
+              const reader = response.body.getReader();
+              let receivedBytes = 0;
 
-            const contentLength = parseInt(response.headers.get('content-length') || '0', 10);
-            const reader = response.body.getReader();
-            const chunks = [];
-            let lastUiUpdate = 0;
-
-            while (true) {
-              if (state.activeDownload.canceled) {
-                try { reader.cancel(); } catch (_) {}
-                break;
+              while (true) {
+                if (state.activeDownload.canceled) {
+                  try { reader.cancel(); } catch (_) {}
+                  break;
+                }
+                const { done, value } = await reader.read();
+                if (done) break;
+                receivedBytes += value.length;
               }
 
-              const { done, value } = await reader.read();
-              if (done) break;
+              if (!state.activeDownload.canceled) {
+                completedCount++;
+                const finalSizeMB = receivedBytes > 0 ? (receivedBytes / (1024 * 1024)).toFixed(1) + ' MB' : 'Full HD';
+                const cleanPlayUrl = downloadUrl.replace(/([?&])download=1(&|$)/g, '$1').replace(/[?&]$/, '');
 
-              chunks.push(value);
-              receivedBytes += value.length;
-
-              const now = Date.now();
-              if (now - lastUiUpdate > 250) {
-                lastUiUpdate = now;
-                const epPct = contentLength > 0 ? Math.min(100, Math.round((receivedBytes / contentLength) * 100)) : 0;
-                const overallPct = Math.min(100, Math.round((((completedCount) + (contentLength > 0 ? (receivedBytes / contentLength) : 0)) / count) * 100));
-                const recMB = (receivedBytes / (1024 * 1024)).toFixed(1);
-                const totMB = contentLength > 0 ? (contentLength / (1024 * 1024)).toFixed(1) : '?';
+                taskItem.episodes.push({
+                  ep: ep,
+                  epStr: epStr,
+                  filename: filename,
+                  size: finalSizeMB,
+                  url: cleanPlayUrl,
+                  downloadUrl: downloadUrl,
+                  completedAt: Date.now()
+                });
+                taskItem.episodes.sort((a, b) => a.ep - b.ep);
+                taskItem.percent = Math.round((completedCount / count) * 100);
+                saveDownloadsList(savedList);
+                renderDownloadsList();
 
                 updateProgressUI(
-                  `⚡ [${completedCount + 1}/${count}] ${cleanTitle} - ${epStr}`,
-                  overallPct,
-                  `📥 កំពុងទាញយក: ${recMB} MB / ${totMB} MB (${epPct}%) • ភាគ ${completedCount + 1} នៃ ${count}`
+                  `⚡ [${completedCount}/${count}] ${cleanTitle}`,
+                  taskItem.percent,
+                  `✅ បានរួចរាល់ ${completedCount} នៃ ${count} ភាគ`
                 );
               }
             }
-
-            if (!state.activeDownload.canceled) {
-              finalBlob = new Blob(chunks, { type: 'video/mp4' });
-              downloadSucceeded = true;
-            }
           } catch (streamErr) {
-            console.warn(`[StreamDownload] Stream fetch failed for EP ${ep}, fallback:`, streamErr.message);
-            if (!state.activeDownload.canceled) {
-              triggerInAppDownload(downloadUrl, filename);
-              downloadSucceeded = true;
-              await new Promise(r => setTimeout(r, 1500));
-            }
-          }
-
-          if (downloadSucceeded && !state.activeDownload.canceled) {
-            // Instant file save to phone disk via local in-memory blob URL (0.05s, zero network delay!)
-            if (finalBlob) {
-              const blobUrl = URL.createObjectURL(finalBlob);
-              const saveLink = document.createElement('a');
-              saveLink.href = blobUrl;
-              saveLink.download = filename;
-              saveLink.style.display = 'none';
-              document.body.appendChild(saveLink);
-              saveLink.click();
-              setTimeout(() => {
-                try {
-                  document.body.removeChild(saveLink);
-                  URL.revokeObjectURL(blobUrl);
-                } catch (_) {}
-              }, 12000);
-            }
-
-            completedCount++;
-            const finalSizeMB = receivedBytes > 0 ? (receivedBytes / (1024 * 1024)).toFixed(1) + ' MB' : 'Full HD';
-
-            taskItem.episodes.push({
-              ep: ep,
-              epStr: epStr,
-              filename: filename,
-              size: finalSizeMB,
-              url: downloadUrl,
-              completedAt: Date.now()
-            });
-            taskItem.percent = Math.round((completedCount / count) * 100);
-            saveDownloadsList(savedList);
-            renderDownloadsList();
+            console.warn(`[StreamDownload] Error EP ${ep}:`, streamErr.message);
           }
         }
-      } catch (err) {
-        console.error(`Error downloading EP ${ep}:`, err);
+
+        activeWorkersCount--;
       }
     }
 
-    if (!state.activeDownload.canceled && completedCount >= count) {
+    // Launch sliding window worker pool
+    const workers = [];
+    for (let w = 0; w < CONCURRENCY; w++) {
+      workers.push(downloadWorker());
+    }
+    await Promise.all(workers);
+
+    if (state.activeDownload.canceled) {
+      showToast(`🛑 បានបញ្ឈប់ការទាញយក!`);
+      const currentPct = Math.round((completedCount / count) * 100);
+      updateProgressUI(`🛑 បានបញ្ឈប់ការទាញយក`, currentPct, `បានទាញយកបាន ${completedCount} ភាគ`);
+      taskItem.status = 'canceled';
+      saveDownloadsList(savedList);
+      renderDownloadsList();
+      if (btnCancel) {
+        btnCancel.textContent = 'បិទ';
+        btnCancel.style.background = 'rgba(255, 255, 255, 0.1)';
+        btnCancel.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+        btnCancel.style.color = '#94a3b8';
+        btnCancel.onclick = () => { if (liveProgressCard) liveProgressCard.classList.remove('active'); };
+      }
+    } else if (completedCount >= count) {
       taskItem.status = 'completed';
       taskItem.percent = 100;
       saveDownloadsList(savedList);
@@ -3008,44 +2984,62 @@
       if (modalDeviceId) modalDeviceId.textContent = devId;
 
       const isLicensed = Boolean(data && data.activated && (data.remaining_days > 0 || data.is_lifetime));
-      const rememberPref = localStorage.getItem('ps_mobile_remember_license');
-      const isRemembered = (rememberPref === '1');
-      const isSessionUnlocked = sessionStorage.getItem('ps_mobile_session_unlocked') === '1';
 
-      const rememberCheck = document.getElementById('authRememberCheck');
-      if (rememberCheck && rememberPref !== null) {
-        rememberCheck.checked = isRemembered;
-      }
+      if (isLicensed) {
+        // Automatically remember active license so user never has to re-type key on update/reload!
+        localStorage.setItem('ps_mobile_remember_license', '1');
+        localStorage.setItem('ps_mobile_license_cached', JSON.stringify(data));
+        if (data.key) localStorage.setItem('ps_mobile_saved_key', data.key);
 
-      // If license expired or revoked, purge local remember tokens
-      if (!isLicensed) {
-        localStorage.removeItem('ps_mobile_remember_license');
-        localStorage.removeItem('ps_mobile_saved_key');
-        sessionStorage.removeItem('ps_mobile_session_unlocked');
-      }
-
-      // AUTO-ENTER RULE:
-      // 1. If licensed AND user checked "Remember License" -> Auto-enter without entering key!
-      // 2. If licensed AND unlocked in current session -> Keep unlocked!
-      // 3. If licensed BUT user did NOT check Remember -> Require entering key on next app launch!
-      // 4. If unlicensed or expired -> ALWAYS show Auth Screen!
-      if (isLicensed && (isRemembered || isSessionUnlocked)) {
         if (authScreen) authScreen.style.display = 'none';
         if (mainScreen) mainScreen.style.display = 'block';
       } else {
-        if (authScreen) authScreen.style.display = 'flex';
-        if (mainScreen) mainScreen.style.display = 'none';
+        // Check if we have an active offline cache that hasn't expired yet
+        let recoveredFromCache = false;
+        try {
+          const cachedRaw = localStorage.getItem('ps_mobile_license_cached');
+          if (cachedRaw) {
+            const cData = JSON.parse(cachedRaw);
+            if (cData && cData.activated && (cData.is_lifetime || new Date(cData.expires_at || 0).getTime() > Date.now())) {
+              state.license = cData;
+              if (authScreen) authScreen.style.display = 'none';
+              if (mainScreen) mainScreen.style.display = 'block';
+              recoveredFromCache = true;
+            }
+          }
+        } catch (_) {}
 
-        const savedKey = localStorage.getItem('ps_mobile_saved_key') || '';
-        const keyInput = document.getElementById('authKeyInput');
-        if (keyInput && !keyInput.value && savedKey) {
-          keyInput.value = savedKey;
+        if (!recoveredFromCache) {
+          if (authScreen) authScreen.style.display = 'flex';
+          if (mainScreen) mainScreen.style.display = 'none';
+
+          const savedKey = localStorage.getItem('ps_mobile_saved_key') || '';
+          const keyInput = document.getElementById('authKeyInput');
+          if (keyInput && !keyInput.value && savedKey) {
+            keyInput.value = savedKey;
+          }
         }
       }
 
       renderHeaderChipCountdown();
       return isLicensed;
     } catch (_) {
+      // Network blip / server waking: Recover from active offline cache so user is never locked out
+      try {
+        const cachedRaw = localStorage.getItem('ps_mobile_license_cached');
+        if (cachedRaw) {
+          const cData = JSON.parse(cachedRaw);
+          if (cData && cData.activated && (cData.is_lifetime || new Date(cData.expires_at || 0).getTime() > Date.now())) {
+            state.license = cData;
+            const authScreen = document.getElementById('mobileAuthScreen');
+            const mainScreen = document.getElementById('mobileMainScreen');
+            if (authScreen) authScreen.style.display = 'none';
+            if (mainScreen) mainScreen.style.display = 'block';
+            renderHeaderChipCountdown();
+            return true;
+          }
+        }
+      } catch (_) {}
       return false;
     }
   }
@@ -3444,7 +3438,7 @@
 
   window.playDownloadedEpisode = function (title, url, epStr) {
     if (!url) {
-      showToast('⚠️ វីដេអូនេះត្រូវបានរក្សាទុកក្នុង Phone Downloads រួចរាល់!');
+      showToast('⚠️ មិនអាចចាក់វីដេអូបានទេ!');
       return;
     }
     openDramaSheet();
@@ -3452,9 +3446,23 @@
     const sheetTitle = document.getElementById('sheetTitle');
     if (sheetTitle) sheetTitle.textContent = `${title} (${epStr})`;
     if (videoPlayer) {
-      videoPlayer.src = url;
+      const cleanUrl = url.replace(/([?&])download=1(&|$)/g, '$1').replace(/[?&]$/, '');
+      videoPlayer.src = cleanUrl;
       videoPlayer.play().catch(() => {});
+      showToast(`🎬 កំពុងចាក់ ${epStr}...`);
     }
+  };
+
+  window.exportEpisodeToFile = function (url, filename) {
+    if (!url) return;
+    const a = document.createElement('a');
+    const dlUrl = url.includes('download=1') ? url : (url.includes('?') ? `${url}&download=1` : `${url}?download=1`);
+    a.href = dlUrl;
+    a.download = filename || 'video.mp4';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { try { document.body.removeChild(a); } catch(_) {} }, 1000);
+    showToast(`💾 កំពុងបញ្ជូន ${filename} ទៅ Phone...`);
   };
 
   window.playFirstEpisode = function (idx) {
@@ -3630,6 +3638,9 @@
             <div class="dl-ep-actions">
               <button type="button" class="btn-ep-play-circle" onclick="playDownloadedEpisode('${escapeAttr(dramaTitle)}', '${escapeAttr(epUrl)}', '${escapeAttr(epStr)}')" title="ចាក់វីដេអូ">
                 ▶
+              </button>
+              <button type="button" class="btn-ep-icon-action" onclick="exportEpisodeToFile('${escapeAttr(epUrl)}', '${escapeAttr(epFilename)}')" title="រក្សាទុកក្នុង Files">
+                💾
               </button>
               <button type="button" class="btn-ep-icon-action" onclick="copyEpisodeLink('${escapeAttr(epUrl)}')" title="Copy Link">
                 🔗

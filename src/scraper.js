@@ -856,22 +856,86 @@ class HongguoScraper {
           });
         }
 
-        const total = items.length;
-        const res = {
-          items,
-          total,
+        if (items.length > 0) {
+          const total = items.length;
+          const res = {
+            items,
+            total,
+            page: 1,
+            page_size: pageSize,
+            total_pages: Math.max(1, Math.ceil(total / pageSize)),
+            has_next: false,
+            has_prev: false
+          };
+          _SEARCH_CACHE.set(cacheKey, { timestamp: Date.now(), data: res });
+          return res;
+        }
+      }
+    } catch (e) {
+      console.warn(`[Scraper] Upstream search failed for query "${cleaned}":`, e.message);
+    }
+
+    // Fallback 1: Search inside loaded Hongguo Catalog & Secret Drama Pool
+    try {
+      const qLower = cleaned.toLowerCase();
+      const allDramas = [
+        ...SECRET_RECENT_DRAMAS_POOL,
+        ...(_RECENT_DRAMAS_CACHE?.items || []),
+        ...((_HOME_CACHE?.data?.sections || []).flatMap(s => s.items || []))
+      ];
+      const matched = [];
+      const seen = new Set();
+      for (const d of allDramas) {
+        if (!d || !d.series_id || seen.has(d.series_id)) continue;
+        const t = (d.title || '').toLowerCase();
+        const tkm = (d.title_km || '').toLowerCase();
+        if (t.includes(qLower) || tkm.includes(qLower) || qLower.includes(t)) {
+          seen.add(d.series_id);
+          matched.push(d);
+        }
+      }
+      if (matched.length > 0) {
+        return {
+          items: matched.slice(0, pageSize),
+          total: matched.length,
           page: 1,
           page_size: pageSize,
-          total_pages: Math.max(1, Math.ceil(total / pageSize)),
+          total_pages: Math.ceil(matched.length / pageSize),
           has_next: false,
           has_prev: false
         };
-        _SEARCH_CACHE.set(cacheKey, { timestamp: Date.now(), data: res });
-        return res;
       }
-    } catch (e) {
-      console.warn(`[Scraper] Search failed for query "${cleaned}":`, e.message);
-    }
+    } catch (_) {}
+
+    // Fallback 2: Search via HaoSou Mirror which indexes all Chinese Short Dramas
+    try {
+      const { haosouDownloader } = require('./haosou_downloader.js');
+      if (haosouDownloader && typeof haosouDownloader.search === 'function') {
+        const hsList = await haosouDownloader.search(searchTarget);
+        if (Array.isArray(hsList) && hsList.length > 0) {
+          const mapped = hsList.map((it, idx) => ({
+            series_id: String(it.id || ''),
+            title: it.title || 'Drama',
+            cover: it.cover || '',
+            episode_cnt: 100,
+            score: '9.8',
+            play_cnt: 9999,
+            category: ['热门短剧'],
+            status: 'completed',
+            rank: idx + 1
+          }));
+          return {
+            items: mapped.slice(0, pageSize),
+            total: mapped.length,
+            page: 1,
+            page_size: pageSize,
+            total_pages: Math.ceil(mapped.length / pageSize),
+            has_next: false,
+            has_prev: false
+          };
+        }
+      }
+    } catch (_) {}
 
     return { items: [], total: 0, page: 1, page_size: pageSize, total_pages: 1, has_next: false, has_prev: false };
   }
