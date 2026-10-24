@@ -2547,10 +2547,12 @@
     saveDownloadsList(savedList);
     renderDownloadsList();
 
+    let completedCount = 0;
+
     for (let ep = s; ep <= e; ep++) {
       if (state.activeDownload.canceled) {
         showToast(`🛑 បានបញ្ឈប់ការទាញយកត្រឹមភាគ ${ep - 1}!`);
-        const currentPct = Math.round(((ep - s) / count) * 100);
+        const currentPct = Math.round(((completedCount) / count) * 100);
         updateProgressUI(`🛑 បានបញ្ឈប់ការទាញយក`, currentPct, `បានបញ្ឈប់ត្រឹមភាគទី ${ep - 1}`);
         taskItem.status = 'canceled';
         saveDownloadsList(savedList);
@@ -2568,20 +2570,20 @@
       const epIdx = ep - 1;
       const epData = detail.episodes ? detail.episodes[epIdx] : null;
       const vid = epData ? (epData.vid || epData.id || '') : '';
-      const currentPct = Math.round(((ep - s) / count) * 100);
       const epStr = `ភាគ ${String(ep).padStart(2, '0')}`;
+      const basePct = Math.round(((completedCount) / count) * 100);
 
       // Update in-app task state
       taskItem.currentEp = ep;
       taskItem.currentEpStr = epStr;
-      taskItem.percent = currentPct;
+      taskItem.percent = basePct;
       saveDownloadsList(savedList);
       renderDownloadsList();
 
       updateProgressUI(
-        `⚡ [${ep - s + 1}/${count}] ${cleanTitle} - ${epStr}`,
-        currentPct,
-        `កំពុងទាញយកក្នុងកម្មវិធីដោយស្វ័យប្រវត្តិ (ភាគ ${ep - s + 1} នៃ ${count})...`
+        `⚡ [${completedCount + 1}/${count}] ${cleanTitle} - ${epStr}`,
+        basePct,
+        `📥 កំពុងរៀបចំទាញយកភាគ ${epStr}...`
       );
 
       try {
@@ -2598,35 +2600,113 @@
         }
 
         if (downloadUrl) {
-          triggerInAppDownload(downloadUrl, filename);
-          
-          taskItem.episodes.push({
-            ep: ep,
-            epStr: epStr,
-            filename: filename,
-            size: '8.2 MB',
-            url: downloadUrl,
-            completedAt: Date.now()
-          });
-          taskItem.percent = Math.round(((ep - s + 1) / count) * 100);
-          saveDownloadsList(savedList);
-          renderDownloadsList();
-        }
+          let downloadSucceeded = false;
+          let finalBlob = null;
+          let receivedBytes = 0;
 
-        // Interval between episode downloads so mobile queues each EP cleanly
-        await new Promise(r => setTimeout(r, 1200));
+          try {
+            state.activeDownloadController = new AbortController();
+            const response = await fetch(downloadUrl, {
+              signal: state.activeDownloadController.signal,
+              headers: { 'Accept': '*/*' }
+            });
+
+            if (!response.ok) {
+              throw new Error(`HTTP ${response.status}`);
+            }
+
+            const contentLength = parseInt(response.headers.get('content-length') || '0', 10);
+            const reader = response.body.getReader();
+            const chunks = [];
+            let lastUiUpdate = 0;
+
+            while (true) {
+              if (state.activeDownload.canceled) {
+                try { reader.cancel(); } catch (_) {}
+                break;
+              }
+
+              const { done, value } = await reader.read();
+              if (done) break;
+
+              chunks.push(value);
+              receivedBytes += value.length;
+
+              const now = Date.now();
+              if (now - lastUiUpdate > 250) {
+                lastUiUpdate = now;
+                const epPct = contentLength > 0 ? Math.min(100, Math.round((receivedBytes / contentLength) * 100)) : 0;
+                const overallPct = Math.min(100, Math.round((((completedCount) + (contentLength > 0 ? (receivedBytes / contentLength) : 0)) / count) * 100));
+                const recMB = (receivedBytes / (1024 * 1024)).toFixed(1);
+                const totMB = contentLength > 0 ? (contentLength / (1024 * 1024)).toFixed(1) : '?';
+
+                updateProgressUI(
+                  `⚡ [${completedCount + 1}/${count}] ${cleanTitle} - ${epStr}`,
+                  overallPct,
+                  `📥 កំពុងទាញយក: ${recMB} MB / ${totMB} MB (${epPct}%) • ភាគ ${completedCount + 1} នៃ ${count}`
+                );
+              }
+            }
+
+            if (!state.activeDownload.canceled) {
+              finalBlob = new Blob(chunks, { type: 'video/mp4' });
+              downloadSucceeded = true;
+            }
+          } catch (streamErr) {
+            console.warn(`[StreamDownload] Stream fetch failed for EP ${ep}, fallback:`, streamErr.message);
+            if (!state.activeDownload.canceled) {
+              triggerInAppDownload(downloadUrl, filename);
+              downloadSucceeded = true;
+              await new Promise(r => setTimeout(r, 1500));
+            }
+          }
+
+          if (downloadSucceeded && !state.activeDownload.canceled) {
+            // Instant file save to phone disk via local in-memory blob URL (0.05s, zero network delay!)
+            if (finalBlob) {
+              const blobUrl = URL.createObjectURL(finalBlob);
+              const saveLink = document.createElement('a');
+              saveLink.href = blobUrl;
+              saveLink.download = filename;
+              saveLink.style.display = 'none';
+              document.body.appendChild(saveLink);
+              saveLink.click();
+              setTimeout(() => {
+                try {
+                  document.body.removeChild(saveLink);
+                  URL.revokeObjectURL(blobUrl);
+                } catch (_) {}
+              }, 12000);
+            }
+
+            completedCount++;
+            const finalSizeMB = receivedBytes > 0 ? (receivedBytes / (1024 * 1024)).toFixed(1) + ' MB' : 'Full HD';
+
+            taskItem.episodes.push({
+              ep: ep,
+              epStr: epStr,
+              filename: filename,
+              size: finalSizeMB,
+              url: downloadUrl,
+              completedAt: Date.now()
+            });
+            taskItem.percent = Math.round((completedCount / count) * 100);
+            saveDownloadsList(savedList);
+            renderDownloadsList();
+          }
+        }
       } catch (err) {
         console.error(`Error downloading EP ${ep}:`, err);
       }
     }
 
-    if (!state.activeDownload.canceled) {
+    if (!state.activeDownload.canceled && completedCount >= count) {
       taskItem.status = 'completed';
       taskItem.percent = 100;
       saveDownloadsList(savedList);
       renderDownloadsList();
 
-      updateProgressUI(`🎉 រួចរាល់! បានទាញយកភាគ ${s} ដល់ ${e}`, 100, `បានរក្សាទុកក្នុង Downloads របស់ទូរស័ព្ទ (សរុប ${count} ភាគ)`);
+      updateProgressUI(`🎉 រួចរាល់! បានទាញយកភាគ ${s} ដល់ ${e}`, 100, `បានរក្សាទុកក្នុង Phone Downloads (សរុប ${count} ភាគ)`);
       if (btnCancel) {
         btnCancel.textContent = 'បិទ';
         btnCancel.style.background = 'rgba(56, 189, 248, 0.2)';
@@ -2644,6 +2724,9 @@
   window.cancelSpecificDownload = function (taskId) {
     if (state.activeDownload) {
       state.activeDownload.canceled = true;
+      if (state.activeDownloadController) {
+        try { state.activeDownloadController.abort(); } catch (_) {}
+      }
     }
     let savedList = getSavedDownloads();
     const task = savedList.find(t => t.id === taskId);
@@ -2670,6 +2753,9 @@
   window.cancelActiveDownload = function () {
     if (state.activeDownload) {
       state.activeDownload.canceled = true;
+      if (state.activeDownloadController) {
+        try { state.activeDownloadController.abort(); } catch (_) {}
+      }
       showToast('🛑 កំពុងបញ្ឈប់ការទាញយក...');
     }
   };
@@ -3249,6 +3335,41 @@
     }
     closeFolderPickerModal();
     showToast(`✅ បានជ្រើសរើសទីតាំង: ${chosen}`);
+  };
+
+  window.selectQuickFolder = function (subPath) {
+    const fullPath = `/storage/emulated/0/${subPath}`;
+    localStorage.setItem('ps_mobile_storage_path', fullPath);
+    const settingsDisp = document.getElementById('settingsStoragePathDisplay');
+    if (settingsDisp) settingsDisp.textContent = fullPath;
+    const dlDisp = document.getElementById('dlStoragePathDisplay');
+    if (dlDisp) dlDisp.textContent = fullPath;
+    if (window.AndroidBridge && window.AndroidBridge.setDownloadFolder) {
+      try { window.AndroidBridge.setDownloadFolder(fullPath); } catch (_) {}
+    }
+    showToast(`✅ បានជ្រើសរើសទីតាំង: ${subPath}`);
+  };
+
+  window.saveCustomFolderFromInput = function () {
+    const input = document.getElementById('customFolderInput');
+    if (!input) return;
+    const rawVal = input.value.trim();
+    if (!rawVal) {
+      showToast('⚠️ សូមបញ្ចូលឈ្មោះ Folder ជាមុនសិន!');
+      return;
+    }
+    const clean = rawVal.replace(/[\\/*?:"<>|]/g, '_').trim();
+    const fullPath = `/storage/emulated/0/Download/${clean}`;
+    localStorage.setItem('ps_mobile_storage_path', fullPath);
+    const settingsDisp = document.getElementById('settingsStoragePathDisplay');
+    if (settingsDisp) settingsDisp.textContent = fullPath;
+    const dlDisp = document.getElementById('dlStoragePathDisplay');
+    if (dlDisp) dlDisp.textContent = fullPath;
+    if (window.AndroidBridge && window.AndroidBridge.setDownloadFolder) {
+      try { window.AndroidBridge.setDownloadFolder(fullPath); } catch (_) {}
+    }
+    input.value = '';
+    showToast(`📁 បានបង្កើត និងកំណត់ទីតាំង: ${clean}!`);
   };
 
   window.addNewFolderPrompt = function () {

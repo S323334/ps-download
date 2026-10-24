@@ -444,15 +444,44 @@
             </div>
 
             <!-- Video Storage Folder Selector (ទីតាំងរក្សាទុកវីដេអូក្នុង Phone) -->
-            <div style="background: rgba(15, 23, 42, 0.75); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 10px; padding: 12px 14px; margin-top: 8px;">
-                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
-                    <span style="font-size: 0.84rem; font-weight: 700; color: #fff;">📁 ទីតាំងទុកវីដេអូក្នុង Phone</span>
-                    <button type="button" onclick="promptChangeStorageLocation()" style="padding: 5px 12px; background: rgba(56, 189, 248, 0.2); border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 8px; color: #38bdf8; font-weight: 700; font-size: 0.76rem; cursor: pointer;">
-                        🔄 ជ្រើសរើស Folder
+            <div style="background: rgba(15, 23, 42, 0.85); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 12px; padding: 14px; margin-top: 10px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <span style="font-size: 1.1rem;">📁</span>
+                        <span style="font-size: 0.88rem; font-weight: 800; color: #fff;">ទីតាំងទុកវីដេអូក្នុង Phone</span>
+                    </div>
+                    <span style="font-size: 0.72rem; color: #34d399; font-weight: 700;">🟢 Active</span>
+                </div>
+                
+                <!-- Current Selected Path Box -->
+                <div id="settingsStoragePathDisplay" style="font-size: 0.78rem; color: #38bdf8; font-family: monospace; word-break: break-all; background: rgba(0, 0, 0, 0.45); padding: 8px 10px; border-radius: 8px; border: 1px solid rgba(56, 189, 248, 0.2); margin-bottom: 10px;">
+                    /storage/emulated/0/Download/PS_Download
+                </div>
+
+                <!-- Quick Presets -->
+                <div style="font-size: 0.72rem; color: #94a3b8; font-weight: 700; margin-bottom: 6px;">🎯 ជ្រើសរើសទីតាំងរហ័ស (Quick Presets)៖</div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 10px;">
+                    <button type="button" onclick="selectQuickFolder('Download/PS_Download')" style="padding: 7px 8px; font-size: 0.74rem; font-weight: 700; border-radius: 6px; background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.3); color: #38bdf8; cursor: pointer; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                        📂 PS_Download
+                    </button>
+                    <button type="button" onclick="selectQuickFolder('Download/ChineseDrama')" style="padding: 7px 8px; font-size: 0.74rem; font-weight: 700; border-radius: 6px; background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.3); color: #38bdf8; cursor: pointer; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                        🎬 ChineseDrama
+                    </button>
+                    <button type="button" onclick="selectQuickFolder('DCIM/PS_Download')" style="padding: 7px 8px; font-size: 0.74rem; font-weight: 700; border-radius: 6px; background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.3); color: #38bdf8; cursor: pointer; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                        📱 DCIM (Gallery)
+                    </button>
+                    <button type="button" onclick="selectQuickFolder('Movies/PS_Download')" style="padding: 7px 8px; font-size: 0.74rem; font-weight: 700; border-radius: 6px; background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.3); color: #38bdf8; cursor: pointer; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                        🎥 Movies
                     </button>
                 </div>
-                <div id="settingsStoragePathDisplay" style="font-size: 0.74rem; color: #38bdf8; font-family: monospace; word-break: break-all; background: rgba(0, 0, 0, 0.35); padding: 6px 8px; border-radius: 6px;">
-                    /storage/emulated/0/Download/PS_Download
+
+                <!-- Custom Folder / Create New Folder Input -->
+                <div style="font-size: 0.72rem; color: #94a3b8; font-weight: 700; margin-bottom: 6px;">➕ បង្កើត Folder ថ្មី ឬវាយទីតាំងផ្ទាល់ខ្លួន៖</div>
+                <div style="display: flex; gap: 6px;">
+                    <input type="text" id="customFolderInput" placeholder="វាយឈ្មោះ Folder (ឧ. MyDramas)..." style="flex: 1; padding: 8px 10px; font-size: 0.78rem; background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 8px; color: #fff; outline: none;">
+                    <button type="button" onclick="saveCustomFolderFromInput()" style="padding: 8px 14px; background: linear-gradient(135deg, #0284c7, #38bdf8); border: none; border-radius: 8px; color: #000; font-size: 0.76rem; font-weight: 800; cursor: pointer; white-space: nowrap;">
+                        ✓ រក្សាទុក
+                    </button>
                 </div>
             </div>
         </div>
