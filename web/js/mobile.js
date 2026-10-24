@@ -1172,18 +1172,70 @@
 
   function setupInfiniteScroll() {
     const sentinel = document.getElementById('infiniteScrollSentinel');
-    if (!sentinel || !window.IntersectionObserver) return;
+    if (sentinel && window.IntersectionObserver) {
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting && !state.isLoading && state.hasMore && !state.isSearching) {
+            loadMoreDramas();
+          }
+        });
+      }, { rootMargin: '400px' });
+      observer.observe(sentinel);
+    }
 
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting && !state.isLoading && state.hasMore && !state.isSearching) {
-          loadMoreDramas();
+    // Scroll window listener fallback for all mobile browsers (Brave, Chrome, Safari, WebView)
+    window.addEventListener('scroll', () => {
+      if (state.isLoading || !state.hasMore || state.isSearching) return;
+      const directPlatforms = ['youtube', 'tiktok', 'douyin', 'kuaishou', 'facebook'];
+      if (directPlatforms.includes(state.currentPlatform)) return;
+      if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 500) {
+        loadMoreDramas();
+      }
+    }, { passive: true });
+  }
+
+  // Initialize infinite scroll observer on load
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupInfiniteScroll);
+  } else {
+    setupInfiniteScroll();
+  }
+
+  // --------------------------------------------------------------------------
+  // App Lifecycle & Background Download Management (បញ្ហាទីមួយ)
+  // --------------------------------------------------------------------------
+  // 1. When app is closed/cleared (swipe away / unload / beforeunload):
+  //    Immediately cancel and terminate running downloads to save phone resources & battery!
+  window.addEventListener('beforeunload', () => {
+    if (state.activeDownload) {
+      state.activeDownload.canceled = true;
+    }
+    try {
+      let savedList = getSavedDownloads();
+      let changed = false;
+      savedList.forEach(item => {
+        if (item.status === 'downloading') {
+          item.status = 'canceled';
+          changed = true;
         }
       });
-    }, { rootMargin: '300px' });
+      if (changed) saveDownloadsList(savedList);
+    } catch (_) {}
+  });
 
-    observer.observe(sentinel);
-  }
+  window.addEventListener('pagehide', () => {
+    if (state.activeDownload) {
+      state.activeDownload.canceled = true;
+    }
+  });
+
+  // 2. When app is simply minimized or user switches apps (visibilitychange):
+  //    Keep downloading in background without interrupting!
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      renderDownloadsList();
+    }
+  });
 
   function renderDirectPlatformHelper(platform) {
     if (!dramaGrid) return;
@@ -2084,54 +2136,21 @@
   }
 
   // --------------------------------------------------------------------------
-  // Numeric Pagination Engine (Screenshot 2 Style)
+  // Infinite Scroll & Load More Support (Replaces numeric pagination)
   // --------------------------------------------------------------------------
   window.goToPage = async function (p) {
-    const directPlatforms = ['youtube', 'tiktok', 'douyin', 'kuaishou', 'facebook'];
-    if (directPlatforms.includes(state.currentPlatform)) return;
-    if (state.isLoading || p < 1) return;
-    state.page = p;
-    showToast(`⏳ កំពុងផ្ទុកទំព័រទី ${p}...`, 1200);
-    await loadPlatformFeed(state.currentPlatform, true, false, p);
-    updatePaginationBar();
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    loadMoreDramas();
   };
 
-  window.goToPrevPage = function () {
-    const directPlatforms = ['youtube', 'tiktok', 'douyin', 'kuaishou', 'facebook'];
-    if (directPlatforms.includes(state.currentPlatform)) return;
-    if (state.page > 1) {
-      goToPage(state.page - 1);
-    } else {
-      showToast('⚠️ នេះជាទំព័រដំបូងបង្អស់');
-    }
-  };
+  window.goToPrevPage = function () {};
 
   window.goToNextPage = function () {
-    const directPlatforms = ['youtube', 'tiktok', 'douyin', 'kuaishou', 'facebook'];
-    if (directPlatforms.includes(state.currentPlatform)) return;
-    goToPage(state.page + 1);
+    loadMoreDramas();
   };
 
   function updatePaginationBar() {
     const bar = document.getElementById('paginationBar');
-    if (!bar) return;
-    const directPlatforms = ['youtube', 'tiktok', 'douyin', 'kuaishou', 'facebook'];
-    if (directPlatforms.includes(state.currentPlatform) || state.isSearching) {
-      bar.style.display = 'none';
-      return;
-    }
-    bar.style.display = 'flex';
-    const container = document.getElementById('pageNumbersContainer');
-    if (!container) return;
-    const cur = state.page || 1;
-    let start = Math.max(1, cur - 2);
-    let end = start + 4;
-    let html = '';
-    for (let p = start; p <= end; p++) {
-      html += `<button type="button" class="page-num-btn ${p === cur ? 'active' : ''}" onclick="goToPage(${p})">${p}</button>`;
-    }
-    container.innerHTML = html;
+    if (bar) bar.style.display = 'none';
   }
 
   // --------------------------------------------------------------------------
@@ -2494,18 +2513,48 @@
     const coverUrl = detail.cover || detail.cover_url || detail.thumb || detail.thumb_url || detail.thumbnail || '';
     if (coverUrl && s === 1) {
       try {
-        const posterFilename = `${cleanTitle}_00_Poster.jpg`;
+        const posterFilename = `[${platform.toUpperCase()}] ${cleanTitle}_00_Poster.jpg`;
         const posterDownloadUrl = `/img?url=${encodeURIComponent(coverUrl)}&download=1&filename=${encodeURIComponent(posterFilename)}`;
         triggerInAppDownload(posterDownloadUrl, posterFilename);
         await new Promise(r => setTimeout(r, 800));
       } catch (_) {}
     }
 
+    // 2. Register Active In-App Download Task in ps_mobile_downloads_list
+    const savedFolder = localStorage.getItem('ps_mobile_storage_path') || '/storage/emulated/0/Download/PS_Download';
+    const taskId = `task_${seriesId}_${Date.now()}`;
+    const taskItem = {
+      id: taskId,
+      series_id: seriesId,
+      title: cleanTitle,
+      title_km: rawTitle,
+      platform: platform,
+      cover: coverUrl || getMobilePosterPlaceholder(cleanTitle, 'PS Video'),
+      totalEpisodes: count,
+      fromEp: s,
+      toEp: e,
+      currentEp: s,
+      currentEpStr: `ភាគ ${String(s).padStart(2, '0')}`,
+      percent: 0,
+      status: 'downloading',
+      folder: savedFolder,
+      createdAt: Date.now(),
+      episodes: []
+    };
+
+    let savedList = getSavedDownloads();
+    savedList = [taskItem, ...savedList.filter(it => it.id !== taskId && it.series_id !== seriesId)];
+    saveDownloadsList(savedList);
+    renderDownloadsList();
+
     for (let ep = s; ep <= e; ep++) {
       if (state.activeDownload.canceled) {
         showToast(`🛑 បានបញ្ឈប់ការទាញយកត្រឹមភាគ ${ep - 1}!`);
         const currentPct = Math.round(((ep - s) / count) * 100);
         updateProgressUI(`🛑 បានបញ្ឈប់ការទាញយក`, currentPct, `បានបញ្ឈប់ត្រឹមភាគទី ${ep - 1}`);
+        taskItem.status = 'canceled';
+        saveDownloadsList(savedList);
+        renderDownloadsList();
         if (btnCancel) {
           btnCancel.textContent = 'បិទ';
           btnCancel.style.background = 'rgba(255, 255, 255, 0.1)';
@@ -2519,17 +2568,25 @@
       const epIdx = ep - 1;
       const epData = detail.episodes ? detail.episodes[epIdx] : null;
       const vid = epData ? (epData.vid || epData.id || '') : '';
-      const currentPct = Math.round(((ep - s + 1) / count) * 100);
+      const currentPct = Math.round(((ep - s) / count) * 100);
+      const epStr = `ភាគ ${String(ep).padStart(2, '0')}`;
+
+      // Update in-app task state
+      taskItem.currentEp = ep;
+      taskItem.currentEpStr = epStr;
+      taskItem.percent = currentPct;
+      saveDownloadsList(savedList);
+      renderDownloadsList();
 
       updateProgressUI(
-        `⚡ [${ep - s + 1}/${count}] ${cleanTitle} - ភាគទី ${ep}`,
+        `⚡ [${ep - s + 1}/${count}] ${cleanTitle} - ${epStr}`,
         currentPct,
         `កំពុងទាញយកក្នុងកម្មវិធីដោយស្វ័យប្រវត្តិ (ភាគ ${ep - s + 1} នៃ ${count})...`
       );
 
       try {
         let downloadUrl = '';
-        const filename = `${cleanTitle}_EP${String(ep).padStart(3, '0')}.mp4`;
+        const filename = `[${platform.toUpperCase()}] ${cleanTitle}_EP${String(ep).padStart(2, '0')}.mp4`;
         const devId = getMobileDeviceId();
 
         if (platform === 'hongguo') {
@@ -2542,6 +2599,18 @@
 
         if (downloadUrl) {
           triggerInAppDownload(downloadUrl, filename);
+          
+          taskItem.episodes.push({
+            ep: ep,
+            epStr: epStr,
+            filename: filename,
+            size: '8.2 MB',
+            url: downloadUrl,
+            completedAt: Date.now()
+          });
+          taskItem.percent = Math.round(((ep - s + 1) / count) * 100);
+          saveDownloadsList(savedList);
+          renderDownloadsList();
         }
 
         // Interval between episode downloads so mobile queues each EP cleanly
@@ -2552,6 +2621,11 @@
     }
 
     if (!state.activeDownload.canceled) {
+      taskItem.status = 'completed';
+      taskItem.percent = 100;
+      saveDownloadsList(savedList);
+      renderDownloadsList();
+
       updateProgressUI(`🎉 រួចរាល់! បានទាញយកភាគ ${s} ដល់ ${e}`, 100, `បានរក្សាទុកក្នុង Downloads របស់ទូរស័ព្ទ (សរុប ${count} ភាគ)`);
       if (btnCancel) {
         btnCancel.textContent = 'បិទ';
@@ -2560,9 +2634,24 @@
         btnCancel.style.color = '#38bdf8';
         btnCancel.onclick = () => { if (liveProgressCard) liveProgressCard.classList.remove('active'); };
       }
+      showToast(`🎉 បានទាញយករួចរាល់: ${cleanTitle} (សរុប ${count} ភាគ)!`);
       setTimeout(() => {
         if (liveProgressCard) liveProgressCard.classList.remove('active');
       }, 7000);
+    }
+  };
+
+  window.cancelSpecificDownload = function (taskId) {
+    if (state.activeDownload) {
+      state.activeDownload.canceled = true;
+    }
+    let savedList = getSavedDownloads();
+    const task = savedList.find(t => t.id === taskId);
+    if (task && task.status === 'downloading') {
+      task.status = 'canceled';
+      saveDownloadsList(savedList);
+      renderDownloadsList();
+      showToast('🛑 បានបញ្ឈប់ការទាញយក');
     }
   };
 
@@ -3153,6 +3242,11 @@
     localStorage.setItem('ps_mobile_storage_path', chosen);
     const disp = document.getElementById('dlStoragePathDisplay');
     if (disp) disp.textContent = chosen;
+    const settingsDisp = document.getElementById('settingsStoragePathDisplay');
+    if (settingsDisp) settingsDisp.textContent = chosen;
+    if (window.AndroidBridge && window.AndroidBridge.setDownloadFolder) {
+      try { window.AndroidBridge.setDownloadFolder(chosen); } catch (_) {}
+    }
     closeFolderPickerModal();
     showToast(`✅ បានជ្រើសរើសទីតាំង: ${chosen}`);
   };
@@ -3342,7 +3436,55 @@
       return;
     }
 
-    container.innerHTML = listToRender.map((drama, idx) => {
+    if (_currentDlTab === 'active') {
+      container.innerHTML = activeItems.map((task, idx) => {
+        const title = task.title_km || task.title || 'Drama';
+        const platform = (task.platform || 'video').toUpperCase();
+        const currentEp = task.currentEp || task.fromEp || 1;
+        const totalEps = task.totalEpisodes || (task.toEp ? task.toEp - task.fromEp + 1 : 1);
+        const epStr = task.currentEpStr || `ភាគ ${String(currentEp).padStart(2, '0')}`;
+        const pct = task.percent || 0;
+        const cover = task.cover || getMobilePosterPlaceholder(title, 'PS Video');
+        const folder = task.folder || '/storage/emulated/0/Download/PS_Download';
+
+        return `
+          <div class="dl-active-task-card" style="margin: 10px 14px; background: rgba(15, 23, 42, 0.9); border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 14px; padding: 14px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);">
+            <div style="display: flex; gap: 12px; align-items: center;">
+              <img src="${escapeAttr(cover)}" alt="${escapeHtml(title)}" style="width: 54px; height: 72px; border-radius: 8px; object-fit: cover; background: #0c1424; flex-shrink: 0;" onerror="this.onerror=null; this.src='${getMobilePosterPlaceholder(title, 'PS Video')}';">
+              <div style="flex: 1; min-width: 0;">
+                <div style="font-size: 0.92rem; font-weight: 800; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                  [${platform}] ${escapeHtml(title)}
+                </div>
+                <div style="font-size: 0.76rem; color: #38bdf8; margin-top: 3px; font-weight: 700;">
+                  ⚡ កំពុងទាញយក: ${escapeHtml(epStr)} (ភាគ ${currentEp} នៃ ${totalEps})
+                </div>
+                
+                <!-- Live Progress Bar Track & Fill in App -->
+                <div style="margin-top: 8px;">
+                  <div style="display: flex; justify-content: space-between; font-size: 0.74rem; font-weight: 800; color: #38bdf8; margin-bottom: 4px;">
+                    <span>ដំណើរការក្នុងកម្មវិធី (In-App)</span>
+                    <span>${pct}%</span>
+                  </div>
+                  <div style="height: 8px; background: rgba(255, 255, 255, 0.1); border-radius: 10px; overflow: hidden;">
+                    <div style="width: ${pct}%; height: 100%; background: linear-gradient(90deg, #0284c7, #38bdf8); border-radius: 10px; transition: width 0.3s ease; box-shadow: 0 0 10px rgba(56, 189, 248, 0.6);"></div>
+                  </div>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+                  <span style="font-size: 0.7rem; color: #64748b; font-family: monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 180px;">📁 ${escapeHtml(folder)}</span>
+                  <button type="button" onclick="cancelSpecificDownload('${task.id}')" style="padding: 4px 10px; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 6px; color: #f87171; font-size: 0.72rem; font-weight: 700; cursor: pointer;">
+                    🛑 បញ្ឈប់
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+      return;
+    }
+
+    container.innerHTML = doneItems.map((drama, idx) => {
       const dramaTitle = drama.title_km || drama.title || 'Drama';
       const origTitle = drama.title || dramaTitle;
       const eps = drama.episodes || [];
@@ -3353,7 +3495,7 @@
 
       const episodesHtml = eps.map((ep, epIdx) => {
         const epStr = ep.epStr || `EP${String(ep.ep || epIdx + 1).padStart(2, '0')}`;
-        const epSize = ep.size || '9.4 MB';
+        const epSize = ep.size || '8.2 MB';
         const epFilename = ep.filename || `${origTitle}_${epStr}.mp4`;
         const epUrl = ep.url || '';
 
@@ -3829,6 +3971,9 @@
     if (settingsModal) settingsModal.classList.add('active');
     initAppTheme();
     checkMobileUpdateStatus();
+    const settingsStorage = document.getElementById('settingsStoragePathDisplay');
+    const savedPath = localStorage.getItem('ps_mobile_storage_path') || '/storage/emulated/0/Download/PS_Download';
+    if (settingsStorage) settingsStorage.textContent = savedPath;
     try {
       const res = await fetch('/api/ping');
       const data = await res.json();

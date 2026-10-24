@@ -137,7 +137,7 @@ class YouTubeDownloader {
     const cleanUrl = url.trim();
     return new Promise((resolve, reject) => {
       const args = [
-        '--js-runtimes', 'node',
+        '--extractor-args', 'youtube:player_client=android,web',
         '--dump-single-json',
         '--no-warnings',
         '--no-playlist',
@@ -278,7 +278,7 @@ class YouTubeDownloader {
     this.tasks.set(taskId, task);
 
     const args = [
-      '--js-runtimes', 'node',
+      '--extractor-args', 'youtube:player_client=android,web',
       '--newline',
       '--write-thumbnail',
       '--convert-thumbnails', 'jpg',

@@ -240,21 +240,14 @@
             <!-- 3-COLUMNS DRAMA CARDS GRID (Screenshot 2 Style) -->
             <main class="drama-grid-3col" id="dramaGrid"></main>
 
-            <!-- Numeric Pagination Bar (Screenshot 2 Style) -->
-            <div class="pagination-bar" id="paginationBar">
-                <button type="button" class="btn-page-nav" id="btnPagePrev" onclick="goToPrevPage()">
-                    <span>&lt; ថយ</span>
+            <!-- Infinite Scroll & Load More Container (Replaces numeric pagination) -->
+            <div class="load-more-container" id="loadMoreContainer" style="padding: 16px 14px 28px; text-align: center;">
+                <button type="button" class="btn-load-more" id="btnLoadMore" onclick="loadMoreDramas()" style="width: 100%; max-width: 380px; margin: 0 auto; padding: 13px 20px; font-size: 0.92rem; font-weight: 700; border-radius: 12px; background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.35); color: #38bdf8; display: inline-flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; transition: all 0.2s;">
+                    <span id="loadMoreIcon" style="font-size: 1.1rem;">🔄</span>
+                    <span id="loadMoreSpinner" class="spinner-small" style="display: none;"></span>
+                    <span id="btnLoadMoreText">ទាញយករឿងបន្ថែម... (Load More)</span>
                 </button>
-                <div class="page-numbers-container" id="pageNumbersContainer">
-                    <button type="button" class="page-num-btn active" onclick="goToPage(1)">1</button>
-                    <button type="button" class="page-num-btn" onclick="goToPage(2)">2</button>
-                    <button type="button" class="page-num-btn" onclick="goToPage(3)">3</button>
-                    <button type="button" class="page-num-btn" onclick="goToPage(4)">4</button>
-                    <button type="button" class="page-num-btn" onclick="goToPage(5)">5</button>
-                </div>
-                <button type="button" class="btn-page-nav" id="btnPageNext" onclick="goToNextPage()">
-                    <span>បន្ទាប់ &gt;</span>
-                </button>
+                <div id="infiniteScrollSentinel" style="height: 20px; margin-top: 10px;"></div>
             </div>
 
             <!-- Bottom App Navigation Bar -->
@@ -448,6 +441,19 @@
                 <button type="button" onclick="handleVipChipTap()" style="padding: 5px 12px; background: rgba(56, 189, 248, 0.2); border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 8px; color: #38bdf8; font-weight: 700; font-size: 0.76rem; cursor: pointer;">
                     ប្តូរពណ៌
                 </button>
+            </div>
+
+            <!-- Video Storage Folder Selector (ទីតាំងរក្សាទុកវីដេអូក្នុង Phone) -->
+            <div style="background: rgba(15, 23, 42, 0.75); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 10px; padding: 12px 14px; margin-top: 8px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                    <span style="font-size: 0.84rem; font-weight: 700; color: #fff;">📁 ទីតាំងទុកវីដេអូក្នុង Phone</span>
+                    <button type="button" onclick="promptChangeStorageLocation()" style="padding: 5px 12px; background: rgba(56, 189, 248, 0.2); border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 8px; color: #38bdf8; font-weight: 700; font-size: 0.76rem; cursor: pointer;">
+                        🔄 ជ្រើសរើស Folder
+                    </button>
+                </div>
+                <div id="settingsStoragePathDisplay" style="font-size: 0.74rem; color: #38bdf8; font-family: monospace; word-break: break-all; background: rgba(0, 0, 0, 0.35); padding: 6px 8px; border-radius: 6px;">
+                    /storage/emulated/0/Download/PS_Download
+                </div>
             </div>
         </div>
     </div>
