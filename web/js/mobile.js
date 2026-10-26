@@ -1458,6 +1458,12 @@
     const loadMoreContainer = document.getElementById('loadMoreContainer');
     if (loadMoreContainer) loadMoreContainer.style.display = 'none';
 
+    // Always reset filter pills to 'all' so search results are never hidden by active category filters
+    document.querySelectorAll('.filter-pill').forEach(b => b.classList.remove('active'));
+    const allFilterBtn = document.querySelector('.filter-pill[data-filter="all"]');
+    if (allFilterBtn) allFilterBtn.classList.add('active');
+    _activeHongguoFilter = 'all';
+
     // Show searching state
     if (sectionTitle) {
       sectionTitle.innerHTML = `<span id="sectionTitleText">🔍 លទ្ធផលស្វែងរក: "<b>${escapeHtml(kw)}</b>"</span><span class="site-arrow">↗</span>`;

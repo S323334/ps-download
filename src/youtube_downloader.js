@@ -133,36 +133,79 @@ class YouTubeDownloader {
       throw new Error('សូមបញ្ចូលលីង YouTube ត្រឹមត្រូវ (Please enter a valid YouTube URL)');
     }
 
-    const ytExecutable = await this.resolveYtDlp();
     const cleanUrl = url.trim();
-    return new Promise((resolve, reject) => {
+    const ytExecutable = await this.resolveYtDlp();
+
+    const runYtDlp = (extraArgs = []) => new Promise((resolve, reject) => {
       const args = [
-        '--extractor-args', 'youtube:player_client=android,web',
+        ...extraArgs,
         '--dump-single-json',
         '--no-warnings',
-        '--no-playlist',
-        cleanUrl
+        '--no-playlist'
       ];
+      const yCookies = path.join(__dirname, '..', 'data', 'youtube_cookies.txt');
+      const gCookies = path.join(__dirname, '..', 'data', 'cookies.txt');
+      if (fs.existsSync(yCookies)) args.push('--cookies', yCookies);
+      else if (fs.existsSync(gCookies)) args.push('--cookies', gCookies);
 
-      execFile(ytExecutable, args, { maxBuffer: 60 * 1024 * 1024, timeout: 35000 }, (err, stdout, stderr) => {
-        if (err) {
-          const errMsg = stderr || err.message;
-          console.error('[YouTube Info Error]', errMsg);
-          return reject(new Error(errMsg.includes('Video unavailable') ? 'វីដេអូនេះមិនមាន ឬត្រូវបានបិទ (Video unavailable)' : errMsg));
-        }
+      args.push(cleanUrl);
 
+      execFile(ytExecutable, args, { maxBuffer: 60 * 1024 * 1024, timeout: 25000 }, (err, stdout, stderr) => {
+        if (err) return reject(new Error(stderr || err.message));
         try {
-          const data = JSON.parse(stdout);
-          const formats = data.formats || [];
-          const heights = [...new Set(formats.map(f => f.height).filter(h => h && h > 0))].sort((a, b) => b - a);
+          resolve(JSON.parse(stdout));
+        } catch (e) {
+          reject(e);
+        }
+      });
+    });
 
-          const qualities = [];
-          qualities.push({
-            id: 'best',
-            label: '🌟 Max Quality (Auto)',
-            height: heights[0] || 1080,
-            note: 'Auto 4K/1080p (Best Video + Audio)'
-          });
+    let data = null;
+
+    // Strategy 1: Default yt-dlp resolver
+    try {
+      data = await runYtDlp();
+    } catch (e1) {
+      console.warn('[YouTube Info] Strategy 1 failed:', e1.message);
+      // Strategy 2: iOS / mweb extractor
+      try {
+        data = await runYtDlp(['--extractor-args', 'youtube:player_client=ios,mweb']);
+      } catch (e2) {
+        console.warn('[YouTube Info] Strategy 2 failed:', e2.message);
+      }
+    }
+
+    // Strategy 3: Fast oEmbed metadata fallback if yt-dlp is IP throttled
+    if (!data) {
+      try {
+        const oeRes = await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(cleanUrl)}&format=json`);
+        if (oeRes.ok) {
+          const oe = await oeRes.json();
+          data = {
+            title: oe.title || 'YouTube Video',
+            uploader: oe.author_name || 'YouTube Creator',
+            thumbnail: oe.thumbnail_url || '',
+            formats: []
+          };
+        }
+      } catch (_) {}
+    }
+
+    if (!data) {
+      throw new Error('បរាជ័យក្នុងការវិភាគវីដេអូ YouTube (YouTube bot detection or video unavailable)');
+    }
+
+    try {
+      const formats = data.formats || [];
+      const heights = [...new Set(formats.map(f => f.height).filter(h => h && h > 0))].sort((a, b) => b - a);
+
+      const qualities = [];
+      qualities.push({
+        id: 'best',
+        label: '🌟 Max Quality (Auto)',
+        height: heights[0] || 1080,
+        note: 'Auto 4K/1080p (Best Video + Audio)'
+      });
 
           if (heights.some(h => h >= 2160)) {
             qualities.push({
@@ -235,12 +278,10 @@ class YouTubeDownloader {
             description: (data.description || '').substring(0, 300)
           };
 
-          resolve(result);
-        } catch (parseErr) {
-          reject(new Error('បរាជ័យក្នុងការវិភាគទិន្នន័យ (Failed to parse video info)'));
-        }
-      });
-    });
+      return result;
+    } catch (parseErr) {
+      throw new Error('បរាជ័យក្នុងការវិភាគទិន្នន័យ (Failed to parse video info)');
+    }
   }
 
   /**
@@ -278,13 +319,15 @@ class YouTubeDownloader {
     this.tasks.set(taskId, task);
 
     const args = [
-      '--extractor-args', 'youtube:player_client=android,web',
       '--newline',
-      '--write-thumbnail',
-      '--convert-thumbnails', 'jpg',
       '--progress-template', '%(progress._percent_str)s|%(progress._speed_str)s|%(progress._eta_str)s|%(progress._total_bytes_estimate_str)s|%(progress.filename)s',
       '--no-playlist'
     ];
+
+    const yCookies = path.join(__dirname, '..', 'data', 'youtube_cookies.txt');
+    const gCookies = path.join(__dirname, '..', 'data', 'cookies.txt');
+    if (fs.existsSync(yCookies)) args.push('--cookies', yCookies);
+    else if (fs.existsSync(gCookies)) args.push('--cookies', gCookies);
 
     // Format selection
     if (quality === 'audio') {

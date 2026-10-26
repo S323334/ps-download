@@ -809,6 +809,73 @@ class HongguoScraper {
       }
     } catch (e) {}
 
+    // 1. Direct Hongguo Search API (Official internal endpoint)
+    const apiUrl = `${this.baseUrl}/api/search/result?query=${encodeURIComponent(searchTarget)}`;
+    try {
+      const jsonStr = await fetchText(apiUrl);
+      if (jsonStr) {
+        const json = JSON.parse(jsonStr);
+        const rawList = json.searchList || [];
+        if (Array.isArray(rawList) && rawList.length > 0) {
+          const items = [];
+          for (let idx = 0; idx < rawList.length; idx++) {
+            const item = rawList[idx];
+            const vData = item.video_data || {};
+            const sid = String(vData.series_id || item.keyword || item.series_id || '');
+            if (!sid) continue;
+
+            let cats = [];
+            if (Array.isArray(vData.category_list)) {
+              cats = vData.category_list.map(c => typeof c === 'object' ? c.name : c).filter(Boolean);
+            } else if (vData.category) {
+              cats = Array.isArray(vData.category) ? vData.category : [vData.category];
+            } else if (item.category) {
+              cats = Array.isArray(item.category) ? item.category : [item.category];
+            }
+            if (cats.length === 0) cats = ['短剧'];
+
+            const title = vData.series_title || item.name || item.series_title || item.series_name || 'Untitled';
+            const cover = vData.series_cover || item.series_cover || '';
+            const epCnt = parseInt(vData.episode_cnt || item.episode_cnt || 0, 10);
+            const intro = vData.series_intro || item.series_intro || '';
+            const score = (vData.hot_score_data && vData.hot_score_data.text) ? String(vData.hot_score_data.text) : (vData.hot_score_data && vData.hot_score_data.score ? '9.8' : String(item.score || '9.8'));
+            const playCnt = (vData.hot_score_data && vData.hot_score_data.score) ? parseInt(vData.hot_score_data.score, 10) : parseInt(vData.play_cnt || item.play_cnt || 0, 10);
+
+            items.push({
+              series_id: sid,
+              title,
+              episode_cnt: epCnt,
+              score,
+              play_cnt: playCnt,
+              cover,
+              intro,
+              rank: idx + 1,
+              category: cats,
+              status: 'completed'
+            });
+          }
+
+          if (items.length > 0) {
+            const total = items.length;
+            const res = {
+              items,
+              total,
+              page: 1,
+              page_size: pageSize,
+              total_pages: Math.max(1, Math.ceil(total / pageSize)),
+              has_next: false,
+              has_prev: false
+            };
+            _SEARCH_CACHE.set(cacheKey, { timestamp: Date.now(), data: res });
+            return res;
+          }
+        }
+      }
+    } catch (e) {
+      console.warn(`[Scraper] Hongguo live API search failed for query "${cleaned}":`, e.message);
+    }
+
+    // 2. Legacy SSR Router Data extraction fallback
     const searchUrl = `${this.baseUrl}/search/${encodeURIComponent(searchTarget)}`;
     try {
       const html = await fetchText(searchUrl);

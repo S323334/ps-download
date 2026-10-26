@@ -122,6 +122,16 @@ class TikTokDownloader {
     // 0. Facebook (Reels, Watch, Video)
     if (platform === 'facebook') {
       try {
+        const directFb = await this._scrapeFacebook(cleanUrl);
+        if (directFb && directFb.play_url) {
+          directFb.platform = 'facebook';
+          return directFb;
+        }
+      } catch (e) {
+        console.warn('[TikTokDownloader] Direct Facebook scraper warning:', e.message);
+      }
+
+      try {
         const fbData = await this._analyzeWithYtDlp(cleanUrl, 'facebook');
         if (fbData && fbData.play_url) {
           fbData.platform = 'facebook';
@@ -129,7 +139,7 @@ class TikTokDownloader {
         }
       } catch (err) {
         console.warn('[TikTokDownloader] Facebook yt-dlp error:', err.message);
-        throw new Error('បរាជ័យក្នុងការវិភាគវីដេអូ Facebook: ' + err.message);
+        throw new Error('បរាជ័យក្នុងការវិភាគវីដេអូ Facebook (សូមពិនិត្យមើលថាជា Public Video ឬ Reels): ' + err.message);
       }
     }
 
@@ -463,6 +473,116 @@ class TikTokDownloader {
       };
 
       fetchWithRedirect(url);
+    });
+  }
+
+  _scrapeFacebook(url) {
+    return new Promise((resolve) => {
+      const fetchWithRedirects = (targetUrl, count = 0) => {
+        if (count > 5) return resolve(null);
+        try {
+          const parsed = new URL(targetUrl);
+          const client = parsed.protocol === 'https:' ? https : http;
+          const req = client.get(targetUrl, {
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
+              'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+              'Accept-Language': 'en-US,en;q=0.9'
+            },
+            timeout: 10000
+          }, (res) => {
+            if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+              let nextLoc = res.headers.location;
+              if (!nextLoc.startsWith('http')) nextLoc = new URL(nextLoc, targetUrl).href;
+              return fetchWithRedirects(nextLoc, count + 1);
+            }
+            let html = '';
+            res.on('data', c => html += c);
+            res.on('end', () => {
+              function cleanJsonUrl(raw) {
+                if (!raw) return '';
+                return raw
+                  .replace(/\\u0025/g, '%')
+                  .replace(/\\u0026/g, '&')
+                  .replace(/\\\//g, '/')
+                  .replace(/&amp;/g, '&');
+              }
+
+              const hdMatch = html.match(/"playable_url_quality_hd"\s*:\s*"([^"]+)"/) ||
+                              html.match(/browser_native_hd_url\s*:\s*"([^"]+)"/) ||
+                              html.match(/"browser_native_hd_url"\s*:\s*"([^"]+)"/);
+              const sdMatch = html.match(/"playable_url"\s*:\s*"([^"]+)"/) ||
+                              html.match(/browser_native_sd_url\s*:\s*"([^"]+)"/) ||
+                              html.match(/"browser_native_sd_url"\s*:\s*"([^"]+)"/);
+
+              const playUrl = cleanJsonUrl(hdMatch ? hdMatch[1] : (sdMatch ? sdMatch[1] : ''));
+              const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i) || html.match(/<meta[^>]*property="og:title"[^>]*content="([^"]+)"/i);
+              const thumbMatch = html.match(/<meta[^>]*property="og:image"[^>]*content="([^"]+)"/i);
+
+              if (playUrl) {
+                return resolve({
+                  ok: true,
+                  platform: 'facebook',
+                  id: `fb_${Date.now()}`,
+                  title: titleMatch ? titleMatch[1].replace(/ \| Facebook/g, '').trim() : 'Facebook Video',
+                  cover: thumbMatch ? cleanJsonUrl(thumbMatch[1]) : '',
+                  play_url: playUrl,
+                  wmplay_url: playUrl,
+                  music_url: '',
+                  duration: 0,
+                  duration_str: '00:00',
+                  author: {
+                    nickname: 'Facebook Creator',
+                    unique_id: 'fb',
+                    avatar: ''
+                  },
+                  raw_url: targetUrl
+                });
+              }
+
+              // Free API backup if direct regex didn't find stream in static HTML
+              const apiUrl = `https://api.vkrdown.com/api/vkr.php?url=${encodeURIComponent(targetUrl)}`;
+              https.get(apiUrl, { timeout: 8000 }, (apiRes) => {
+                let apiData = '';
+                apiRes.on('data', ac => apiData += ac);
+                apiRes.on('end', () => {
+                  try {
+                    const apiJson = JSON.parse(apiData);
+                    const vData = apiJson.data || apiJson;
+                    const streamUrl = vData.url || (vData.downloads && vData.downloads[0] && vData.downloads[0].url) || '';
+                    if (streamUrl) {
+                      return resolve({
+                        ok: true,
+                        platform: 'facebook',
+                        id: `fb_${Date.now()}`,
+                        title: vData.title || (titleMatch ? titleMatch[1] : 'Facebook Video'),
+                        cover: vData.thumbnail || (thumbMatch ? cleanJsonUrl(thumbMatch[1]) : ''),
+                        play_url: streamUrl,
+                        wmplay_url: streamUrl,
+                        music_url: '',
+                        duration: 0,
+                        duration_str: '00:00',
+                        author: {
+                          nickname: 'Facebook Creator',
+                          unique_id: 'fb',
+                          avatar: ''
+                        },
+                        raw_url: targetUrl
+                      });
+                    }
+                  } catch (_) {}
+                  resolve(null);
+                });
+              }).on('error', () => resolve(null));
+            });
+          });
+          req.on('timeout', () => { req.destroy(); resolve(null); });
+          req.on('error', () => resolve(null));
+        } catch (_) {
+          resolve(null);
+        }
+      };
+      fetchWithRedirects(url);
     });
   }
 
